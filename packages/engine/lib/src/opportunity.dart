@@ -1,0 +1,277 @@
+import 'dart:math' as math;
+
+import 'package:quant_core/quant_core.dart';
+
+import 'asset_signals.dart';
+import 'backtest.dart';
+import 'leverage.dart';
+import 'macro_regime.dart';
+
+/// Uma evidência objetiva que contribuiu para a nota da oportunidade.
+/// [contribuicao] em [-1, 1]: positivo empurra para COMPRA, negativo para VENDA.
+class Evidencia {
+  const Evidencia(this.texto, this.contribuicao);
+  final String texto;
+  final double contribuicao;
+}
+
+enum DirecaoOportunidade { compra, venda, neutro }
+
+/// Oportunidade classificada — nunca uma "recomendação". O engine mede,
+/// pontua e explica; a decisão é humana.
+class Oportunidade {
+  const Oportunidade({
+    required this.indicator,
+    required this.horizon,
+    required this.direcao,
+    required this.score,
+    required this.evidencias,
+    required this.sinais,
+    this.alavancagem,
+    this.backtest,
+  });
+
+  final Indicator indicator;
+  final Horizon horizon;
+  final DirecaoOportunidade direcao;
+
+  /// Convicção 0–100 na direção apontada (0 = nada a fazer).
+  final double score;
+  final List<Evidencia> evidencias;
+  final AssetSignals sinais;
+  final LeverageAdvice? alavancagem;
+  final BacktestResult? backtest;
+}
+
+/// Combina sinais do ativo + regime macro + robustez do backtest em uma
+/// nota por horizonte. Todos os componentes são funções `tanh` de razões
+/// mensuráveis — sem parâmetro subjetivo escondido.
+class OpportunityEngine {
+  const OpportunityEngine();
+
+  List<Oportunidade> avaliar({
+    required List<Indicator> ativos,
+    required Map<String, AssetSignals> sinais,
+    required Map<String, BacktestResult> backtests,
+    required MacroRegime? macro,
+    required Horizon horizon,
+  }) {
+    final out = <Oportunidade>[];
+    for (final ind in ativos.where((a) => a.negociavel)) {
+      final s = sinais[ind.id];
+      if (s == null) continue;
+      out.add(_avaliarAtivo(ind, s, backtests[ind.id], macro, horizon));
+    }
+    out.sort((a, b) => b.score.compareTo(a.score));
+    return out;
+  }
+
+  Oportunidade _avaliarAtivo(
+    Indicator ind,
+    AssetSignals s,
+    BacktestResult? bt,
+    MacroRegime? macro,
+    Horizon horizon,
+  ) {
+    final ev = <Evidencia>[];
+    void add(String texto, double c) => ev.add(Evidencia(texto, c));
+
+    var raw = 0.0;
+    switch (horizon) {
+      case Horizon.curto:
+        if (s.zScore60d != null) {
+          final c = -_tanh(s.zScore60d! / 2) * 0.45;
+          add(
+              'Preço a ${s.zScore60d!.toStringAsFixed(1)}σ da média de 60 '
+              'pregões (${s.zScore60d! > 0 ? "esticado" : "comprimido"})',
+              c);
+          raw += c;
+        }
+        if (s.ret1m != null) {
+          final c = _tanh(s.ret1m! / 0.05) * 0.25;
+          add('Retorno de 1 mês: ${_pct(s.ret1m!)}', c);
+          raw += c;
+        }
+        if (s.distSma200 != null) {
+          final c = _tanh(s.distSma200! / 0.10) * 0.20;
+          add(
+              'Preço ${_pct(s.distSma200!.abs())} '
+              '${s.distSma200! >= 0 ? "acima" : "abaixo"} da SMA-200', c);
+          raw += c;
+        }
+
+      case Horizon.medio:
+        if (s.momentum12x1 != null) {
+          final c = _tanh(s.momentum12x1! / 0.20) * 0.45;
+          add('Momentum 12-1: ${_pct(s.momentum12x1!)}', c);
+          raw += c;
+        }
+        if (s.distSma200 != null) {
+          final c = _tanh(s.distSma200! / 0.10) * 0.30;
+          add(
+              'Tendência: preço ${_pct(s.distSma200!.abs())} '
+              '${s.distSma200! >= 0 ? "acima" : "abaixo"} da SMA-200', c);
+          raw += c;
+        }
+        if (s.zScore60d != null) {
+          final c = -_tanh(s.zScore60d! / 2) * 0.10;
+          raw += c;
+        }
+        final m = _macroAjuste(ind.id, macro);
+        if (m != null) {
+          add(m.texto, m.contribuicao);
+          raw += m.contribuicao;
+        }
+
+      case Horizon.longo:
+        if (s.cagr3y != null) {
+          final c = _tanh(s.cagr3y! / 0.10) * 0.45;
+          add('Tendência secular (CAGR 3 anos): ${_pct(s.cagr3y!)}', c);
+          raw += c;
+        }
+        if (s.ddDoTopo != null && s.cagr3y != null && s.cagr3y! > 0) {
+          // Ativo com tendência secular positiva negociando longe do topo:
+          // historicamente, ponto de entrada — não de fuga.
+          final c = _tanh(-s.ddDoTopo! / 0.35) * 0.30;
+          add('Distância do topo histórico: ${_pct(s.ddDoTopo!)}', c);
+          raw += c;
+        }
+        if (s.distSma200 != null) {
+          final c = _tanh(s.distSma200! / 0.15) * 0.15;
+          raw += c;
+        }
+        final m = _macroAjuste(ind.id, macro);
+        if (m != null) {
+          add(m.texto, m.contribuicao * 0.7);
+          raw += m.contribuicao * 0.7;
+        }
+    }
+
+    // Freio de robustez: se a estratégia de tendência deste ativo não
+    // sobreviveu fora da amostra, a convicção cai 30%.
+    if (bt != null && !bt.sobreviveuForaDaAmostra) {
+      add('Sinal de tendência NÃO sobreviveu fora da amostra neste ativo '
+          '(Sharpe OOS ${bt.estrategiaOos.sharpe.toStringAsFixed(2)})', 0);
+      raw *= 0.7;
+    }
+    // Vol extrema no curto prazo derruba convicção (ruído >> sinal).
+    if (horizon == Horizon.curto &&
+        s.vol30dAnn != null &&
+        s.vol30dAnn! > 0.60) {
+      raw *= 0.7;
+      add('Volatilidade 30d anualizada de ${_pct(s.vol30dAnn!)} — '
+          'sinal de curto prazo pouco confiável', 0);
+    }
+
+    final direcao = raw.abs() < 0.15
+        ? DirecaoOportunidade.neutro
+        : (raw > 0 ? DirecaoOportunidade.compra : DirecaoOportunidade.venda);
+    final score = (raw.abs().clamp(0.0, 1.0) * 100).roundToDouble();
+
+    LeverageAdvice? lev;
+    if (direcao != DirecaoOportunidade.neutro &&
+        bt != null &&
+        s.vol1yAnn != null) {
+      // μ estimado da estratégia de tendência histórica (não do buy & hold):
+      // é o edge mensurável que temos, com validação fora da amostra.
+      lev = leverageAdvice(
+        retornoExcedenteAnual: bt.estrategia.cagr.isNaN ? 0 : bt.estrategia.cagr,
+        volAnual: s.vol1yAnn!,
+      );
+    }
+
+    return Oportunidade(
+      indicator: ind,
+      horizon: horizon,
+      direcao: direcao,
+      score: score,
+      evidencias: ev,
+      sinais: s,
+      alavancagem: lev,
+      backtest: bt,
+    );
+  }
+
+  /// Ajuste macro por classe de ativo: relações econômicas clássicas e
+  /// mensuráveis (juro real, direção da Selic, dólar global, Treasury).
+  Evidencia? _macroAjuste(String id, MacroRegime? m) {
+    if (m == null) return null;
+    switch (id) {
+      case 'ibovespa':
+        if (m.selicDirecao == Direcao.caindo) {
+          return const Evidencia(
+              'Selic em ciclo de queda — historicamente favorável a ações '
+              'brasileiras com defasagem', 0.15);
+        }
+        if (m.selicDirecao == Direcao.subindo) {
+          return const Evidencia(
+              'Selic em ciclo de alta — concorrência da renda fixa pesa '
+              'sobre ações brasileiras', -0.15);
+        }
+        if (!m.juroRealAa.isNaN && m.juroRealAa > 0.07) {
+          return Evidencia(
+              'Juro real de ${_pct(m.juroRealAa)} a.a. — renda fixa muito '
+              'competitiva contra bolsa', -0.10);
+        }
+      case 'dolar_ptax':
+        if (!m.juroRealAa.isNaN && m.juroRealAa > 0.06) {
+          return Evidencia(
+              'Juro real de ${_pct(m.juroRealAa)} a.a. atrai carry trade — '
+              'pressão vendedora estrutural no dólar/real', -0.15);
+        }
+      case 'ouro':
+      case 'prata':
+        if (m.us10yDirecao == Direcao.caindo) {
+          return const Evidencia(
+              'Treasury 10a em queda reduz o custo de oportunidade de '
+              'metais sem yield', 0.15);
+        }
+        if (m.dxyAcimaSma200 == false) {
+          return const Evidencia(
+              'Dólar global (DXY) abaixo da SMA-200 — vento a favor de '
+              'metais preciosos', 0.10);
+        }
+      case 'sp500':
+      case 'nasdaq':
+        if (m.us10yDirecao == Direcao.caindo) {
+          return const Evidencia(
+              'Treasury 10a em queda — suporte a múltiplos de ações '
+              'americanas', 0.10);
+        }
+        if (m.us10yDirecao == Direcao.subindo) {
+          return const Evidencia(
+              'Treasury 10a em alta — pressão sobre múltiplos de ações '
+              'americanas', -0.10);
+        }
+      case 'bitcoin':
+        if (m.dxyAcimaSma200 == false) {
+          return const Evidencia(
+              'Dólar global fraco (DXY < SMA-200) — historicamente '
+              'correlacionado a apetite por risco/cripto', 0.10);
+        }
+      case 'petroleo_wti':
+      case 'gas_natural':
+      case 'milho':
+      case 'soja':
+        if (m.dxyAcimaSma200 == true) {
+          return const Evidencia(
+              'Dólar global forte (DXY > SMA-200) — vento contra '
+              'commodities precificadas em US\$', -0.10);
+        }
+        if (m.dxyAcimaSma200 == false) {
+          return const Evidencia(
+              'Dólar global fraco (DXY < SMA-200) — vento a favor de '
+              'commodities precificadas em US\$', 0.10);
+        }
+    }
+    return null;
+  }
+
+  static double _tanh(double x) {
+    final e2 = math.exp(2 * x.clamp(-20.0, 20.0));
+    return (e2 - 1) / (e2 + 1);
+  }
+
+  static String _pct(double v) =>
+      '${(v * 100).toStringAsFixed(1).replaceAll('.', ',')}%';
+}

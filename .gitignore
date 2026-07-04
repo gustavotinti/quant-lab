@@ -1,0 +1,13 @@
+# Dart
+.dart_tool/
+build/
+
+# Dados brutos baixados (regeneráveis com `lab update`)
+data/series/
+
+# Relatórios gerados (regeneráveis com `lab report`)
+reports/
+
+# Segredos
+.env
+*.local.json

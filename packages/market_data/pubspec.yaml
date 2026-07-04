@@ -1,0 +1,15 @@
+name: quant_market_data
+description: Infraestrutura de dados do QuantLab — adaptadores BCB SGS e Yahoo Finance, catálogo de indicadores e persistência local.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  http: ^1.2.0
+  quant_core: ^0.1.0
+
+dev_dependencies:
+  test: ^1.25.0

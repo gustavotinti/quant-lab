@@ -1,0 +1,15 @@
+name: quant_lab_workspace
+description: >-
+  QuantLab — Laboratório de Descoberta Econômica. Monorepo (pub workspace)
+  com o motor matemático em Dart puro; Flutter entra depois como cliente.
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+workspace:
+  - packages/core
+  - packages/stats
+  - packages/market_data
+  - packages/engine
+  - apps/lab_cli

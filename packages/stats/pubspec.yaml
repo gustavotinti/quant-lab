@@ -1,0 +1,14 @@
+name: quant_stats
+description: Motor estatístico do QuantLab — matemática pura, testada exaustivamente. Cada fórmula existe em um único lugar.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  quant_core: ^0.1.0
+
+dev_dependencies:
+  test: ^1.25.0

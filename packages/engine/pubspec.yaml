@@ -1,0 +1,15 @@
+name: quant_engine
+description: Motores de análise do QuantLab — sinais, regime macro, backtest, oportunidades, alavancagem e laboratório de hipóteses.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  quant_core: ^0.1.0
+  quant_stats: ^0.1.0
+
+dev_dependencies:
+  test: ^1.25.0
