@@ -37,12 +37,18 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
 - ⬜ Clima (INMET/NOAA): temperatura, precipitação, El Niño/La Niña (ONI).
 - Meta: 50–100 variáveis fundamentais, todas nível A/B.
 
-## Fase 3 — Firebase (espelho, não dono)
+## 🔄 Fase 3 — Firebase (espelho, não dono) — parcial
 
-- Cloud Function agendada (cron diário): roda update + engines e grava
-  resultados no Firestore (`indicators`, `historical_data`, `opportunities`,
-  `hypotheses`, `reports`).
-- Auth Google + regras de segurança.
+- ✅ Projeto `quantlab-lde` criado (04/07/2026), separado do Desafio Pago.
+- ✅ Hosting no ar: https://quantlab-lde.web.app (landing + relatório do
+  dia em /relatorio.txt).
+- ✅ Firestore `(default)` criado com regras fechadas; app Web registrado
+  (config em docs/FIREBASE.md).
+- ⬜ Plano Blaze (cartão no console — ação manual) para liberar Functions.
+- ⬜ Cloud Function agendada (cron diário): roda update + engines e grava
+  resultados no Firestore (`indicators`, `opportunities`, `hypotheses`) e
+  publica o relatório no Hosting.
+- ⬜ Auth Google + espelho público com regras.
 - O arquivo local continua funcionando — Firestore é só mais um
   `SeriesRepository`.
 

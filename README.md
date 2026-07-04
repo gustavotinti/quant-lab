@@ -79,11 +79,13 @@ apps/
 docs/            Arquitetura, metodologia e roadmap.
 ```
 
-## Stack planejada
+## Stack
 
-- **Dart puro** no núcleo (já) → **Flutter** mobile/web como cliente (fase
-  futura) → **Firebase** (Auth Google, Firestore, Functions com cron
-  diário) → **GitHub** para versão e CI.
+- **Dart puro** no núcleo (pronto) · **Firebase** projeto `quantlab-lde`
+  com Hosting no ar (**https://quantlab-lde.web.app**) e Firestore criado
+  (docs/FIREBASE.md) · **GitHub** `gustavotinti/quant-lab` (privado).
+- Próximos: Functions com cron diário (precisa Blaze), Flutter
+  mobile/web como cliente, Auth Google.
 
 ## Aviso legal
 

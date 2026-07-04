@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fase 3: o Firestore será preenchido por Function agendada (Admin SDK,
+    // que ignora estas regras). Clientes não têm acesso até o app Flutter
+    // definir o que é público (espelho sem dados sensíveis, como no padrão
+    // publicProfiles do Desafio Pago).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

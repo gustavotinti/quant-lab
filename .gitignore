@@ -7,6 +7,11 @@ data/series/
 
 # Relatórios gerados (regeneráveis com `lab report`)
 reports/
+public/relatorio.txt
+
+# Firebase
+.firebase/
+firebase-debug.log
 
 # Segredos
 .env

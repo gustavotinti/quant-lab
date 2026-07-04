@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>QuantLab — Laboratório de Descoberta Econômica</title>
+<style>
+  :root {
+    --bg: #0b0f14; --card: #121a24; --border: #1e2a38;
+    --text: #d7e1ec; --dim: #8296ab; --accent: #4cc38a; --warn: #e5a54b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 16px/1.6 "Segoe UI", system-ui, sans-serif;
+    display: flex; justify-content: center; padding: 48px 16px;
+  }
+  main { max-width: 720px; width: 100%; }
+  h1 { font-size: 1.9rem; letter-spacing: -0.5px; }
+  h1 span { color: var(--accent); }
+  .tag { color: var(--dim); margin: 4px 0 32px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 24px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 0.85rem; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--dim); margin-bottom: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .grid .card { text-align: center; margin: 0; }
+  .num { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+  .lbl { font-size: 0.8rem; color: var(--dim); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .regra { border-left: 3px solid var(--accent); padding-left: 14px;
+    color: var(--dim); font-style: italic; }
+  .aviso { border-left: 3px solid var(--warn); padding-left: 14px;
+    font-size: 0.85rem; color: var(--dim); margin-top: 32px; }
+  ul { list-style: none; }
+  ul li::before { content: "· "; color: var(--accent); }
+  footer { margin-top: 32px; font-size: 0.8rem; color: var(--dim); }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Quant<span>Lab</span></h1>
+  <p class="tag">Laboratório de Descoberta Econômica — medir, testar, destruir hipóteses. Nunca adivinhar.</p>
+
+  <div class="grid">
+    <div class="card"><div class="num">26</div><div class="lbl">indicadores oficiais<br>(BCB · bolsas)</div></div>
+    <div class="card"><div class="num">3</div><div class="lbl">estratégias medidas<br>por ativo</div></div>
+    <div class="card"><div class="num">70/30</div><div class="lbl">treino / teste em<br>toda hipótese</div></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Regra de ouro</h2>
+    <p class="regra">Toda hipótese deriva exclusivamente de dados objetivos,
+    públicos e historicamente verificáveis. Se a internet cair por um mês e
+    o dado deixar de existir oficialmente, ele não entra no sistema.</p>
+  </div>
+
+  <div class="card">
+    <h2>Relatório do dia</h2>
+    <p><a href="/relatorio.txt">→ abrir o último relatório gerado</a></p>
+  </div>
+
+  <div class="card">
+    <h2>O que o motor faz</h2>
+    <ul>
+      <li>Regime macro só com aritmética (Selic, IPCA, juro real, DXY, Treasury)</li>
+      <li>Oportunidades por horizonte com evidências numéricas explícitas</li>
+      <li>Alavancagem máxima por meio-Kelly ∧ alvo de volatilidade</li>
+      <li>Backtests com validação fora da amostra e walk-forward</li>
+      <li>Cenários análogos: o que aconteceu após situações parecidas</li>
+      <li>Minerador de hipóteses com correção de Benjamini-Hochberg</li>
+    </ul>
+  </div>
+
+  <p class="aviso">Este site publica estatísticas derivadas de dados
+  públicos. Não é recomendação de investimento. Rentabilidade passada não
+  garante resultado futuro. Alavancagem pode gerar perdas superiores ao
+  capital investido.</p>
+
+  <footer>QuantLab · projeto pessoal · dados: Banco Central do Brasil (SGS)
+  e bolsas via Yahoo Finance</footer>
+</main>
+</body>
+</html>
