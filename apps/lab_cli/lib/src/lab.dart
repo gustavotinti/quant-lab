@@ -16,7 +16,7 @@ class LabContext {
 
   final Map<String, TimeSeries> series;
   final Map<String, AssetSignals> sinais;
-  final Map<String, BacktestResult> backtests;
+  final Map<String, BacktestPack> backtests;
   final MacroRegime? macro;
 }
 
@@ -51,13 +51,12 @@ class Lab {
     }
 
     final sinais = <String, AssetSignals>{};
-    final backtests = <String, BacktestResult>{};
+    final backtests = <String, BacktestPack>{};
     for (final ind in catalogoInicial.where((i) => i.negociavel)) {
       final s = series[ind.id];
       if (s == null || s.length < 60) continue;
       sinais[ind.id] = AssetSignals.fromDaily(s);
-      final bt = trendBacktest(s);
-      if (bt != null) backtests[ind.id] = bt;
+      backtests[ind.id] = BacktestPack.fromDaily(s);
     }
 
     MacroRegime? macro;

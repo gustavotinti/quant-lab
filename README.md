@@ -35,6 +35,12 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
   nos 30% restantes.
 - **Incerteza quantificada**: IC 90% do Sharpe via bootstrap de blocos
   móveis; **walk-forward em 3 janelas** independentes no backtest.
+- **3 estratégias medidas por ativo** (tendência SMA-200, momentum 12-1,
+  reversão z-60 com filtro de tendência) — cada horizonte usa o edge da
+  estratégia compatível.
+- **Cenários análogos** (`lab scenarios <id>`): quantas vezes o ativo já
+  esteve numa situação parecida com hoje e a distribuição do que aconteceu
+  nos 3/12 meses seguintes (mediana, quartis, % positivos).
 - **Relatório diário em markdown** com tudo acima.
 
 ## Quickstart
@@ -48,6 +54,7 @@ dart run lab_cli:lab opportunities    # oportunidades nos 3 horizontes
 dart run lab_cli:lab hypotheses discover
 dart run lab_cli:lab report           # gera reports/relatorio_AAAA-MM-DD.md
 dart run lab_cli:lab analyze ibovespa # raio-X de um ativo
+dart run lab_cli:lab scenarios bitcoin # cenários análogos históricos
 ```
 
 Testes: `dart test` dentro de `packages/stats` e `packages/engine`.

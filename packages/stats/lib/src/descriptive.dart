@@ -31,3 +31,14 @@ double zScoreLast(List<double> xs) {
   if (sd == 0) return 0;
   return (xs.last - mean(xs)) / sd;
 }
+
+/// Quantil [p] ∈ [0, 1] com interpolação linear (ordena uma cópia).
+double quantile(List<double> xs, double p) {
+  if (xs.isEmpty) return double.nan;
+  final sorted = [...xs]..sort();
+  final pos = p.clamp(0.0, 1.0) * (sorted.length - 1);
+  final lo = pos.floor();
+  final hi = pos.ceil();
+  if (lo == hi) return sorted[lo];
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}

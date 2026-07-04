@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'descriptive.dart';
 import 'performance.dart';
 
 /// Intervalo de confiança para o Sharpe anualizado via bootstrap de blocos
@@ -36,21 +37,10 @@ import 'performance.dart';
   if (sims.length < iterations ~/ 2) {
     return (point: point, lower: double.nan, upper: double.nan);
   }
-  sims.sort();
   final alpha = (1 - confidence) / 2;
   return (
     point: point,
-    lower: _percentile(sims, alpha),
-    upper: _percentile(sims, 1 - alpha),
+    lower: quantile(sims, alpha),
+    upper: quantile(sims, 1 - alpha),
   );
-}
-
-/// Percentil com interpolação linear em lista JÁ ordenada.
-double _percentile(List<double> sorted, double p) {
-  if (sorted.isEmpty) return double.nan;
-  final pos = p * (sorted.length - 1);
-  final lo = pos.floor();
-  final hi = pos.ceil();
-  if (lo == hi) return sorted[lo];
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
 }

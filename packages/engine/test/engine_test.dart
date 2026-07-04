@@ -66,6 +66,54 @@ void main() {
     });
   });
 
+  group('estratégias adicionais', () {
+    final bull = _serieDiaria(
+        'bull', (i) => 100 * math.pow(1.0006, i).toDouble(), 1500);
+
+    test('momentum 12-1 fica comprado em alta persistente', () {
+      final bt = strategyBacktest(bull, StrategyKind.momentum)!;
+      expect(bt.kind, StrategyKind.momentum);
+      expect(bt.estrategia.totalReturn, greaterThan(0));
+      expect(bt.sobreviveuForaDaAmostra, isTrue);
+    });
+
+    test('reversão fica de fora em tendência limpa (z nunca extremo)', () {
+      final bt = strategyBacktest(bull, StrategyKind.reversao)!;
+      // sem entradas → retorno zero, mas nunca perde
+      expect(bt.estrategia.totalReturn, greaterThanOrEqualTo(0));
+      expect(bt.estrategia.maxDd, greaterThanOrEqualTo(-0.05));
+    });
+
+    test('pack mapeia estratégia por horizonte', () {
+      final pack = BacktestPack.fromDaily(bull);
+      expect(pack.porHorizonte(Horizon.curto)!.kind, StrategyKind.reversao);
+      expect(pack.porHorizonte(Horizon.medio)!.kind, StrategyKind.momentum);
+      expect(pack.porHorizonte(Horizon.longo)!.kind, StrategyKind.tendencia);
+    });
+  });
+
+  group('cenários análogos', () {
+    test('em alta persistente, todos os análogos tiveram futuro positivo', () {
+      final serie = _serieDiaria(
+          'up', (i) => 100 * math.pow(1.0005, i).toDouble(), 1500);
+      final cen = analogousScenarios(serie)!;
+      expect(cen.nAnalogos, greaterThanOrEqualTo(5));
+      expect(cen.fwd3m!.pctPositivo, 1.0);
+      expect(cen.fwd3m!.mediana, greaterThan(0));
+      // episódios espaçados: nunca dois análogos no mesmo mês
+      for (var i = 1; i < cen.datas.length; i++) {
+        expect(cen.datas[i].difference(cen.datas[i - 1]).inDays,
+            greaterThanOrEqualTo(21));
+      }
+    });
+
+    test('série curta não gera relatório', () {
+      expect(
+          analogousScenarios(_serieDiaria('mini', (i) => 100.0 + i, 300)),
+          isNull);
+    });
+  });
+
   group('leverageAdvice', () {
     test('kelly e teto de vol calculados corretamente', () {
       // μ=10%, σ=20% → kelly = 0.10/0.04 = 2.5; meio = 1.25; teto vol = 0.75

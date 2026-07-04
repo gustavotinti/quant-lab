@@ -44,13 +44,27 @@ convicção (|soma| × 100).
   sobreviveu fora da amostra, a convicção cai 30% e a falha é exibida como
   evidência.
 
-## Backtest de tendência
+## Backtests por estratégia
 
-Comprado quando o fechamento de ontem > SMA-200 de ontem; fora do mercado
-caso contrário (caixa rende 0; sem custos — mede poder preditivo, não
-corretagem). Métricas no período inteiro, **nos 30% finais (OOS)** e em
-**walk-forward de 3 janelas contíguas** (um sinal robusto tem Sharpe
-positivo na maioria das janelas, não só no agregado).
+Três regras mensuráveis, sempre decididas com dados até o fechamento de
+ontem (sem viés de antecipação); caixa rende 0, sem custos — medem poder
+preditivo do sinal, não corretagem:
+
+| Estratégia | Regra | Usada no horizonte |
+|---|---|---|
+| Tendência | comprado se fechamento > SMA-200 | longo |
+| Momentum 12-1 | comprado se momentum 12-1 > 0 | médio |
+| Reversão à média | compra z-60 < −1,5 **somente acima da SMA-200**; vende z-60 > +1,5 **somente abaixo**; zera em z = 0 | curto |
+
+O filtro de tendência na reversão é obrigatório: numa tendência suave o
+preço fica permanentemente ~1,7σ acima da média da própria janela — sem o
+filtro, a regra venderia contra altas persistentes (defeito detectado por
+teste sintético antes de ir para produção).
+
+Métricas no período inteiro, **nos 30% finais (OOS)** e em **walk-forward
+de 3 janelas contíguas** (um sinal robusto tem Sharpe positivo na maioria
+das janelas, não só no agregado). O μ da alavancagem e o freio de robustez
+de cada horizonte vêm da estratégia correspondente.
 
 ### Incerteza do Sharpe
 
@@ -69,6 +83,20 @@ Dois freios independentes; **vale o menor**, com teto absoluto de 3x
 
 Kelly ≤ 0 ⇒ alavancagem 0 ("matematicamente não alavancar"). Avisos de
 liquidação sempre presentes.
+
+## Cenários análogos
+
+Em vez de prever, o sistema pergunta: *"quantas vezes este ativo já esteve
+numa situação parecida com a de hoje — e o que aconteceu depois?"*
+
+1. "Situação" = vetor (momentum 12-1, distância da SMA-200, z-60).
+2. Análogo = data histórica cuja soma das distâncias normalizadas (em
+   desvios padrão de cada sinal) é ≤ 1,5.
+3. Episódios espaçados ≥ 21 pregões (o mesmo evento não conta duas vezes).
+4. Saída: distribuição empírica dos retornos 3m/12m seguintes — mediana,
+   quartis, % positivos, pior e melhor caso, com n explícito.
+
+É uma distribuição condicional histórica, não uma previsão pontual.
 
 ## Laboratório de hipóteses
 

@@ -28,6 +28,8 @@ Future<void> main(List<String> args) async {
       await _analyze(lab, rest);
     case 'opportunities':
       await _opportunities(lab, rest);
+    case 'scenarios':
+      await _scenarios(lab, rest);
     case 'hypotheses':
       await _hypotheses(lab, rest);
     case 'report':
@@ -47,6 +49,7 @@ Comandos:
   lab macro                        Regime macroeconômico atual
   lab analyze <id>                 Sinais + backtest de um ativo
   lab opportunities [horizonte]    Oportunidades (curto | medio | longo)
+  lab scenarios <id>               Cenários análogos históricos do ativo
   lab hypotheses discover|list     Minera/lista hipóteses defasadas
   lab report                       Gera relatório markdown em reports/
 
@@ -166,53 +169,98 @@ Future<void> _analyze(Lab lab, List<String> args) async {
     ['CAGR 3 anos', pct(s.cagr3y)],
   ]));
 
-  final bt = ctx.backtests[id];
-  if (bt != null) {
-    stdout.writeln('\nBACKTEST tendência (SMA-200) vs comprar-e-segurar — '
-        '${bt.estrategia.years.toStringAsFixed(1)} anos:');
+  final pack = ctx.backtests[id];
+  if (pack != null && pack.todos.isNotEmpty) {
+    final anos = pack.todos.first.estrategia.years.toStringAsFixed(1);
+    stdout.writeln('\nBACKTEST por estratégia — $anos anos '
+        '(sem custos; mede poder preditivo do sinal):');
     stdout.writeln(tabela([
-      '',
+      'estratégia',
       'CAGR',
       'vol',
       'Sharpe',
-      'máx. DD'
+      'máx. DD',
+      'Sharpe OOS',
+      'walk-fwd'
     ], [
-      [
-        'estratégia',
-        pct(bt.estrategia.cagr),
-        pct(bt.estrategia.volAnn, comSinal: false),
-        numBr(bt.estrategia.sharpe),
-        pct(bt.estrategia.maxDd),
-      ],
-      [
-        'buy & hold',
-        pct(bt.buyHold.cagr),
-        pct(bt.buyHold.volAnn, comSinal: false),
-        numBr(bt.buyHold.sharpe),
-        pct(bt.buyHold.maxDd),
-      ],
-      [
-        'estratégia (30% final, OOS)',
-        pct(bt.estrategiaOos.cagr),
-        pct(bt.estrategiaOos.volAnn, comSinal: false),
-        numBr(bt.estrategiaOos.sharpe),
-        pct(bt.estrategiaOos.maxDd),
-      ],
+      for (final bt in pack.todos)
+        [
+          bt.kind.label,
+          pct(bt.estrategia.cagr),
+          pct(bt.estrategia.volAnn, comSinal: false),
+          numBr(bt.estrategia.sharpe),
+          pct(bt.estrategia.maxDd),
+          numBr(bt.estrategiaOos.sharpe),
+          '${bt.segmentosPositivos}/3',
+        ],
+      if (pack.tendencia != null)
+        [
+          'buy & hold',
+          pct(pack.tendencia!.buyHold.cagr),
+          pct(pack.tendencia!.buyHold.volAnn, comSinal: false),
+          numBr(pack.tendencia!.buyHold.sharpe),
+          pct(pack.tendencia!.buyHold.maxDd),
+          numBr(pack.tendencia!.buyHoldOos.sharpe),
+          '—',
+        ],
     ]));
-    final segs = bt.segmentos.map((x) => numBr(x.sharpe)).join(' / ');
-    stdout.writeln('\nWalk-forward em 3 janelas — Sharpe: $segs '
-        '(${bt.segmentosPositivos}/3 positivas)');
-    stdout.writeln(bt.sobreviveuForaDaAmostra
-        ? 'Sinal de tendência SOBREVIVEU fora da amostra neste ativo.'
-        : 'ATENÇÃO: sinal de tendência NÃO sobreviveu fora da amostra.');
 
     final ci = sharpeBlockBootstrapCI(simpleReturns(serie.values), 252);
     if (!ci.lower.isNaN) {
-      stdout.writeln('Sharpe buy & hold com incerteza (bootstrap de blocos, '
-          'IC 90%): ${numBr(ci.point)} [${numBr(ci.lower)} a '
+      stdout.writeln('\nSharpe buy & hold com incerteza (bootstrap de '
+          'blocos, IC 90%): ${numBr(ci.point)} [${numBr(ci.lower)} a '
           '${numBr(ci.upper)}]');
     }
   }
+
+  final cen = analogousScenarios(serie);
+  if (cen != null) {
+    stdout.writeln('\nCENÁRIOS ANÁLOGOS — ${cen.nAnalogos} episódios '
+        'históricos parecidos com hoje (desde ${dataBr(cen.datas.first)}):');
+    _printScenarioStats('3 meses depois ', cen.fwd3m);
+    _printScenarioStats('12 meses depois', cen.fwd12m);
+  }
+  stdout.writeln(disclaimer);
+}
+
+void _printScenarioStats(String rotulo, ScenarioStats? s) {
+  if (s == null) return;
+  stdout.writeln('  $rotulo: mediana ${pct(s.mediana)} '
+      '[Q1 ${pct(s.q1)} | Q3 ${pct(s.q3)}] · '
+      '${pct(s.pctPositivo, comSinal: false, dec: 0)} positivos · '
+      'pior ${pct(s.pior)} · melhor ${pct(s.melhor)} (n=${s.n})');
+}
+
+Future<void> _scenarios(Lab lab, List<String> args) async {
+  if (args.isEmpty) {
+    stdout.writeln('Uso: lab scenarios <id>  (veja ids com `lab list`)');
+    return;
+  }
+  final id = args.first;
+  final ind = indicadorPorId(id);
+  final ctx = await lab.carregar();
+  final serie = ctx.series[id];
+  if (ind == null || serie == null) {
+    stdout.writeln('Sem dados para "$id" — veja `lab list`.');
+    return;
+  }
+  final cen = analogousScenarios(serie);
+  if (cen == null) {
+    stdout.writeln('Histórico insuficiente ou nenhum episódio análogo '
+        'encontrado para ${ind.nome}.');
+    return;
+  }
+  stdout.writeln('CENÁRIOS ANÁLOGOS — ${ind.nome}\n');
+  stdout.writeln('Hoje: momentum 12-1 ${pct(cen.momAtual)} · '
+      'dist. SMA-200 ${pct(cen.dist200Atual)} · z-60 ${numBr(cen.zAtual)}');
+  stdout.writeln('${cen.nAnalogos} episódios históricos parecidos '
+      '(espaçados ≥ 1 mês), o primeiro em ${dataBr(cen.datas.first)} e o '
+      'último em ${dataBr(cen.datas.last)}.\n');
+  stdout.writeln('O que aconteceu depois desses episódios:');
+  _printScenarioStats('3 meses depois ', cen.fwd3m);
+  _printScenarioStats('12 meses depois', cen.fwd12m);
+  stdout.writeln('\nLeitura: distribuição empírica, não previsão. '
+      'Episódios análogos ≠ futuro garantido.');
   stdout.writeln(disclaimer);
 }
 
@@ -374,6 +422,33 @@ Future<void> _report(Lab lab) async {
         buf.writeln('- ${e.texto}');
       }
       buf.writeln();
+    }
+  }
+
+  final destaquesMedio = lab
+      .oportunidades(ctx, Horizon.medio)
+      .where((o) => o.direcao != DirecaoOportunidade.neutro)
+      .take(3)
+      .toList();
+  if (destaquesMedio.isNotEmpty) {
+    buf
+      ..writeln('## Cenários análogos (destaques do médio prazo)')
+      ..writeln();
+    for (final o in destaquesMedio) {
+      final serie = ctx.series[o.indicator.id];
+      final cen = serie == null ? null : analogousScenarios(serie);
+      if (cen == null) continue;
+      String linha(String rotulo, ScenarioStats? s) => s == null
+          ? ''
+          : '- $rotulo: mediana ${pct(s.mediana)} [Q1 ${pct(s.q1)} | '
+              'Q3 ${pct(s.q3)}], ${pct(s.pctPositivo, comSinal: false, dec: 0)} '
+              'positivos (n=${s.n})\n';
+      buf
+        ..writeln('**${o.indicator.nome}** — ${cen.nAnalogos} episódios '
+            'históricos parecidos com hoje:')
+        ..write(linha('3 meses depois', cen.fwd3m))
+        ..write(linha('12 meses depois', cen.fwd12m))
+        ..writeln();
     }
   }
 

@@ -16,6 +16,14 @@ void main() {
       // média 3, std ~1.58 → z de 5 = (5-3)/1.5811 ≈ 1.2649
       expect(zScoreLast([1.0, 2.0, 3.0, 4.0, 5.0]), closeTo(1.2649, 1e-4));
     });
+
+    test('quantil com interpolação linear', () {
+      final xs = [4.0, 1.0, 3.0, 2.0]; // desordenada de propósito
+      expect(quantile(xs, 0), 1.0);
+      expect(quantile(xs, 1), 4.0);
+      expect(quantile(xs, 0.5), closeTo(2.5, 1e-12));
+      expect(quantile(xs, 0.25), closeTo(1.75, 1e-12));
+    });
   });
 
   group('retornos', () {

@@ -20,10 +20,11 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
 - ✅ Bootstrap de blocos móveis para IC 90% do Sharpe (exibido no
   `lab analyze`).
 - ✅ Walk-forward em 3 janelas no backtest de tendência.
+- ✅ Estratégias adicionais no backtest: momentum 12-1 e reversão z-60 com
+  filtro de tendência (cada horizonte usa o edge da estratégia compatível).
 - ⬜ Benchmark de performance por módulo (ex.: lag analysis de 100k pontos
   < 250 ms).
-- ⬜ Estratégias adicionais no backtest: momentum 12-1 cross-asset,
-  reversão z-score, carry (juro real).
+- ⬜ Estratégia de carry (juro real) cross-asset.
 
 ## 🔄 Fase 2 — Mais tabela periódica (parcial)
 
@@ -52,10 +53,14 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
 - Flutter **não conhece regra de negócio**: consome os mesmos pacotes
   Dart e/ou o Firestore preenchido pela Fase 3.
 
-## Fase 5 — Simulador de cenários
+## 🔄 Fase 5 — Simulador de cenários (parcial)
 
-- "Se Selic subir 0,75% e petróleo cair 10%": busca histórica de cenários
-  análogos + distribuição do que aconteceu depois (n, mediana, quartis).
+- ✅ Cenários análogos v1 (04/07/2026): `lab scenarios <id>` acha episódios
+  históricos parecidos com hoje (momentum/SMA-200/z-60 normalizados) e
+  mostra a distribuição dos retornos 3m/12m seguintes; também entra no
+  relatório para os destaques do médio prazo.
+- ⬜ "Se Selic subir 0,75% e petróleo cair 10%": cenários definidos pelo
+  usuário sobre variáveis macro (não só o estado atual do ativo).
 
 ## Fase 6 — Descoberta científica noturna
 

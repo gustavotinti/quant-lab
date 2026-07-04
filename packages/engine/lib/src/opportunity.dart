@@ -52,7 +52,7 @@ class OpportunityEngine {
   List<Oportunidade> avaliar({
     required List<Indicator> ativos,
     required Map<String, AssetSignals> sinais,
-    required Map<String, BacktestResult> backtests,
+    required Map<String, BacktestPack> backtests,
     required MacroRegime? macro,
     required Horizon horizon,
   }) {
@@ -60,7 +60,10 @@ class OpportunityEngine {
     for (final ind in ativos.where((a) => a.negociavel)) {
       final s = sinais[ind.id];
       if (s == null) continue;
-      out.add(_avaliarAtivo(ind, s, backtests[ind.id], macro, horizon));
+      // o edge e o freio de robustez vêm da estratégia compatível com o
+      // horizonte (reversão p/ curto, momentum p/ médio, tendência p/ longo)
+      out.add(_avaliarAtivo(
+          ind, s, backtests[ind.id]?.porHorizonte(horizon), macro, horizon));
     }
     out.sort((a, b) => b.score.compareTo(a.score));
     return out;
@@ -147,10 +150,10 @@ class OpportunityEngine {
         }
     }
 
-    // Freio de robustez: se a estratégia de tendência deste ativo não
-    // sobreviveu fora da amostra, a convicção cai 30%.
+    // Freio de robustez: se a estratégia compatível com o horizonte não
+    // sobreviveu fora da amostra neste ativo, a convicção cai 30%.
     if (bt != null && !bt.sobreviveuForaDaAmostra) {
-      add('Sinal de tendência NÃO sobreviveu fora da amostra neste ativo '
+      add('${bt.kind.label} NÃO sobreviveu fora da amostra neste ativo '
           '(Sharpe OOS ${bt.estrategiaOos.sharpe.toStringAsFixed(2)})', 0);
       raw *= 0.7;
     }
@@ -172,8 +175,8 @@ class OpportunityEngine {
     if (direcao != DirecaoOportunidade.neutro &&
         bt != null &&
         s.vol1yAnn != null) {
-      // μ estimado da estratégia de tendência histórica (não do buy & hold):
-      // é o edge mensurável que temos, com validação fora da amostra.
+      // μ estimado da estratégia compatível com o horizonte (não do
+      // buy & hold): é o edge mensurável que temos, com validação OOS.
       lev = leverageAdvice(
         retornoExcedenteAnual: bt.estrategia.cagr.isNaN ? 0 : bt.estrategia.cagr,
         volAnual: s.vol1yAnn!,

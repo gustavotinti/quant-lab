@@ -29,11 +29,13 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
 - `packages/market_data` — adaptadores BCB SGS (janelas de 5 anos!) e
   Yahoo (precisa de User-Agent), catálogo de 20 indicadores validados,
   FileSeriesStore em `data/series/`
-- `packages/engine` — AssetSignals, MacroRegime, trendBacktest (SMA-200),
-  OpportunityEngine (tanh + pesos, ver docs/METODOLOGIA.md),
-  leverageAdvice (meio-Kelly ∧ vol-target 15%, teto 3x), HypothesisLab
+- `packages/engine` — AssetSignals, MacroRegime, strategyBacktest (3
+  estratégias: tendência/momentum/reversão c/ filtro de tendência;
+  BacktestPack mapeia estratégia↔horizonte), OpportunityEngine (tanh +
+  pesos, ver docs/METODOLOGIA.md), leverageAdvice (meio-Kelly ∧ vol-target
+  15%, teto 3x), HypothesisLab (c/ Benjamini-Hochberg), analogousScenarios
 - `apps/lab_cli` — comandos: update, list, macro, analyze, opportunities,
-  hypotheses discover|list, report
+  scenarios, hypotheses discover|list, report
 
 ## Comandos (da raiz do repo)
 - `C:\flutter\bin\dart.bat pub get`
