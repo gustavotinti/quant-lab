@@ -46,6 +46,24 @@ void main() {
       expect(bt.segmentosPositivos, 3);
     });
 
+    test('winRate conta trades fechados na direção da posição', () {
+      // sobe 700 dias, cai 60% nos 700 seguintes → 1 trade comprado longo
+      // (lucrativo, fechado quando o preço cruza a SMA-200 para baixo)
+      final serie = _serieDiaria(
+          'ciclo',
+          (i) => i < 700
+              ? 100 * math.pow(1.001, i).toDouble()
+              : 100 *
+                  math.pow(1.001, 700).toDouble() *
+                  math.pow(0.9987, i - 700).toDouble(),
+          1400);
+      final bt = trendBacktest(serie)!;
+      expect(bt.nTrades, greaterThanOrEqualTo(1));
+      expect(bt.tradeReturns.first, greaterThan(0));
+      // menos de 5 trades → eficácia vira NaN, nunca um número enganoso
+      if (bt.nTrades < 5) expect(bt.winRate.isNaN, isTrue);
+    });
+
     test('estratégia corta a perda em colapso prolongado', () {
       // sobe 700 dias, cai 60% nos 700 seguintes
       final serie = _serieDiaria(

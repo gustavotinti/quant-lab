@@ -23,23 +23,42 @@ Desafio Pago (`desafio-app-b8665`) de propósito — nada se mistura.
 }
 ```
 
-## Deploy
+## Deploy do site/dashboard
 
 ```bash
-# da raiz do repo — atualiza o relatório publicado e sobe o site
-dart run lab_cli:lab report
-cp reports/relatorio_$(date +%F).md public/relatorio.txt
+# da raiz do repo — gera dashboard.json + relatório e sobe o site
+dart run lab_cli:lab update    # dados frescos
+dart run lab_cli:lab publish   # public/data/dashboard.json + relatorio.txt
 firebase deploy --only hosting -P quantlab-lde
 
 # regras do Firestore
 firebase deploy --only firestore -P quantlab-lde
 ```
 
+## Dashboard web (public/)
+
+SPA vanilla (index.html + styles.css + app.js) com Firebase Auth Google
+(SDK modular v10 via CDN). O painel (oportunidades LONG/SHORT com % de
+eficácia, macro, hipóteses) só aparece logado; os dados vêm de
+`/data/dashboard.json` gerado pelo `lab publish`. Obs.: o JSON em si é
+público no Hosting — o login é porta de UX, não de segurança (nada ali é
+sensível). Gate de verdade virá com Firestore + regras.
+
+## ⚠️ Ativar o login Google (1 minuto, manual)
+
+A API identitytoolkit já foi habilitada via REST, mas o provedor Google
+exige um OAuth client que SÓ o console cria automaticamente:
+
+1. https://console.firebase.google.com/project/quantlab-lde/authentication
+2. "Começar" (se aparecer) → aba **Sign-in method** → **Google** →
+   **Ativar** → salvar (e-mail de suporte: gustavo.a.tinti3@gmail.com).
+
+Sem isso o botão de login mostra o aviso "ainda não ativado no console".
+
 ## Pendências da Fase 3
 
-- **Cloud Function agendada** (cron diário: update → engines → Firestore +
-  relatório no Hosting): exige plano **Blaze** (precisa de cartão no
-  console — ação manual do Gustavo). Custo esperado ≈ zero no volume atual.
-- Auth Google (entra junto com o app Flutter, Fase 4).
-- Espelho público no Firestore (`opportunities`, `hypotheses`, `pulse`)
-  com regras `read: true` apenas no que for exibível.
+- **Cloud Function agendada** (cron diário: update → engines → publish no
+  Hosting/Firestore): exige plano **Blaze** (cartão no console — manual).
+  Obs.: `initializeAuth` do Identity Platform também pede billing.
+- Espelho público no Firestore (`opportunities`, `hypotheses`) com regras
+  `read` só para autenticados — aí o gate vira de verdade.

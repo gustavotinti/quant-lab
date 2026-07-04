@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:lab_cli/src/format.dart';
 import 'package:lab_cli/src/lab.dart';
+import 'package:lab_cli/src/publish.dart';
 import 'package:quant_core/quant_core.dart';
 import 'package:quant_engine/quant_engine.dart';
 import 'package:quant_market_data/quant_market_data.dart';
@@ -34,6 +35,8 @@ Future<void> main(List<String> args) async {
       await _hypotheses(lab, rest);
     case 'report':
       await _report(lab);
+    case 'publish':
+      await _publish(lab);
     default:
       _help();
   }
@@ -52,6 +55,7 @@ Comandos:
   lab scenarios <id>               Cenários análogos históricos do ativo
   lab hypotheses discover|list     Minera/lista hipóteses defasadas
   lab report                       Gera relatório markdown em reports/
+  lab publish                      Gera dashboard.json + relatório p/ o site
 
 Rodar sempre da raiz do repositório: dart run lab_cli:lab <comando>''');
 }
@@ -313,6 +317,12 @@ Future<void> _opportunities(Lab lab, List<String> args) async {
             '(meio-Kelly ${numBr(a.kellyMeio)}x, teto por vol '
             '${numBr(a.tetoPorVolatilidade)}x)');
       }
+      final btOp = o.backtest;
+      if (btOp != null && !btOp.winRate.isNaN) {
+        stdout.writeln('    Eficácia histórica da ${btOp.kind.label}: '
+            '${pct(btOp.winRate, comSinal: false, dec: 0)} em '
+            '${btOp.nTrades} trades');
+      }
     }
   }
   stdout.writeln('\n$disclaimer');
@@ -480,4 +490,33 @@ Future<void> _report(Lab lab) async {
       '${hoje.day.toString().padLeft(2, '0')}.md');
   await file.writeAsString(buf.toString());
   stdout.writeln('Relatório salvo em ${file.path}');
+}
+
+Future<void> _publish(Lab lab) async {
+  final ctx = await lab.carregar();
+  if (ctx.sinais.isEmpty) {
+    stdout.writeln('Sem dados — rode `lab update` primeiro.');
+    return;
+  }
+  final hs = await lab.lerHipoteses();
+
+  final sep = Platform.pathSeparator;
+  final dataDir = Directory('${lab.root.path}${sep}public${sep}data');
+  await dataDir.create(recursive: true);
+  final json = const JsonEncoder.withIndent(' ')
+      .convert(dashboardJson(lab, ctx, hs));
+  await File('${dataDir.path}${sep}dashboard.json').writeAsString(json);
+  stdout.writeln('public/data/dashboard.json gerado.');
+
+  await _report(lab);
+  final hoje = DateTime.now();
+  final rel = File('${lab.root.path}${sep}reports${sep}relatorio_'
+      '${hoje.year}-${hoje.month.toString().padLeft(2, '0')}-'
+      '${hoje.day.toString().padLeft(2, '0')}.md');
+  if (await rel.exists()) {
+    await rel.copy('${lab.root.path}${sep}public${sep}relatorio.txt');
+    stdout.writeln('public/relatorio.txt atualizado.');
+  }
+  stdout.writeln('\nPara publicar: firebase deploy --only hosting '
+      '-P quantlab-lde');
 }

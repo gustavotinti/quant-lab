@@ -44,6 +44,11 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   dia em /relatorio.txt).
 - ✅ Firestore `(default)` criado com regras fechadas; app Web registrado
   (config em docs/FIREBASE.md).
+- ✅ Dashboard web moderno (04/07/2026): SPA responsiva com login Google,
+  oportunidades LONG/SHORT por horizonte, % de eficácia (trades + cenários
+  análogos), anel de convicção, alavancagem e hipóteses. Publicação via
+  `lab publish` + deploy do Hosting.
+- ⬜ Ativar provedor Google no console (1 min, manual — docs/FIREBASE.md).
 - ⬜ Plano Blaze (cartão no console — ação manual) para liberar Functions.
 - ⬜ Cloud Function agendada (cron diário): roda update + engines e grava
   resultados no Firestore (`indicators`, `opportunities`, `hypotheses`) e

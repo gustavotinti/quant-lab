@@ -42,6 +42,11 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
   esteve numa situação parecida com hoje e a distribuição do que aconteceu
   nos 3/12 meses seguintes (mediana, quartis, % positivos).
 - **Relatório diário em markdown** com tudo acima.
+- **Dashboard web** (https://quantlab-lde.web.app): login Google,
+  oportunidades LONG e SHORT por horizonte com **% de eficácia histórica**
+  (trades da estratégia + cenários análogos a favor), anel de convicção,
+  alavancagem sugerida e hipóteses vivas — responsivo e atualizado via
+  `lab publish`.
 
 ## Quickstart
 

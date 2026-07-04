@@ -66,6 +66,17 @@ de 3 janelas contíguas** (um sinal robusto tem Sharpe positivo na maioria
 das janelas, não só no agregado). O μ da alavancagem e o freio de robustez
 de cada horizonte vêm da estratégia correspondente.
 
+### Eficácia (%)
+
+Duas medidas independentes, sempre com o *n* ao lado:
+
+- **Eficácia da estratégia**: fração dos trades fechados que terminaram no
+  lucro (na direção da posição — um short que caiu conta como acerto).
+  Com menos de 5 trades vira "n/d", nunca um número enganoso.
+- **Cenários análogos a favor**: fração dos episódios historicamente
+  parecidos com hoje cujo retorno de 3 meses foi na direção apontada
+  (numa VENDA, "a favor" = caiu).
+
 ### Incerteza do Sharpe
 
 IC 90% via **bootstrap de blocos móveis** (blocos de 21 pregões, 500

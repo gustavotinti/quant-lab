@@ -21,10 +21,13 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
 - Dart 3.11 puro (pub workspace). Dart/Flutter em `C:\flutter\bin`
   (fora do PATH — usar `C:\flutter\bin\dart.bat`).
 - Firebase: projeto `quantlab-lde` (SEPARADO do desafio-app-b8665).
-  Hosting no ar: https://quantlab-lde.web.app · Firestore (default)
-  criado c/ regras fechadas · ver docs/FIREBASE.md. Functions pendem de
-  Blaze (ação manual). Deploy: `firebase deploy --only hosting -P
-  quantlab-lde` (antes: `lab report` + copiar p/ public/relatorio.txt).
+  Hosting no ar: https://quantlab-lde.web.app — dashboard SPA (public/:
+  index.html + styles.css + app.js) com login Google (provedor precisa
+  ser ativado no console — docs/FIREBASE.md), LONG/SHORT + % eficácia.
+  Fluxo de publicação: `lab update` → `lab publish` (gera
+  public/data/dashboard.json + relatorio.txt) → `firebase deploy --only
+  hosting -P quantlab-lde`. Firestore (default) criado c/ regras
+  fechadas. Functions pendem de Blaze (ação manual).
 - Futuro: Flutter (cliente) + Auth Google. Ver docs/ROADMAP.md.
 
 ## Estrutura

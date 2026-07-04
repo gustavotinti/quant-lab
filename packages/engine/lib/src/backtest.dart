@@ -66,6 +66,7 @@ class BacktestResult {
     required this.buyHoldOos,
     required this.trocasDePosicao,
     required this.segmentos,
+    required this.tradeReturns,
   });
 
   final String assetId;
@@ -87,6 +88,18 @@ class BacktestResult {
   int get segmentosPositivos =>
       segmentos.where((s) => !s.sharpe.isNaN && s.sharpe > 0).length;
 
+  /// Retorno de cada trade fechado (episódio contínuo de posição ≠ 0,
+  /// já na direção da posição: um short que caiu vira retorno positivo).
+  final List<double> tradeReturns;
+
+  int get nTrades => tradeReturns.length;
+
+  /// Eficácia histórica: fração dos trades que terminaram no lucro.
+  /// NaN com menos de 5 trades (amostra pequena demais para virar número).
+  double get winRate => tradeReturns.length < 5
+      ? double.nan
+      : tradeReturns.where((t) => t > 0).length / tradeReturns.length;
+
   /// A estratégia sobreviveu fora da amostra? (Sharpe positivo no trecho OOS)
   bool get sobreviveuForaDaAmostra =>
       !estrategiaOos.sharpe.isNaN && estrategiaOos.sharpe > 0;
@@ -104,7 +117,9 @@ BacktestResult? strategyBacktest(TimeSeries daily, StrategyKind kind) {
 
   final stratRets = <double>[];
   final bhRets = <double>[];
+  final tradeReturns = <double>[];
   var trocas = 0;
+  var tradeEq = 1.0;
   double? prevPos;
   for (var i = start; i < v.length; i++) {
     if (v[i - 1] == 0) continue;
@@ -112,9 +127,17 @@ BacktestResult? strategyBacktest(TimeSeries daily, StrategyKind kind) {
     final pos = positions[i];
     stratRets.add(pos * r);
     bhRets.add(r);
-    if (prevPos != null && pos != prevPos) trocas++;
+    if (prevPos != null && pos != prevPos) {
+      trocas++;
+      if (prevPos != 0) {
+        tradeReturns.add(tradeEq - 1);
+        tradeEq = 1.0;
+      }
+    }
+    if (pos != 0) tradeEq *= 1 + pos * r;
     prevPos = pos;
   }
+  if (prevPos != null && prevPos != 0) tradeReturns.add(tradeEq - 1);
   if (stratRets.length < 60) return null;
 
   final years = d.last.difference(d[start]).inDays / 365.25;
@@ -141,6 +164,7 @@ BacktestResult? strategyBacktest(TimeSeries daily, StrategyKind kind) {
     buyHoldOos: BacktestMetrics.fromReturns(bhRets.sublist(cut), oosYears),
     trocasDePosicao: trocas,
     segmentos: segmentos,
+    tradeReturns: tradeReturns,
   );
 }
 

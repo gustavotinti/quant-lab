@@ -5,9 +5,10 @@ build/
 # Dados brutos baixados (regeneráveis com `lab update`)
 data/series/
 
-# Relatórios gerados (regeneráveis com `lab report`)
+# Relatórios gerados (regeneráveis com `lab report` / `lab publish`)
 reports/
 public/relatorio.txt
+public/data/
 
 # Firebase
 .firebase/
