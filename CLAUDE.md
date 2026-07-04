@@ -22,8 +22,11 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   (fora do PATH — usar `C:\flutter\bin\dart.bat`).
 - Firebase: projeto `quantlab-lde` (SEPARADO do desafio-app-b8665).
   Hosting no ar: https://quantlab-lde.web.app — dashboard SPA (public/:
-  index.html + styles.css + app.js) com login Google (provedor precisa
-  ser ativado no console — docs/FIREBASE.md), LONG/SHORT + % eficácia.
+  index.html + styles.css + app.js + sw.js/manifest = PWA) com login
+  Google (provedor precisa ser ativado no console — docs/FIREBASE.md),
+  LONG/SHORT + % eficácia, sparklines, modal raio-X (deep link #a=id).
+  Ícones: public/icons (regenerar 192px: `dart run
+  apps/lab_cli/tool/make_icons.dart` após recapturar o 512 do SVG).
   Fluxo de publicação: `lab update` → `lab publish` (gera
   public/data/dashboard.json + relatorio.txt) → `firebase deploy --only
   hosting -P quantlab-lde`. Firestore (default) criado c/ regras
@@ -56,8 +59,8 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   M2 27810, IC-Br 27574.
   `https://api.bcb.gov.br/dados/serie/bcdata.sgs.{cod}/dados?formato=json`
   (consultas longas falham — buscar em janelas de 5 anos)
-- Yahoo chart API: ^GSPC ^IXIC ^BVSP GC=F SI=F HG=F CL=F NG=F ZC=F ZS=F
-  BTC-USD ETH-USD DX-Y.NYB ^TNX (header User-Agent obrigatório)
+- Yahoo chart API: ^GSPC ^IXIC ^BVSP ^GDAXI ^N225 GC=F SI=F HG=F CL=F
+  NG=F ZC=F ZS=F BTC-USD ETH-USD DX-Y.NYB ^TNX (User-Agent obrigatório)
 
 ## Git
 - origin: https://github.com/gustavotinti/quant-lab (privado, branch master)

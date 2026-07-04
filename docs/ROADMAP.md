@@ -29,8 +29,9 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
 ## 🔄 Fase 2 — Mais tabela periódica (parcial)
 
 - ✅ +6 indicadores validados (04/07/2026): INPC (188), base monetária
-  (1788), M2 (27810), IC-Br (27574), cobre (HG=F), Ethereum (ETH-USD) —
-  total 26.
+  (1788), M2 (27810), IC-Br (27574), cobre (HG=F), Ethereum (ETH-USD).
+- ✅ +2 índices globais (04/07/2026): DAX (^GDAXI) e Nikkei 225 (^N225) —
+  total 28.
 - ⬜ FRED (Fed St. Louis): CPI/PIB/desemprego EUA, M2, curva de juros
   (precisa de chave gratuita).
 - ⬜ World Bank/FMI: PIB e demografia por país.
@@ -48,6 +49,10 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   oportunidades LONG/SHORT por horizonte, % de eficácia (trades + cenários
   análogos), anel de convicção, alavancagem e hipóteses. Publicação via
   `lab publish` + deploy do Hosting.
+- ✅ Dashboard v2 (04/07/2026): sparkline por card, modal raio-X (gráfico
+  3 anos + SMA-200, backtest, cenários 3m/12m, deep link `#a=<id>`),
+  resumo do dia, guia "como ler", **PWA** (manifest + service worker
+  network-first + ícones) e payload deduplicado (490→190 KB).
 - ⬜ Ativar provedor Google no console (1 min, manual — docs/FIREBASE.md).
 - ⬜ Plano Blaze (cartão no console — ação manual) para liberar Functions.
 - ⬜ Cloud Function agendada (cron diário): roda update + engines e grava

@@ -17,7 +17,8 @@ const els = {
   login: $('btn-login'), loginHero: $('btn-login-hero'), heroHint: $('hero-hint'),
   userChip: $('user-chip'), userPhoto: $('user-photo'), userName: $('user-name'),
   logout: $('btn-logout'), dash: $('dash'), hero: $('hero'),
-  macro: $('macro-strip'), cards: $('cards'), hipoteses: $('hipoteses'),
+  macro: $('macro-strip'), resumo: $('resumo'), cards: $('cards'),
+  hipoteses: $('hipoteses'),
   tabs: $('tabs'), filters: $('filters'), updated: $('updated-at'),
   toast: $('toast'),
 };
@@ -91,6 +92,7 @@ async function loadData() {
   renderMacro();
   render();
   renderHipoteses();
+  if (location.hash.startsWith('#a=')) openModal(location.hash.slice(3));
 }
 
 // ── macro strip ───────────────────────────────────────────────────────
@@ -119,6 +121,21 @@ function renderMacro() {
 const badgeTxt = { compra: '▲ LONG · COMPRA', venda: '▼ SHORT · VENDA', neutro: '· NEUTRO' };
 const effClass = (v) => v == null ? 'bad' : v >= 0.6 ? 'good' : v >= 0.45 ? 'mid' : 'bad';
 
+function sparkSvg(o) {
+  const raw = DATA.charts?.[o.id]?.v?.filter((x) => x != null);
+  if (!raw || raw.length < 10) return '';
+  const v = raw.slice(-52); // ~1 ano
+  const min = Math.min(...v), max = Math.max(...v), span = max - min || 1;
+  const W = 240, H = 44, P = 3;
+  const pts = v.map((x, i) =>
+    `${(P + i * (W - 2 * P) / (v.length - 1)).toFixed(1)},${(P + (H - 2 * P) * (1 - (x - min) / span)).toFixed(1)}`);
+  const line = 'M' + pts.join('L');
+  const up = v[v.length - 1] >= v[0];
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <path class="area ${up ? 'aup' : 'adn'}" d="${line}L${W - P},${H}L${P},${H}Z"/>
+    <path class="line ${up ? 'up' : 'dn'}" d="${line}"/></svg>`;
+}
+
 function cardHtml(o, i) {
   const dir = o.direcao;
   const neutro = dir === 'neutro';
@@ -130,7 +147,7 @@ function cardHtml(o, i) {
   const s = o.sinais || {};
 
   return `
-  <div class="card ${neutro ? 'neutro' : ''}" data-dir="${dir}" style="transition-delay:${Math.min(i * 45, 400)}ms">
+  <div class="card ${neutro ? 'neutro' : ''}" data-dir="${dir}" data-id="${esc(o.id)}" style="transition-delay:${Math.min(i * 45, 400)}ms">
     <div class="card-top">
       <div>
         <h3>${esc(o.nome)}</h3>
@@ -168,6 +185,7 @@ function cardHtml(o, i) {
       <div><div class="k">Vol 1a</div><div class="v">${fmtPct(s.vol1y, 0, false)}</div></div>
       <div><div class="k">Do topo</div><div class="v">${fmtPct(s.ddTopo)}</div></div>
     </div>
+    ${sparkSvg(o)}
     ${cen12 ? `<div class="cen-line">12m após análogos: mediana <b>${fmtPct(cen12.mediana)}</b>
       [${fmtPct(cen12.q1)} … ${fmtPct(cen12.q3)}] · ${fmtPct(cen12.pctPositivo, 0, false)} subiram</div>` : ''}
     ${o.evidencias?.length ? `<details class="evid"><summary>evidências (${o.evidencias.length})</summary>
@@ -175,7 +193,21 @@ function cardHtml(o, i) {
   </div>`;
 }
 
+function renderResumo() {
+  const ops = DATA.horizontes[horizonte].oportunidades;
+  const longs = ops.filter((o) => o.direcao === 'compra');
+  const shorts = ops.filter((o) => o.direcao === 'venda');
+  const topL = longs[0], topS = shorts[0];
+  els.resumo.innerHTML = `
+    <span><b>${DATA.horizontes[horizonte].label}</b>:</span>
+    <span class="r-long">▲ ${longs.length} long</span><span class="dot">·</span>
+    <span class="r-short">▼ ${shorts.length} short</span>
+    ${topL ? `<span class="dot">·</span><span>destaque long: <b>${esc(topL.nome)}</b> (${Math.round(topL.score)})</span>` : ''}
+    ${topS ? `<span class="dot">·</span><span>destaque short: <b>${esc(topS.nome)}</b> (${Math.round(topS.score)})</span>` : ''}`;
+}
+
 function render() {
+  renderResumo();
   const ops = DATA.horizontes[horizonte].oportunidades
     .filter((o) => filtro === 'todos' ? true : o.direcao === filtro)
     .sort((a, b) => (b.direcao !== 'neutro') - (a.direcao !== 'neutro') || b.score - a.score);
@@ -216,6 +248,106 @@ function renderHipoteses() {
       <span class="st ${h.status}">${h.status}</span>
     </div>`).join('')
     : '<p style="color:var(--dimmer)">Nenhuma hipótese publicada ainda.</p>';
+}
+
+// ── modal raio-X do ativo ─────────────────────────────────────────────
+const modalEl = $('modal');
+const modalBody = $('modal-body');
+
+function closeModal() {
+  modalEl.classList.add('hidden');
+  if (location.hash.startsWith('#a=')) {
+    history.replaceState(null, '', location.pathname);
+  }
+}
+$('modal-close').onclick = closeModal;
+$('modal-back').onclick = closeModal;
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+function bigChartSvg(o) {
+  const c = DATA.charts?.[o.id];
+  if (!c?.v?.length) return '';
+  const v = c.v, sm = c.s, ds = c.d;
+  const all = v.concat(sm).filter((x) => x != null);
+  if (all.length < 10) return '';
+  const min = Math.min(...all), max = Math.max(...all), span = max - min || 1;
+  const W = 700, H = 240, L = 8, R = 8, T = 12, B = 24;
+  const X = (i) => (L + i * (W - L - R) / (v.length - 1)).toFixed(1);
+  const Y = (x) => (T + (H - T - B) * (1 - (x - min) / span)).toFixed(1);
+  const path = (arr) => arr.map((x, i) => x == null ? ''
+    : `${i === 0 || arr[i - 1] == null ? 'M' : 'L'}${X(i)},${Y(x)}`).join('');
+  const last = v.length - 1;
+  return `<svg class="bigchart" viewBox="0 0 ${W} ${H}">
+      <path class="smaln" d="${path(sm)}"/>
+      <path class="price" d="${path(v)}"/>
+      ${v[last] == null ? '' : `<circle cx="${X(last)}" cy="${Y(v[last])}" r="4" fill="#4f9cff"/>`}
+      <text class="axis" x="${L}" y="${H - 8}">${fmtData(ds[0])}</text>
+      <text class="axis" x="${W - R}" y="${H - 8}" text-anchor="end">${fmtData(ds[ds.length - 1])}</text>
+      <text class="axis" x="${W - R}" y="${T + 8}" text-anchor="end">${fmtNum(max)}</text>
+    </svg>
+    <div class="chart-leg"><span class="l1">preço (~3 anos, semanal)</span><span class="l2">SMA-200</span></div>`;
+}
+
+function openModal(id) {
+  const o = DATA?.horizontes[horizonte].oportunidades.find((x) => x.id === id);
+  if (!o) return;
+  const s = o.sinais || {};
+  const e = o.estrategia;
+  const c3 = o.cenarios?.fwd3m, c12 = o.cenarios?.fwd12m;
+  const kv = (k, v) => `<div class="kv"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  modalBody.innerHTML = `
+    <div class="m-head"><h3>${esc(o.nome)}</h3>
+      <span class="badge ${o.direcao}">${badgeTxt[o.direcao]}</span></div>
+    <div class="m-sub">${esc(o.categoria)} · ${esc(o.unidade)} ·
+      ${fmtNum(o.preco)} em ${fmtData(o.dataPreco)} · convicção
+      ${o.direcao === 'neutro' ? '—' : Math.round(o.score) + '/100'}
+      (${DATA.horizontes[horizonte].label.toLowerCase()})</div>
+    ${bigChartSvg(o)}
+    ${e ? `<div class="m-sec">Backtest — ${esc(e.nome)}</div><div class="kv-grid">
+      ${kv('Eficácia', e.winRate == null ? 'n/d' : fmtPct(e.winRate, 0, false))}
+      ${kv('Trades', e.trades ?? '—')}
+      ${kv('CAGR estratégia', fmtPct(e.cagr))}
+      ${kv('CAGR buy & hold', fmtPct(e.cagrBuyHold))}
+      ${kv('Sharpe OOS', fmtNum(e.sharpeOos))}
+      ${kv('Walk-forward', e.walkForward || '—')}</div>` : ''}
+    ${o.cenarios ? `<div class="m-sec">Cenários análogos —
+        ${o.cenarios.n} episódios desde ${fmtData(o.cenarios.desde)}</div>
+      <div class="kv-grid">
+      ${c3 ? kv('3m · mediana', fmtPct(c3.mediana)) +
+             kv('3m · a favor', fmtPct(c3.pctFavoravel, 0, false)) +
+             kv('3m · Q1…Q3', `${fmtPct(c3.q1)} … ${fmtPct(c3.q3)}`) +
+             kv('3m · pior/melhor', `${fmtPct(c3.pior)} / ${fmtPct(c3.melhor)}`) : ''}
+      ${c12 ? kv('12m · mediana', fmtPct(c12.mediana)) +
+              kv('12m · a favor', fmtPct(c12.pctFavoravel, 0, false)) +
+              kv('12m · Q1…Q3', `${fmtPct(c12.q1)} … ${fmtPct(c12.q3)}`) +
+              kv('12m · pior/melhor', `${fmtPct(c12.pior)} / ${fmtPct(c12.melhor)}`) : ''}
+      </div>` : ''}
+    ${o.alavancagem ? `<div class="m-sec">Alavancagem máxima sugerida</div><div class="kv-grid">
+      ${kv('Sugerida', '≤ ' + fmtNum(o.alavancagem.sugerida) + 'x')}
+      ${kv('Meio-Kelly', fmtNum(o.alavancagem.kellyMeio) + 'x')}
+      ${kv('Teto por volatilidade', fmtNum(o.alavancagem.tetoVol) + 'x')}</div>` : ''}
+    <div class="m-sec">Sinais</div><div class="kv-grid">
+      ${kv('Retorno 1m', fmtPct(s.ret1m))}${kv('Retorno 3m', fmtPct(s.ret3m))}
+      ${kv('Retorno 12m', fmtPct(s.ret12m))}${kv('Momentum 12-1', fmtPct(s.mom12x1))}
+      ${kv('vs SMA-200', fmtPct(s.distSma200))}${kv('Z-score 60d', fmtNum(s.z60))}
+      ${kv('Vol 1a', fmtPct(s.vol1y, 0, false))}${kv('Do topo', fmtPct(s.ddTopo))}</div>
+    ${o.evidencias?.length ? `<div class="m-sec">Evidências</div>
+      <ul class="m-evid">${o.evidencias.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`;
+  modalEl.classList.remove('hidden');
+  history.replaceState(null, '', '#a=' + id);
+}
+
+els.cards.addEventListener('click', (e) => {
+  if (e.target.closest('details')) return;
+  const card = e.target.closest('.card[data-id]');
+  if (card) openModal(card.dataset.id);
+});
+
+// ── PWA ───────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
 // ── contadores do hero ────────────────────────────────────────────────

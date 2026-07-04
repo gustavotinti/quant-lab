@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#070b12">
+<meta name="description" content="Laboratório de Descoberta Econômica: oportunidades LONG e SHORT com % de eficácia histórica, derivadas só de dados oficiais.">
+<meta property="og:title" content="QuantLab — Laboratório de Descoberta Econômica">
+<meta property="og:description" content="O mercado, medido. Nunca adivinhado.">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="manifest" href="/manifest.json">
 <title>QuantLab — Laboratório de Descoberta Econômica</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +45,7 @@
       histórica</b>, alavancagem calculada e evidências numéricas — tudo
       derivado só de dados oficiais.</p>
     <div class="hero-stats">
-      <div class="hstat"><b data-count="26">0</b><span>indicadores oficiais</span></div>
+      <div class="hstat"><b data-count="28">0</b><span>indicadores oficiais</span></div>
       <div class="hstat"><b data-count="3">0</b><span>estratégias medidas</span></div>
       <div class="hstat"><b>70/30</b><span>treino / teste</span></div>
       <div class="hstat"><b>OOS</b><span>validação fora da amostra</span></div>
@@ -51,6 +57,7 @@
   <!-- DASHBOARD (após login) -->
   <section id="dash" class="hidden">
     <div id="macro-strip" class="macro-strip"></div>
+    <div id="resumo" class="resumo"></div>
 
     <div class="controls">
       <nav id="tabs" class="tabs">
@@ -68,6 +75,25 @@
 
     <div id="cards" class="cards"></div>
 
+    <details class="como-ler">
+      <summary>Como ler este painel</summary>
+      <ul>
+        <li><b>Convicção (0–100)</b>: soma ponderada de sinais objetivos
+          (momentum, tendência, reversão, macro). Não é probabilidade — é a
+          força da evidência na direção.</li>
+        <li><b>Eficácia da estratégia</b>: % dos trades históricos da
+          estratégia daquele horizonte que deram lucro neste ativo, com o
+          número de trades ao lado. Menos de 5 trades = "n/d".</li>
+        <li><b>Cenários análogos a favor</b>: % das vezes em que, numa
+          situação parecida com a de hoje, o ativo andou na direção
+          apontada nos 3 meses seguintes.</li>
+        <li><b>Alavancagem ≤ x</b>: menor valor entre meio-Kelly e alvo de
+          volatilidade de 15% a.a. (teto 3x). Kelly negativo = 0x.</li>
+        <li><b>Toque num card</b> para abrir o raio-X completo do ativo
+          (gráfico de 3 anos, backtest, cenários e evidências).</li>
+      </ul>
+    </details>
+
     <section class="hip-section">
       <h2>Hipóteses vivas <span class="h2-sub">relações defasadas que sobreviveram ao treino/teste + Benjamini-Hochberg</span></h2>
       <div id="hipoteses" class="hip-list"></div>
@@ -80,6 +106,14 @@
   </section>
 
   <div id="toast" class="toast hidden"></div>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div id="modal-back" class="modal-back"></div>
+    <div class="modal-card">
+      <button id="modal-close" class="modal-x" aria-label="Fechar">✕</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
 </main>
 
 <footer>QuantLab · dados: Banco Central do Brasil (SGS) e bolsas via Yahoo Finance · <a href="/relatorio.txt">relatório do dia</a></footer>

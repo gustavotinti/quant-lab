@@ -1,6 +1,7 @@
 import 'package:quant_core/quant_core.dart';
 import 'package:quant_engine/quant_engine.dart';
 import 'package:quant_market_data/quant_market_data.dart';
+import 'package:quant_stats/quant_stats.dart' as st;
 
 import 'lab.dart';
 
@@ -34,6 +35,30 @@ Map<String, Object?> dashboardJson(
             : s.pctPositivo),
       };
 
+  // ~3 anos amostrados a cada 5 pregões (preço + SMA-200 + datas) para o
+  // gráfico do modal; o sparkline do card usa a cauda do mesmo vetor.
+  Map<String, Object?>? chartData(String id) {
+    final serie = ctx.series[id];
+    if (serie == null || serie.length < 60) return null;
+    final v = serie.values;
+    final d = serie.dates;
+    final smaFull = st.sma(v, 200);
+    final idx = <int>[];
+    for (var i = v.length - 1; i >= 0 && idx.length < 156; i -= 5) {
+      idx.add(i);
+    }
+    final ordem = idx.reversed.toList();
+    return {
+      'd': [for (final i in ordem) _iso(d[i])],
+      'v': [for (final i in ordem) _n(v[i])],
+      's': [for (final i in ordem) _n(smaFull[i] ?? double.nan)],
+    };
+  }
+
+  final charts = <String, Map<String, Object?>?>{
+    for (final id in ctx.sinais.keys) id: chartData(id),
+  };
+
   Map<String, Object?> oportunidadeJson(Oportunidade o, Horizon h) {
     final bt = ctx.backtests[o.indicator.id]?.porHorizonte(h);
     final cen = cenarios[o.indicator.id];
@@ -62,6 +87,8 @@ Map<String, Object?> dashboardJson(
               'winRate': _n(bt.winRate),
               'trades': bt.nTrades,
               'cagr': _n(bt.estrategia.cagr),
+              'cagrBuyHold': _n(bt.buyHold.cagr),
+              'maxDd': _n(bt.estrategia.maxDd),
               'sharpeOos': _n(bt.estrategiaOos.sharpe),
               'walkForward': '${bt.segmentosPositivos}/3',
               'sobreviveuOos': bt.sobreviveuForaDaAmostra,
@@ -127,6 +154,11 @@ Map<String, Object?> dashboardJson(
             for (final o in lab.oportunidades(ctx, h)) oportunidadeJson(o, h),
           ],
         },
+    },
+    // um gráfico por ativo (não por horizonte — evita triplicar o payload)
+    'charts': {
+      for (final e in charts.entries)
+        if (e.value != null) e.key: e.value,
     },
     'hipoteses': [
       for (final h in hs.take(12))

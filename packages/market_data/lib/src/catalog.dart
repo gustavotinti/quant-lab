@@ -162,6 +162,25 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
     negociavel: true,
   ),
 
+  const Indicator(
+    id: 'dax',
+    nome: 'DAX (Alemanha)',
+    unidade: 'pontos',
+    frequency: Frequency.daily,
+    category: Category.acoes,
+    source: DataSource(provider: _yahoo, code: '^GDAXI', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'nikkei',
+    nome: 'Nikkei 225 (Japão)',
+    unidade: 'pontos',
+    frequency: Frequency.daily,
+    category: Category.acoes,
+    source: DataSource(provider: _yahoo, code: '^N225', tier: SourceTier.b),
+    negociavel: true,
+  ),
+
   // ── Commodities ────────────────────────────────────────────────────────
   const Indicator(
     id: 'ouro',

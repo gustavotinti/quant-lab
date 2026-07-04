@@ -13,12 +13,12 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
 
 ## O que já funciona (v0.2)
 
-- **26 indicadores oficiais** baixados de fontes públicas e gratuitas, sem
+- **28 indicadores oficiais** baixados de fontes públicas e gratuitas, sem
   chave de API: Banco Central do Brasil (Selic, CDI, IPCA, IGP-M, INPC,
   PTAX, desemprego, IBC-Br, reservas, base monetária, M2, IC-Br) e bolsas
-  via Yahoo Finance (S&P 500, Nasdaq, Ibovespa, ouro, prata, cobre,
-  petróleo, gás, milho, soja, Bitcoin, Ethereum, DXY, Treasury 10a) — até
-  26 anos de histórico por série.
+  via Yahoo Finance (S&P 500, Nasdaq, Ibovespa, DAX, Nikkei, ouro, prata,
+  cobre, petróleo, gás, milho, soja, Bitcoin, Ethereum, DXY, Treasury
+  10a) — até 26 anos de histórico por série.
 - **Regime macro** calculado só com aritmética: direção da Selic, IPCA 12m
   vs 3m anualizado, juro real, dólar global.
 - **Oportunidades por horizonte** (curto/médio/longo) com direção
@@ -46,7 +46,10 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
   oportunidades LONG e SHORT por horizonte com **% de eficácia histórica**
   (trades da estratégia + cenários análogos a favor), anel de convicção,
   alavancagem sugerida e hipóteses vivas — responsivo e atualizado via
-  `lab publish`.
+  `lab publish`. **Sparkline de 1 ano em cada card**, **raio-X por ativo**
+  (modal com gráfico de 3 anos + SMA-200, backtest completo, cenários
+  3m/12m, deep link `#a=<id>`), resumo do dia, guia "como ler" e **PWA
+  instalável com modo offline** (service worker).
 
 ## Quickstart
 
