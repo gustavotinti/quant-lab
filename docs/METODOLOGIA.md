@@ -48,7 +48,15 @@ convicção (|soma| × 100).
 
 Comprado quando o fechamento de ontem > SMA-200 de ontem; fora do mercado
 caso contrário (caixa rende 0; sem custos — mede poder preditivo, não
-corretagem). Métricas no período inteiro **e nos 30% finais (OOS)**.
+corretagem). Métricas no período inteiro, **nos 30% finais (OOS)** e em
+**walk-forward de 3 janelas contíguas** (um sinal robusto tem Sharpe
+positivo na maioria das janelas, não só no agregado).
+
+### Incerteza do Sharpe
+
+IC 90% via **bootstrap de blocos móveis** (blocos de 21 pregões, 500
+reamostragens, seed fixo → reproduzível). Blocos preservam a
+autocorrelação de curto prazo que o bootstrap i.i.d. destruiria.
 
 ## Alavancagem sugerida
 
@@ -67,18 +75,23 @@ liquidação sempre presentes.
 1. Cada série vira **variação mensal** (retorno log para preços; diferença
    para taxas em %) — nunca níveis.
 2. Para cada par ordenado (causa → efeito) e lag 1–6 meses: Spearman no
-   **treino (70% inicial)**; exige |ρ| ≥ 0,25, p < 0,05, n ≥ 48.
-3. **Tentativa de destruição:** recalcula no **teste (30% final)**. Sinal
+   **treino (70% inicial)**, registrando TODOS os testes executados.
+3. **Correção de Benjamini-Hochberg** sobre o universo inteiro de
+   p-valores de treino (FDR ≤ 5%): quando centenas de pares são testados,
+   alguns "significativos" aparecem por acaso — a correção descarta esses.
+   Exige ainda |ρ| ≥ 0,25 e n ≥ 48.
+4. **Tentativa de destruição:** recalcula no **teste (30% final)**. Sinal
    invertido ⇒ hipótese destruída (não é salva). |ρ teste| ≥ 0,15 ⇒
    `validada`; senão `candidata`.
-4. Correlação não é causalidade: hipótese validada é um **candidato a
+5. Correlação não é causalidade: hipótese validada é um **candidato a
    estudo**, não um gatilho de operação.
 
 ## Limitações conhecidas (honestidade metodológica)
 
 - Backtests não incluem custos, impostos, slippage nem carrego do caixa.
 - μ do Kelly vem do passado; regimes mudam sem avisar.
-- Múltiplos testes inflam falsos positivos — o split treino/teste mitiga,
-  não elimina (bootstrap/correções de múltiplas comparações no roadmap).
+- Múltiplos testes inflam falsos positivos — Benjamini-Hochberg + split
+  treino/teste mitigam bastante, mas não eliminam (o próprio universo de
+  indicadores foi escolhido por um humano).
 - Séries do Yahoo começam em ~2006 (20 anos) — ciclos anteriores ficam de
   fora até integrarmos fontes mais longas (FRED).

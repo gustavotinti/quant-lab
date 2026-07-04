@@ -9,7 +9,7 @@
   "rhoTeste": 0.6040100652834847,
   "nTeste": 93,
   "status": "validada",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "cdi_anualizado",
@@ -21,7 +21,7 @@
   "rhoTeste": 0.5989182610752097,
   "nTeste": 93,
   "status": "validada",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "cdi_anualizado",
@@ -33,7 +33,7 @@
   "rhoTeste": 0.5449176086311287,
   "nTeste": 94,
   "status": "validada",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "selic_meta",
@@ -45,7 +45,7 @@
   "rhoTeste": 0.5400295742326985,
   "nTeste": 94,
   "status": "validada",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "selic_meta",
@@ -57,7 +57,7 @@
   "rhoTeste": 0.436600843501781,
   "nTeste": 95,
   "status": "validada",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "cdi_anualizado",
@@ -69,7 +69,7 @@
   "rhoTeste": 0.43273920347121564,
   "nTeste": 95,
   "status": "validada",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "cdi_anualizado",
@@ -81,7 +81,7 @@
   "rhoTeste": 0.3948388460547645,
   "nTeste": 91,
   "status": "validada",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "selic_meta",
@@ -93,7 +93,7 @@
   "rhoTeste": 0.3498807669770887,
   "nTeste": 92,
   "status": "validada",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "cdi_anualizado",
@@ -105,31 +105,55 @@
   "rhoTeste": 0.3488603426707272,
   "nTeste": 92,
   "status": "validada",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
-  "causaId": "bitcoin",
-  "efeitoId": "gas_natural",
-  "lagMeses": 6,
-  "rhoTreino": 0.3577034406612754,
-  "pTreino": 0.00043132210973606533,
-  "nTreino": 93,
-  "rhoTeste": 0.2676623992413466,
-  "nTeste": 37,
-  "status": "validada",
-  "testadaEm": "2026-07-04T01:00:50.909712"
- },
- {
-  "causaId": "petroleo_wti",
-  "efeitoId": "desemprego_pnadc",
+  "causaId": "icbr",
+  "efeitoId": "selic_meta",
   "lagMeses": 5,
-  "rhoTreino": -0.30012161283665467,
-  "pTreino": 0.001239397370193851,
-  "nTreino": 113,
-  "rhoTeste": -0.15723311076526705,
-  "nTeste": 47,
+  "rhoTreino": 0.32220166233472536,
+  "pTreino": 0.0000013146219242088364,
+  "nTreino": 216,
+  "rhoTeste": 0.270456768985953,
+  "nTeste": 90,
   "status": "validada",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
+ },
+ {
+  "causaId": "icbr",
+  "efeitoId": "cdi_anualizado",
+  "lagMeses": 5,
+  "rhoTreino": 0.30337467489378056,
+  "pTreino": 0.000005618279783625724,
+  "nTreino": 216,
+  "rhoTeste": 0.2693960279487168,
+  "nTeste": 90,
+  "status": "validada",
+  "testadaEm": "2026-07-04T01:10:01.951209"
+ },
+ {
+  "causaId": "dolar_ptax",
+  "efeitoId": "icbr",
+  "lagMeses": 1,
+  "rhoTreino": 0.3223477569972332,
+  "pTreino": 0.0000010344175060961192,
+  "nTreino": 220,
+  "rhoTeste": 0.21079362785825237,
+  "nTeste": 94,
+  "status": "validada",
+  "testadaEm": "2026-07-04T01:10:01.951209"
+ },
+ {
+  "causaId": "icbr",
+  "efeitoId": "igpm_mensal",
+  "lagMeses": 1,
+  "rhoTreino": 0.33211071112813256,
+  "pTreino": 4.6124110819611985e-7,
+  "nTreino": 220,
+  "rhoTeste": 0.12065515029133328,
+  "nTeste": 94,
+  "status": "candidata",
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "reservas_internacionais",
@@ -141,7 +165,19 @@
   "rhoTeste": -0.11158335840494969,
   "nTeste": 49,
   "status": "candidata",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
+ },
+ {
+  "causaId": "icbr",
+  "efeitoId": "ipca_mensal",
+  "lagMeses": 1,
+  "rhoTreino": 0.2724701763845217,
+  "pTreino": 0.00004201104183687576,
+  "nTreino": 220,
+  "rhoTeste": 0.1015948704220627,
+  "nTeste": 94,
+  "status": "candidata",
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "ipca_mensal",
@@ -153,19 +189,7 @@
   "rhoTeste": -0.08439802294662588,
   "nTeste": 93,
   "status": "candidata",
-  "testadaEm": "2026-07-04T01:00:50.909712"
- },
- {
-  "causaId": "desemprego_pnadc",
-  "efeitoId": "reservas_internacionais",
-  "lagMeses": 4,
-  "rhoTreino": 0.2765028187368213,
-  "pTreino": 0.0029014213159221924,
-  "nTreino": 114,
-  "rhoTeste": 0.07637485366213344,
-  "nTeste": 48,
-  "status": "candidata",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "soja",
@@ -177,31 +201,7 @@
   "rhoTeste": 0.07508220679576179,
   "nTeste": 69,
   "status": "candidata",
-  "testadaEm": "2026-07-04T01:00:50.909712"
- },
- {
-  "causaId": "desemprego_pnadc",
-  "efeitoId": "reservas_internacionais",
-  "lagMeses": 3,
-  "rhoTreino": 0.2659661620599892,
-  "pTreino": 0.004066637244513949,
-  "nTreino": 115,
-  "rhoTeste": 0.05397544388685095,
-  "nTeste": 49,
-  "status": "candidata",
-  "testadaEm": "2026-07-04T01:00:50.909712"
- },
- {
-  "causaId": "reservas_internacionais",
-  "efeitoId": "desemprego_pnadc",
-  "lagMeses": 5,
-  "rhoTreino": -0.26887526454623883,
-  "pTreino": 0.003981411271212654,
-  "nTreino": 113,
-  "rhoTeste": -0.0378728223274509,
-  "nTeste": 47,
-  "status": "candidata",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  },
  {
   "causaId": "dolar_ptax",
@@ -213,18 +213,6 @@
   "rhoTeste": 0.0371377521205434,
   "nTeste": 93,
   "status": "candidata",
-  "testadaEm": "2026-07-04T01:00:50.909712"
- },
- {
-  "causaId": "milho",
-  "efeitoId": "reservas_internacionais",
-  "lagMeses": 3,
-  "rhoTreino": 0.2762205324228368,
-  "pTreino": 0.00034332660891056577,
-  "nTreino": 164,
-  "rhoTeste": 0.020168067226890758,
-  "nTeste": 69,
-  "status": "candidata",
-  "testadaEm": "2026-07-04T01:00:50.909712"
+  "testadaEm": "2026-07-04T01:10:01.951209"
  }
 ]

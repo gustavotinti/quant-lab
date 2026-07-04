@@ -96,8 +96,10 @@ class HypothesisLab {
       }
     }
 
-    final out = <Hypothesis>[];
-    final agora = DateTime.now();
+    // 2. Estágio de treino: registra TODOS os testes executados — a
+    //    correção de múltiplas comparações precisa conhecer o universo
+    //    inteiro de tentativas, não só as que "deram certo".
+    final registros = <_RegistroTreino>[];
     for (final causa in changes.keys) {
       for (final efeito in changes.keys) {
         if (identical(causa, efeito)) continue;
@@ -108,39 +110,52 @@ class HypothesisLab {
         final cut = (n * 0.7).floor();
         final treinoA = aligned.a.sublist(0, cut);
         final treinoB = aligned.b.sublist(0, cut);
-        final testeA = aligned.a.sublist(cut);
-        final testeB = aligned.b.sublist(cut);
 
         for (final lc in laggedSpearman(treinoA, treinoB,
             maxLag: maxLag, minN: minNTreino)) {
-          if (lc.rho.abs() < minRhoTreino || lc.pValue > maxPTreino) continue;
-
-          final nTeste = testeA.length - lc.lag;
-          if (nTeste < minNTeste) continue;
-          final rhoTeste = spearman(
-              testeA.sublist(0, nTeste), testeB.sublist(lc.lag));
-          if (rhoTeste.isNaN) continue;
-
-          // Tentativa de destruição: o sinal precisa persistir no teste.
-          final mesmoSinal = rhoTeste.sign == lc.rho.sign;
-          if (!mesmoSinal) continue; // destruída — não entra no banco
-          final status =
-              rhoTeste.abs() >= minRhoTeste ? 'validada' : 'candidata';
-
-          out.add(Hypothesis(
-            causaId: causa.id,
-            efeitoId: efeito.id,
-            lagMeses: lc.lag,
-            rhoTreino: lc.rho,
-            pTreino: lc.pValue,
-            nTreino: lc.n,
-            rhoTeste: rhoTeste,
-            nTeste: nTeste,
-            status: status,
-            testadaEm: agora,
+          registros.add(_RegistroTreino(
+            causa: causa,
+            efeito: efeito,
+            lc: lc,
+            testeA: aligned.a.sublist(cut),
+            testeB: aligned.b.sublist(cut),
           ));
         }
       }
+    }
+
+    // 3. Benjamini-Hochberg sobre todos os p-valores de treino (FDR ≤ q).
+    final significativo = benjaminiHochberg(
+        [for (final r in registros) r.lc.pValue],
+        q: maxPTreino);
+
+    // 4. Tentativa de destruição fora da amostra para os sobreviventes.
+    final out = <Hypothesis>[];
+    final agora = DateTime.now();
+    for (var i = 0; i < registros.length; i++) {
+      final r = registros[i];
+      final lc = r.lc;
+      if (!significativo[i] || lc.rho.abs() < minRhoTreino) continue;
+
+      final nTeste = r.testeA.length - lc.lag;
+      if (nTeste < minNTeste) continue;
+      final rhoTeste =
+          spearman(r.testeA.sublist(0, nTeste), r.testeB.sublist(lc.lag));
+      if (rhoTeste.isNaN) continue;
+      if (rhoTeste.sign != lc.rho.sign) continue; // destruída
+
+      out.add(Hypothesis(
+        causaId: r.causa.id,
+        efeitoId: r.efeito.id,
+        lagMeses: lc.lag,
+        rhoTreino: lc.rho,
+        pTreino: lc.pValue,
+        nTreino: lc.n,
+        rhoTeste: rhoTeste,
+        nTeste: nTeste,
+        status: rhoTeste.abs() >= minRhoTeste ? 'validada' : 'candidata',
+        testadaEm: agora,
+      ));
     }
     out.sort((a, b) => b.rhoTeste.abs().compareTo(a.rhoTeste.abs()));
     return out;
@@ -168,4 +183,22 @@ class HypothesisLab {
     }
     return obs.length >= 24 ? TimeSeries(ind.id, obs) : null;
   }
+}
+
+/// Um teste executado no estágio de treino, com os dados do período de
+/// teste reservados para a tentativa de destruição.
+class _RegistroTreino {
+  const _RegistroTreino({
+    required this.causa,
+    required this.efeito,
+    required this.lc,
+    required this.testeA,
+    required this.testeB,
+  });
+
+  final Indicator causa;
+  final Indicator efeito;
+  final LaggedCorrelation lc;
+  final List<double> testeA;
+  final List<double> testeB;
 }

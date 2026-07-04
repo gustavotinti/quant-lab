@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:quant_stats/quant_stats.dart';
 import 'package:test/test.dart';
 
@@ -126,6 +128,45 @@ void main() {
       final r = ols(x, y);
       expect(r.slope, closeTo(2, 0.01));
       expect(r.pValueSlope, lessThan(1e-10));
+    });
+  });
+
+  group('múltiplas comparações', () {
+    test('exemplo clássico de Benjamini-Hochberg (1995), q=0.05', () {
+      // 15 p-valores do artigo original; a correção rejeita exatamente 4.
+      final p = [
+        0.0001, 0.0004, 0.0019, 0.0095, 0.0201, 0.0278, 0.0298, 0.0344,
+        0.0459, 0.3240, 0.4262, 0.4929, 0.5719, 0.7095, 1.0000,
+      ];
+      final mask = benjaminiHochberg(p, q: 0.05);
+      expect(mask.where((r) => r).length, 4);
+      expect(mask.sublist(0, 4), everyElement(isTrue));
+    });
+
+    test('NaN nunca é significativo e lista vazia não quebra', () {
+      expect(benjaminiHochberg([double.nan, 0.0001], q: 0.05),
+          [false, true]);
+      expect(benjaminiHochberg([]), isEmpty);
+    });
+  });
+
+  group('bootstrap', () {
+    final rng = math.Random(7);
+    final rets = List.generate(
+        1000, (_) => 0.0008 + (rng.nextDouble() - 0.5) * 0.02);
+
+    test('IC de blocos contém a estimativa pontual e é reproduzível', () {
+      final a = sharpeBlockBootstrapCI(rets, 252);
+      final b = sharpeBlockBootstrapCI(rets, 252);
+      expect(a.lower, lessThan(a.point));
+      expect(a.upper, greaterThan(a.point));
+      expect(a.lower, b.lower); // mesmo seed → mesmo resultado
+      expect(a.upper, b.upper);
+    });
+
+    test('amostra curta demais devolve NaN nos limites', () {
+      final r = sharpeBlockBootstrapCI(rets.sublist(0, 30), 252);
+      expect(r.lower.isNaN, isTrue);
     });
   });
 

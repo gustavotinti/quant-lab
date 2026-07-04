@@ -6,6 +6,7 @@ import 'package:lab_cli/src/lab.dart';
 import 'package:quant_core/quant_core.dart';
 import 'package:quant_engine/quant_engine.dart';
 import 'package:quant_market_data/quant_market_data.dart';
+import 'package:quant_stats/quant_stats.dart';
 
 Future<void> main(List<String> args) async {
   try {
@@ -198,9 +199,19 @@ Future<void> _analyze(Lab lab, List<String> args) async {
         pct(bt.estrategiaOos.maxDd),
       ],
     ]));
+    final segs = bt.segmentos.map((x) => numBr(x.sharpe)).join(' / ');
+    stdout.writeln('\nWalk-forward em 3 janelas — Sharpe: $segs '
+        '(${bt.segmentosPositivos}/3 positivas)');
     stdout.writeln(bt.sobreviveuForaDaAmostra
-        ? '\nSinal de tendência SOBREVIVEU fora da amostra neste ativo.'
-        : '\nATENÇÃO: sinal de tendência NÃO sobreviveu fora da amostra.');
+        ? 'Sinal de tendência SOBREVIVEU fora da amostra neste ativo.'
+        : 'ATENÇÃO: sinal de tendência NÃO sobreviveu fora da amostra.');
+
+    final ci = sharpeBlockBootstrapCI(simpleReturns(serie.values), 252);
+    if (!ci.lower.isNaN) {
+      stdout.writeln('Sharpe buy & hold com incerteza (bootstrap de blocos, '
+          'IC 90%): ${numBr(ci.point)} [${numBr(ci.lower)} a '
+          '${numBr(ci.upper)}]');
+    }
   }
   stdout.writeln(disclaimer);
 }

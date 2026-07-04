@@ -12,22 +12,28 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
 - Pipeline validado com dados reais: o minerador redescobriu sozinho a
   relação Selic↔CDI e destruiu correlações espúrias de ruído sintético.
 
-## Fase 1 — Robustez estatística
+## 🔄 Fase 1 — Robustez estatística (parcial em 04/07/2026)
 
-- Walk-forward com múltiplas janelas (não só 70/30).
-- Correção para múltiplas comparações (Benjamini-Hochberg) no minerador.
-- Bootstrap de intervalos de confiança para Sharpe e ρ.
-- Benchmark de performance por módulo (ex.: lag analysis de 100k pontos
+- ✅ Correção de Benjamini-Hochberg no minerador (FDR ≤ 5% sobre TODOS os
+  testes — na prática eliminou a relação espúria Bitcoin→Gás natural que o
+  funil simples deixava passar).
+- ✅ Bootstrap de blocos móveis para IC 90% do Sharpe (exibido no
+  `lab analyze`).
+- ✅ Walk-forward em 3 janelas no backtest de tendência.
+- ⬜ Benchmark de performance por módulo (ex.: lag analysis de 100k pontos
   < 250 ms).
-- Estratégias adicionais no backtest: momentum 12-1 cross-asset,
+- ⬜ Estratégias adicionais no backtest: momentum 12-1 cross-asset,
   reversão z-score, carry (juro real).
 
-## Fase 2 — Mais tabela periódica
+## 🔄 Fase 2 — Mais tabela periódica (parcial)
 
-- FRED (Fed St. Louis): CPI/PIB/desemprego EUA, M2, curva de juros
+- ✅ +6 indicadores validados (04/07/2026): INPC (188), base monetária
+  (1788), M2 (27810), IC-Br (27574), cobre (HG=F), Ethereum (ETH-USD) —
+  total 26.
+- ⬜ FRED (Fed St. Louis): CPI/PIB/desemprego EUA, M2, curva de juros
   (precisa de chave gratuita).
-- World Bank/FMI: PIB e demografia por país.
-- Clima (INMET/NOAA): temperatura, precipitação, El Niño/La Niña (ONI).
+- ⬜ World Bank/FMI: PIB e demografia por país.
+- ⬜ Clima (INMET/NOAA): temperatura, precipitação, El Niño/La Niña (ONI).
 - Meta: 50–100 variáveis fundamentais, todas nível A/B.
 
 ## Fase 3 — Firebase (espelho, não dono)

@@ -54,6 +54,7 @@ class BacktestResult {
     required this.estrategiaOos,
     required this.buyHoldOos,
     required this.trocasDePosicao,
+    required this.segmentos,
   });
 
   final String assetId;
@@ -65,6 +66,14 @@ class BacktestResult {
   final BacktestMetrics estrategiaOos;
   final BacktestMetrics buyHoldOos;
   final int trocasDePosicao;
+
+  /// Walk-forward: a estratégia avaliada em 3 janelas contíguas e
+  /// independentes do histórico — um sinal robusto funciona na maioria
+  /// delas, não só no agregado.
+  final List<BacktestMetrics> segmentos;
+
+  int get segmentosPositivos =>
+      segmentos.where((s) => !s.sharpe.isNaN && s.sharpe > 0).length;
 
   /// A estratégia sobreviveu fora da amostra? (Sharpe positivo no trecho OOS)
   bool get sobreviveuForaDaAmostra =>
@@ -99,6 +108,16 @@ BacktestResult? trendBacktest(TimeSeries daily, {int smaWindow = 200}) {
   final cut = (stratRets.length * 0.7).floor();
   final oosYears = years * (stratRets.length - cut) / stratRets.length;
 
+  final terco = stratRets.length ~/ 3;
+  final segmentos = <BacktestMetrics>[
+    for (var s = 0; s < 3; s++)
+      BacktestMetrics.fromReturns(
+        stratRets.sublist(
+            s * terco, s == 2 ? stratRets.length : (s + 1) * terco),
+        years / 3,
+      ),
+  ];
+
   return BacktestResult(
     assetId: daily.id,
     estrategia: BacktestMetrics.fromReturns(stratRets, years),
@@ -107,5 +126,6 @@ BacktestResult? trendBacktest(TimeSeries daily, {int smaWindow = 200}) {
         BacktestMetrics.fromReturns(stratRets.sublist(cut), oosYears),
     buyHoldOos: BacktestMetrics.fromReturns(bhRets.sublist(cut), oosYears),
     trocasDePosicao: trocas,
+    segmentos: segmentos,
   );
 }

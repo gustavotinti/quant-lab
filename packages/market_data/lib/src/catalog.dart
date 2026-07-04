@@ -43,6 +43,38 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
     category: Category.inflacao,
     source: DataSource(provider: _bcb, code: '189', tier: SourceTier.a),
   ),
+  const Indicator(
+    id: 'inpc_mensal',
+    nome: 'INPC (variação mensal)',
+    unidade: '% a.m.',
+    frequency: Frequency.monthly,
+    category: Category.inflacao,
+    source: DataSource(provider: _bcb, code: '188', tier: SourceTier.a),
+  ),
+  const Indicator(
+    id: 'base_monetaria',
+    nome: 'Base monetária (média nos dias úteis)',
+    unidade: 'R\$ mil',
+    frequency: Frequency.monthly,
+    category: Category.politicaMonetaria,
+    source: DataSource(provider: _bcb, code: '1788', tier: SourceTier.a),
+  ),
+  const Indicator(
+    id: 'm2',
+    nome: 'M2 (saldo em final de período)',
+    unidade: 'R\$ mil',
+    frequency: Frequency.monthly,
+    category: Category.politicaMonetaria,
+    source: DataSource(provider: _bcb, code: '27810', tier: SourceTier.a),
+  ),
+  const Indicator(
+    id: 'icbr',
+    nome: 'IC-Br (commodities em reais)',
+    unidade: 'índice',
+    frequency: Frequency.monthly,
+    category: Category.commodities,
+    source: DataSource(provider: _bcb, code: '27574', tier: SourceTier.a),
+  ),
 
   // ── Atividade e setor externo (nível A) ────────────────────────────────
   const Indicator(
@@ -185,6 +217,15 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
     source: DataSource(provider: _yahoo, code: 'ZS=F', tier: SourceTier.b),
     negociavel: true,
   ),
+  const Indicator(
+    id: 'cobre',
+    nome: 'Cobre (futuro COMEX)',
+    unidade: 'US\$/lb',
+    frequency: Frequency.daily,
+    category: Category.commodities,
+    source: DataSource(provider: _yahoo, code: 'HG=F', tier: SourceTier.b),
+    negociavel: true,
+  ),
 
   // ── Cripto ─────────────────────────────────────────────────────────────
   const Indicator(
@@ -195,6 +236,16 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
     category: Category.cripto,
     source: DataSource(
         provider: _yahoo, code: 'BTC-USD', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'ethereum',
+    nome: 'Ethereum',
+    unidade: 'US\$',
+    frequency: Frequency.daily,
+    category: Category.cripto,
+    source: DataSource(
+        provider: _yahoo, code: 'ETH-USD', tier: SourceTier.b),
     negociavel: true,
   ),
 ]);

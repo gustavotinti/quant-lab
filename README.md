@@ -11,13 +11,14 @@ O sistema nunca "adivinha". Ele **mede, testa hipóteses e calcula
 probabilidades** baseadas em evidência histórica — e nenhum resultado chega
 ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
 
-## O que já funciona (v0.1)
+## O que já funciona (v0.2)
 
-- **20 indicadores oficiais** baixados de fontes públicas e gratuitas, sem
-  chave de API: Banco Central do Brasil (Selic, CDI, IPCA, IGP-M, PTAX,
-  desemprego, IBC-Br, reservas) e bolsas via Yahoo Finance (S&P 500,
-  Nasdaq, Ibovespa, ouro, prata, petróleo, gás, milho, soja, Bitcoin, DXY,
-  Treasury 10a) — até 26 anos de histórico por série.
+- **26 indicadores oficiais** baixados de fontes públicas e gratuitas, sem
+  chave de API: Banco Central do Brasil (Selic, CDI, IPCA, IGP-M, INPC,
+  PTAX, desemprego, IBC-Br, reservas, base monetária, M2, IC-Br) e bolsas
+  via Yahoo Finance (S&P 500, Nasdaq, Ibovespa, ouro, prata, cobre,
+  petróleo, gás, milho, soja, Bitcoin, Ethereum, DXY, Treasury 10a) — até
+  26 anos de histórico por série.
 - **Regime macro** calculado só com aritmética: direção da Selic, IPCA 12m
   vs 3m anualizado, juro real, dólar global.
 - **Oportunidades por horizonte** (curto/médio/longo) com direção
@@ -28,8 +29,12 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
 - **Backtest de tendência** (SMA-200) por ativo com validação nos 30%
   finais da amostra (out-of-sample).
 - **Laboratório de hipóteses**: cruza todos os pares de indicadores com
-  defasagens de 1–6 meses (Spearman + significância t), treina em 70% do
-  histórico e só guarda o que sobrevive nos 30% restantes.
+  defasagens de 1–6 meses (Spearman + significância t), aplica correção de
+  **Benjamini-Hochberg** sobre o universo inteiro de testes (controle de
+  falsos positivos), treina em 70% do histórico e só guarda o que sobrevive
+  nos 30% restantes.
+- **Incerteza quantificada**: IC 90% do Sharpe via bootstrap de blocos
+  móveis; **walk-forward em 3 janelas** independentes no backtest.
 - **Relatório diário em markdown** com tudo acima.
 
 ## Quickstart

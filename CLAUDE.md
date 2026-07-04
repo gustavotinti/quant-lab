@@ -42,9 +42,14 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
 - `data/series/` e `reports/` estão no .gitignore (regeneráveis)
 
 ## Fontes de dados (validadas 2026-07, sem chave)
-- BCB SGS: Selic 432, CDI 4389, IPCA 433, IGP-M 189, PTAX 1,
-  desemprego 24369, IBC-Br 24363, reservas 3546.
+- BCB SGS: Selic 432, CDI 4389, IPCA 433, IGP-M 189, INPC 188, PTAX 1,
+  desemprego 24369, IBC-Br 24363, reservas 3546, base monetária 1788,
+  M2 27810, IC-Br 27574.
   `https://api.bcb.gov.br/dados/serie/bcdata.sgs.{cod}/dados?formato=json`
   (consultas longas falham — buscar em janelas de 5 anos)
-- Yahoo chart API: ^GSPC ^IXIC ^BVSP GC=F SI=F CL=F NG=F ZC=F ZS=F
-  BTC-USD DX-Y.NYB ^TNX (header User-Agent obrigatório)
+- Yahoo chart API: ^GSPC ^IXIC ^BVSP GC=F SI=F HG=F CL=F NG=F ZC=F ZS=F
+  BTC-USD ETH-USD DX-Y.NYB ^TNX (header User-Agent obrigatório)
+
+## Git
+- origin: https://github.com/gustavotinti/quant-lab (privado, branch master)
+- Sem gh CLI — GitHub via API REST com token do `git credential fill`

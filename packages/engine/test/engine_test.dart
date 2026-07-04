@@ -41,6 +41,9 @@ void main() {
       expect(bt.trocasDePosicao, 0);
       expect(bt.estrategia.totalReturn,
           closeTo(bt.buyHold.totalReturn, 1e-9));
+      // walk-forward: todas as 3 janelas positivas em alta persistente
+      expect(bt.segmentos, hasLength(3));
+      expect(bt.segmentosPositivos, 3);
     });
 
     test('estratégia corta a perda em colapso prolongado', () {
