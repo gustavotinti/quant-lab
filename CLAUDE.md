@@ -68,8 +68,10 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   M2 27810, IC-Br 27574.
   `https://api.bcb.gov.br/dados/serie/bcdata.sgs.{cod}/dados?formato=json`
   (consultas longas falham — buscar em janelas de 5 anos)
-- Yahoo chart API: ^GSPC ^IXIC ^BVSP ^GDAXI ^N225 GC=F SI=F HG=F CL=F
-  NG=F ZC=F ZS=F BTC-USD ETH-USD DX-Y.NYB ^TNX (User-Agent obrigatório)
+- Yahoo chart API: ^GSPC ^IXIC ^DJI ^BVSP ^GDAXI ^FTSE ^FCHI ^STOXX50E
+  ^N225 GC=F SI=F HG=F PL=F PA=F CL=F NG=F ZC=F ZS=F BTC-USD ETH-USD
+  XRP-USD SOL-USD ADA-USD EURUSD=X GBPUSD=X JPY=X DX-Y.NYB ^TNX
+  (User-Agent obrigatório) — total 40 indicadores, priorizando eToro
 
 ## Git
 - origin: https://github.com/gustavotinti/quant-lab (privado, branch master)

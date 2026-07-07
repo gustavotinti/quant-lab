@@ -13,12 +13,14 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
 
 ## O que já funciona (v0.2)
 
-- **28 indicadores oficiais** baixados de fontes públicas e gratuitas, sem
+- **40 indicadores oficiais** baixados de fontes públicas e gratuitas, sem
   chave de API: Banco Central do Brasil (Selic, CDI, IPCA, IGP-M, INPC,
   PTAX, desemprego, IBC-Br, reservas, base monetária, M2, IC-Br) e bolsas
-  via Yahoo Finance (S&P 500, Nasdaq, Ibovespa, DAX, Nikkei, ouro, prata,
-  cobre, petróleo, gás, milho, soja, Bitcoin, Ethereum, DXY, Treasury
-  10a) — até 26 anos de histórico por série.
+  via Yahoo Finance — índices (S&P 500, Nasdaq, Dow Jones, Ibovespa, DAX,
+  FTSE, CAC, Euro Stoxx 50, Nikkei), metais (ouro, prata, cobre, platina,
+  paládio), energia/grãos (petróleo, gás, milho, soja), cripto (BTC, ETH,
+  XRP, SOL, ADA), FX majors (EUR/USD, GBP/USD, USD/JPY), DXY e Treasury
+  10a — priorizando ativos **negociáveis no eToro**.
 - **Regime macro** calculado só com aritmética: direção da Selic, IPCA 12m
   vs 3m anualizado, juro real, dólar global.
 - **Oportunidades por horizonte** (curto/médio/longo) com direção
@@ -33,7 +35,13 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
   abaixo do corte do perfil são segurados.
 - **Dimensionamento de posição**: informe seu capital no dashboard e cada
   ordem vira **R$ X com risco fixo por trade** (0,5%/1%/2% conforme o
-  perfil), stop estimado e risco em R$ — mais o % em caixa.
+  perfil), com **preços de Stop Loss e alvo**, teto de concentração por
+  classe de ativo, filtro "🎯 só eToro" e o % em caixa.
+- **Consultor IA com plano de execução literal**: "Abra o eToro e busque
+  NSDQ100 → COMPRAR → valor R$ 451 → alavancagem X1 → Stop Loss em
+  23.479 → Take Profit em 30.354 → confirme", seguido da rotina de
+  acompanhamento e do Plano B se o mercado virar — sempre com os valores
+  calculados pelo laboratório.
 - **`lab go`**: rotina diária completa em um comando (atualiza dados →
   recalcula tudo → publica o site).
 - **Alavancagem máxima sugerida** por dois freios independentes

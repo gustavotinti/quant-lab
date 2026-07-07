@@ -230,25 +230,73 @@ const perfis = {
   agressivo: { corte: 0.55, risco: 0.02, maxPeso: 0.35, teto: 1.00 },
 };
 let capital = +(localStorage.getItem('ql_capital') || 0);
+let soEtoro = true; // uso pessoal: só o que dá para executar na conta
 
-function renderRanking() {
+/// Sizing compartilhado entre o ranking e o Consultor IA.
+/// Além do teto do perfil, nenhuma CLASSE de ativo (ações, cripto...)
+/// pode passar de metade do investido — diversificação obrigatória.
+function calcularOrdens(hKey) {
   const p = perfis[riscoSel];
-  const ops = DATA.horizontes[horizonte].oportunidades;
-  const ordens = ops
-    .filter((o) => ['comprar', 'vender'].includes(o.recomendacao?.acao) &&
-        (o.recomendacao.assertividade || 0) >= p.corte)
+  const ops = DATA.horizontes[hKey].oportunidades;
+  const aprovadas = ops.filter((o) =>
+    ['comprar', 'vender'].includes(o.recomendacao?.acao) &&
+    (o.recomendacao.assertividade || 0) >= p.corte);
+  const ordens = aprovadas
+    .filter((o) => !soEtoro || o.etoro?.ticker)
     .sort((a, b) => (b.recomendacao.retornoEsperado ?? -9) -
         (a.recomendacao.retornoEsperado ?? -9));
+  const foraEtoro = soEtoro
+    ? aprovadas.filter((o) => !o.etoro?.ticker) : [];
   const segurados = ops.filter((o) => o.direcao !== 'neutro' &&
     (o.recomendacao?.acao === 'ficarDeFora' ||
      (['comprar', 'vender'].includes(o.recomendacao?.acao) &&
       (o.recomendacao.assertividade || 0) < p.corte)));
 
-  // pesos por risco fixo, renormalizados se passarem do teto do perfil
+  // risco fixo por trade → teto global → teto por classe de ativo
   let pesos = ordens.map((o) =>
     Math.min(p.risco / (o.recomendacao.stopEstimado || 0.05), p.maxPeso));
   const soma = pesos.reduce((a, b) => a + b, 0);
   if (soma > p.teto) pesos = pesos.map((w) => w * p.teto / soma);
+  const catCap = p.teto / 2;
+  const porCat = {};
+  ordens.forEach((o, i) => {
+    porCat[o.categoria] = (porCat[o.categoria] || 0) + pesos[i];
+  });
+  ordens.forEach((o, i) => {
+    if (porCat[o.categoria] > catCap) {
+      pesos[i] *= catCap / porCat[o.categoria];
+    }
+  });
+
+  const linhas = ordens.map((o, i) => {
+    const r = o.recomendacao;
+    const stop = r.stopEstimado || 0.05;
+    const compra = r.acao === 'comprar';
+    return {
+      o,
+      peso: pesos[i],
+      valor: capital > 0 ? capital * pesos[i] : null,
+      stopPreco: o.preco != null
+        ? o.preco * (compra ? 1 - stop : 1 + stop) : null,
+      alvoPreco: o.preco != null && r.retornoEsperado != null
+        ? o.preco * (compra ? 1 + r.retornoEsperado : 1 - r.retornoEsperado)
+        : null,
+    };
+  });
+  const investido = pesos.reduce((a, b) => a + b, 0);
+  return {
+    linhas,
+    caixaPct: Math.max(0, 1 - investido),
+    segurados,
+    foraEtoro,
+  };
+}
+
+function renderRanking() {
+  const p = perfis[riscoSel];
+  const { linhas, caixaPct, segurados, foraEtoro } =
+    calcularOrdens(horizonte);
+  const ordens = linhas.map((l) => l.o);
 
   let html = `<h2 class="rank-title">O que fazer agora —
     ${DATA.horizontes[horizonte].label.toLowerCase()} · perfil ${riscoSel}</h2>`;
@@ -257,17 +305,22 @@ function renderRanking() {
       assertividade do perfil ${riscoSel} (${Math.round(p.corte * 100)}%)
       neste horizonte — o laboratório prefere ficar de fora a chutar.</div>`;
   } else {
-    html += ordens.map((o, i) => {
+    html += linhas.map((l, i) => {
+      const o = l.o;
       const r = o.recomendacao;
       const tk = o.etoro?.ticker;
-      const peso = pesos[i];
-      const valor = capital > 0 ? capital * peso : null;
+      const peso = l.peso;
+      const valor = l.valor;
       const riscoRs = valor != null ? valor * (r.stopEstimado || 0.05) : null;
-      const sizing = valor != null
+      const nivel = (x) => x == null ? '' : fmtNum(x, x >= 100 ? 0 : 2);
+      const sl = l.stopPreco != null && l.alvoPreco != null
+        ? ` · SL ~<b>${nivel(l.stopPreco)}</b> · alvo ~<b>${nivel(l.alvoPreco)}</b>`
+        : '';
+      const sizing = (valor != null
         ? `Posição sugerida: <b>R$ ${fmtNum(valor, 0)}</b> (${fmtPct(peso, 1, false)})
            · risco até o stop ≈ R$ ${fmtNum(riscoRs, 0)}`
         : `Peso sugerido: <b>${fmtPct(peso, 1, false)}</b> do capital
-           (informe o capital acima para ver em R$)`;
+           (informe o capital acima para ver em R$)`) + sl;
       return `<div class="rank-row" data-id="${esc(o.id)}">
         <div class="rank-pos">${i + 1}</div>
         <span class="badge ${o.direcao}">${r.acao === 'comprar' ? '▲ COMPRAR' : '▼ VENDER (SHORT)'}</span>
@@ -280,12 +333,15 @@ function renderRanking() {
           → ${esc(r.gatilho || '')}${o.etoro?.nota ? ` · <i>${esc(o.etoro.nota)}</i>` : ''}</div>
       </div>`;
     }).join('');
-    const investido = pesos.reduce((a, b) => a + b, 0);
-    const caixaPct = Math.max(0, 1 - investido);
     html += `<div class="rank-caixa">🏦 Caixa/renda fixa: <b>${fmtPct(caixaPct, 0, false)}</b>
       ${capital > 0 ? `(R$ ${fmtNum(capital * caixaPct, 0)})` : ''} —
       com juro real de ${fmtPct(DATA.macro?.juroReal, 1, false)} a.a., caixa
       também é posição.</div>`;
+  }
+  if (foraEtoro.length) {
+    html += `<div class="rank-fora">Aprovados mas SEM instrumento no eToro
+      (desative o filtro 🎯 para ver):
+      ${foraEtoro.map((o) => esc(o.nome)).join(', ')}.</div>`;
   }
   if (segurados.length) {
     html += `<div class="rank-fora">Sinal presente mas abaixo do corte de
@@ -331,10 +387,16 @@ els.tabs.addEventListener('click', (e) => {
 });
 els.filters.addEventListener('click', (e) => {
   const c = e.target.closest('.chip');
-  if (!c) return;
+  if (!c || !c.dataset.f) return; // chips sem data-f têm handler próprio
   filtro = c.dataset.f;
-  els.filters.querySelectorAll('.chip').forEach((x) => x.classList.toggle('active', x === c));
+  els.filters.querySelectorAll('.chip[data-f]')
+    .forEach((x) => x.classList.toggle('active', x === c));
   render();
+});
+$('chip-etoro').addEventListener('click', () => {
+  soEtoro = !soEtoro;
+  $('chip-etoro').classList.toggle('active', soEtoro);
+  if (DATA) renderRanking();
 });
 
 // ── hipóteses ─────────────────────────────────────────────────────────
@@ -454,18 +516,29 @@ const GEMINI_KEY = 'AIzaSyAjI74u44OYqLOYfaVDs4bmtuWy-P-TIB0';
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/'
   + 'models/gemini-2.5-flash:generateContent?key=' + GEMINI_KEY;
 const AI_SYSTEM =
-  'Você é o consultor quantitativo do QuantLab. Responda em português ' +
-  'do Brasil, em markdown enxuto com as seções: ## Leitura do momento, ' +
-  '## Alocação sugerida, ## O que evitar, ## Gatilhos de saída. ' +
-  'REGRAS INEGOCIÁVEIS: use SOMENTE os dados fornecidos no prompt ' +
-  '(nunca invente números, notícias ou preços); cite sempre a ' +
-  'assertividade e o n dos ativos que recomendar; use o ticker do eToro ' +
-  'quando existir; a alocação deve somar 100% incluindo o percentual em ' +
-  'caixa/renda fixa (cite o juro real fornecido); respeite o perfil de ' +
-  'risco pedido; termine com UMA linha de aviso de risco. ' +
-  'Expresse assertividade e percentuais SEMPRE como porcentagem ' +
-  'arredondada (ex.: 77%, nunca 0.765714) e valores no padrão brasileiro. ' +
-  'Máximo de ~300 palavras.';
+  'Você é o operador-chefe do QuantLab dando instruções de EXECUÇÃO no ' +
+  'eToro. Responda em português do Brasil, markdown enxuto, tom ' +
+  'IMPERATIVO e específico, nestas seções: ' +
+  '## Plano de execução — hoje: passo a passo numerado, UMA ordem por ' +
+  'passo: "Abra o eToro e busque {TICKER} → toque em COMPRAR (ou ' +
+  'VENDER) → valor R$ {valorRs} → alavancagem X{n} (X1 se não houver) → ' +
+  'Stop Loss em {stopLossPreco} → Take Profit em {takeProfitPreco} → ' +
+  'confirme." Use exatamente os valores fornecidos. ' +
+  '## Depois de executar: rotina de acompanhamento (1x por dia, após a ' +
+  'atualização do painel) e o gatilho de saída de cada posição. ' +
+  '## Plano B — se o mercado virar: o que fazer se um stop for atingido ' +
+  '(aceitar a perda planejada, NUNCA dobrar a aposta) e o que faria o ' +
+  'plano mudar. ' +
+  'REGRAS INEGOCIÁVEIS: use SOMENTE os números fornecidos (nunca invente ' +
+  'preços, horários ou notícias). Se takeProfitPreco vier null, escreva ' +
+  '"sem Take Profit — saia pelo gatilho" naquele passo (jamais escreva ' +
+  '"null"). TIMING honesto: os sinais são de ' +
+  'fechamento DIÁRIO — instrua a executar hoje, dentro do horário do ' +
+  'mercado de cada ativo (cripto: 24h/7d; índices e ações: pregão da ' +
+  'bolsa local; FX e futuros: ~24h em dias úteis), sem prometer timing ' +
+  'intradiário. Reserve o percentual de caixa informado e cite o juro ' +
+  'real. Percentuais arredondados (77%, nunca 0.7657) e R$ no padrão ' +
+  'brasileiro. Termine com UMA linha de aviso de risco. ~350 palavras.';
 
 let riscoSel = 'moderado';
 let tempoSel = 'medio';
@@ -510,27 +583,38 @@ const regrasPerfil = {
 
 function aiPrompt() {
   const h = DATA.horizontes[tempoSel];
-  const ops = h.oportunidades.map((o) => ({
-    nome: o.nome,
-    etoro: o.etoro?.ticker ?? null,
-    acao: o.recomendacao?.acao,
-    assertividade: o.recomendacao?.assertividade,
-    n: o.recomendacao?.base,
-    retornoEsperado: o.recomendacao?.retornoEsperado,
-    janelaRetorno: o.recomendacao?.janelaRetorno,
-    stopEstimado: o.recomendacao?.stopEstimado,
-    payoff: o.recomendacao?.payoff,
-    conviccao: o.score,
-    direcao: o.direcao,
-    alavancagemMax: o.alavancagem?.sugerida ?? 0,
-    gatilho: o.recomendacao?.gatilho,
-    vol1a: o.sinais?.vol1y,
+  const plano = calcularOrdens(tempoSel);
+  const arred = (x, d = 2) => x == null ? null : +(+x).toFixed(d);
+  // preços já formatados em pt-BR para a IA copiar sem mutilar
+  const nivel = (x) => x == null ? null : fmtNum(x, x >= 100 ? 0 : 4);
+  const ordens = plano.linhas.map((l) => ({
+    nome: l.o.nome,
+    tickerEtoro: l.o.etoro?.ticker ?? null,
+    notaEtoro: l.o.etoro?.nota ?? null,
+    acao: l.o.recomendacao.acao, // comprar | vender (short)
+    categoria: l.o.categoria,
+    valorRs: l.valor == null ? null : Math.round(l.valor),
+    pesoPct: arred(l.peso * 100, 1),
+    precoAtual: nivel(l.o.preco),
+    stopLossPreco: nivel(l.stopPreco),
+    takeProfitPreco: nivel(l.alvoPreco),
+    alavancagemMax: l.o.alavancagem?.sugerida ?? 0,
+    assertividadePct: arred((l.o.recomendacao.assertividade || 0) * 100, 0),
+    n: l.o.recomendacao.base,
+    retornoEsperadoPct:
+        arred((l.o.recomendacao.retornoEsperado || 0) * 100, 1),
+    janela: l.o.recomendacao.janelaRetorno,
+    gatilhoSaida: l.o.recomendacao.gatilho,
   }));
   return `${regrasPerfil[riscoSel]}
 HORIZONTE PEDIDO: ${h.label} (${h.janela}).
+CAPITAL DO USUÁRIO: ${capital > 0 ? 'R$ ' + capital : 'não informado (use % do capital)'}.
+CAIXA/RENDA FIXA SUGERIDO: ${Math.round(plano.caixaPct * 100)}% do capital.
 MACRO (dados oficiais): ${JSON.stringify(DATA.macro)}
-ATIVOS (ranking do laboratório, dados reais): ${JSON.stringify(ops)}
-Monte a recomendação agora.`;
+ORDENS APROVADAS PELO LABORATÓRIO (já dimensionadas — monte o passo a
+passo EXATAMENTE com estes valores): ${JSON.stringify(ordens)}
+NÃO OPERAR (sinal fraco ou segurado): ${plano.segurados.map((o) => o.nome).join(', ') || 'nenhum'}.
+Monte o plano de execução agora.`;
 }
 
 function mdParaHtml(md) {

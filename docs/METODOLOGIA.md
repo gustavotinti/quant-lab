@@ -129,8 +129,13 @@ Acertar muito não basta — importa o **quanto** se ganha quando acerta:
 - **Dimensionamento (risco fixo por trade)**: peso = risco-por-trade ÷
   stop, limitado por posição e pelo teto investido do perfil
   (conservador: 0,5% de risco, corte 65%, teto 40% investido; moderado:
-  1%, 55%, 70%; agressivo: 2%, 55%, 100%). O que sobra é caixa — que,
-  com juro real alto, também é posição.
+  1%, 55%, 70%; agressivo: 2%, 55%, 100%). Nenhuma **classe de ativo**
+  (ações, cripto, commodities…) pode passar de metade do teto investido —
+  diversificação obrigatória. O que sobra é caixa — que, com juro real
+  alto, também é posição.
+- **Preços de execução**: Stop Loss = preço × (1 ∓ stop estimado);
+  alvo (Take Profit) = preço × (1 ± retorno esperado) — na direção da
+  ordem. Sem retorno esperado mensurável, a saída é só pelo gatilho.
 
 ## Alavancagem sugerida
 

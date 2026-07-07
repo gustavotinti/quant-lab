@@ -180,6 +180,43 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
     source: DataSource(provider: _yahoo, code: '^N225', tier: SourceTier.b),
     negociavel: true,
   ),
+  const Indicator(
+    id: 'dowjones',
+    nome: 'Dow Jones Industrial',
+    unidade: 'pontos',
+    frequency: Frequency.daily,
+    category: Category.acoes,
+    source: DataSource(provider: _yahoo, code: '^DJI', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'ftse100',
+    nome: 'FTSE 100 (Reino Unido)',
+    unidade: 'pontos',
+    frequency: Frequency.daily,
+    category: Category.acoes,
+    source: DataSource(provider: _yahoo, code: '^FTSE', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'cac40',
+    nome: 'CAC 40 (França)',
+    unidade: 'pontos',
+    frequency: Frequency.daily,
+    category: Category.acoes,
+    source: DataSource(provider: _yahoo, code: '^FCHI', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'stoxx50',
+    nome: 'Euro Stoxx 50',
+    unidade: 'pontos',
+    frequency: Frequency.daily,
+    category: Category.acoes,
+    source: DataSource(
+        provider: _yahoo, code: '^STOXX50E', tier: SourceTier.b),
+    negociavel: true,
+  ),
 
   // ── Commodities ────────────────────────────────────────────────────────
   const Indicator(
@@ -198,6 +235,24 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
     frequency: Frequency.daily,
     category: Category.commodities,
     source: DataSource(provider: _yahoo, code: 'SI=F', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'platina',
+    nome: 'Platina (futuro NYMEX)',
+    unidade: 'US\$/oz',
+    frequency: Frequency.daily,
+    category: Category.commodities,
+    source: DataSource(provider: _yahoo, code: 'PL=F', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'paladio',
+    nome: 'Paládio (futuro NYMEX)',
+    unidade: 'US\$/oz',
+    frequency: Frequency.daily,
+    category: Category.commodities,
+    source: DataSource(provider: _yahoo, code: 'PA=F', tier: SourceTier.b),
     negociavel: true,
   ),
   const Indicator(
@@ -265,6 +320,67 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
     category: Category.cripto,
     source: DataSource(
         provider: _yahoo, code: 'ETH-USD', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'xrp',
+    nome: 'XRP',
+    unidade: 'US\$',
+    frequency: Frequency.daily,
+    category: Category.cripto,
+    source: DataSource(
+        provider: _yahoo, code: 'XRP-USD', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'solana',
+    nome: 'Solana',
+    unidade: 'US\$',
+    frequency: Frequency.daily,
+    category: Category.cripto,
+    source: DataSource(
+        provider: _yahoo, code: 'SOL-USD', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'cardano',
+    nome: 'Cardano',
+    unidade: 'US\$',
+    frequency: Frequency.daily,
+    category: Category.cripto,
+    source: DataSource(
+        provider: _yahoo, code: 'ADA-USD', tier: SourceTier.b),
+    negociavel: true,
+  ),
+
+  // ── FX majors (negociáveis no eToro) ───────────────────────────────────
+  const Indicator(
+    id: 'eurusd',
+    nome: 'Euro/Dólar (EUR/USD)',
+    unidade: 'US\$',
+    frequency: Frequency.daily,
+    category: Category.cambio,
+    source: DataSource(
+        provider: _yahoo, code: 'EURUSD=X', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'gbpusd',
+    nome: 'Libra/Dólar (GBP/USD)',
+    unidade: 'US\$',
+    frequency: Frequency.daily,
+    category: Category.cambio,
+    source: DataSource(
+        provider: _yahoo, code: 'GBPUSD=X', tier: SourceTier.b),
+    negociavel: true,
+  ),
+  const Indicator(
+    id: 'usdjpy',
+    nome: 'Dólar/Iene (USD/JPY)',
+    unidade: 'JPY',
+    frequency: Frequency.daily,
+    category: Category.cambio,
+    source: DataSource(provider: _yahoo, code: 'JPY=X', tier: SourceTier.b),
     negociavel: true,
   ),
 ]);

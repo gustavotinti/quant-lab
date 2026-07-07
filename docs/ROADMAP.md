@@ -102,6 +102,13 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   tier, chave restrita por domínio) integrado ao dashboard — seletores
   responsivos de risco e horizonte, resposta baseada só nos dados do
   painel (alocação %, o que evitar, gatilhos).
+- ✅ Catálogo eToro-first (07/07/2026): +12 ativos negociáveis (Dow,
+  FTSE, CAC, Euro Stoxx, XRP, SOL, ADA, platina, paládio, EUR/USD,
+  GBP/USD, USD/JPY) — 40 indicadores; filtro "só eToro" no ranking.
+- ✅ Execução literal (07/07/2026): SL/alvo em preço no ranking; teto de
+  concentração por classe; Consultor IA gera plano passo a passo
+  numerado com os valores exatos calculados (R$, SL, TP, alavancagem),
+  rotina pós-execução e Plano B.
 - ⬜ Integração com a API pública do eToro (portfólio/posições): requer as
   chaves do Gustavo (eToro → Settings → API; conta verificada).
 - ✅ Retorno esperado + payoff por recomendação (07/07/2026): ranking
