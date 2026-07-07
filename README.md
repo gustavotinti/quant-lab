@@ -49,6 +49,11 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
   esteve numa situação parecida com hoje e a distribuição do que aconteceu
   nos 3/12 meses seguintes (mediana, quartis, % positivos).
 - **Relatório diário em markdown** com tudo acima.
+- **Consultor IA (Gemini, grátis)** no dashboard: escolha **nível de
+  risco** (conservador/moderado/agressivo) e **tempo de retorno**
+  (≤3m / 3–18m / 18m+) em botões e o Gemini gera alocação sugerida em %
+  (com ticker eToro e caixa/renda fixa), o que evitar e gatilhos de
+  saída — usando SOMENTE os números do painel (proibido inventar dados).
 - **Dashboard web** (https://quantlab-lde.web.app): login Google,
   oportunidades LONG e SHORT por horizonte com **% de eficácia histórica**
   (trades da estratégia + cenários análogos a favor), anel de convicção,

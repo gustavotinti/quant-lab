@@ -27,6 +27,9 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   LONG/SHORT + % eficácia, sparklines, modal raio-X (deep link #a=id).
   Ícones: public/icons (regenerar 192px: `dart run
   apps/lab_cli/tool/make_icons.dart` após recapturar o 512 do SVG).
+- Consultor IA: Gemini 2.5 Flash via generativelanguage (REST direto no
+  app.js; free tier; chave restrita a domínio+serviço — detalhes e
+  rotação em docs/FIREBASE.md). SDK firebase no CDN: v12.4.0.
   Fluxo de publicação: `lab update` → `lab publish` (gera
   public/data/dashboard.json + relatorio.txt) → `firebase deploy --only
   hosting -P quantlab-lde`. Firestore (default) criado c/ regras

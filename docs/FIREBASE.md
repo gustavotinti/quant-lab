@@ -55,6 +55,27 @@ exige um OAuth client que SÓ o console cria automaticamente:
 
 Sem isso o botão de login mostra o aviso "ainda não ativado no console".
 
+## Consultor IA (Gemini, grátis)
+
+O dashboard chama o **Gemini Developer API** (`gemini-2.5-flash`,
+free tier — projeto sem billing = custo zero garantido) direto do
+navegador, com chave **restrita**:
+
+- só ao serviço `generativelanguage.googleapis.com`;
+- só aos referrers `quantlab-lde.web.app`, `quantlab-lde.firebaseapp.com`
+  e `localhost:8123` (testes).
+- Chave criada via API Keys API (nome
+  `projects/1025412444243/locations/global/keys/80036e87-...`); para
+  rotacionar/revogar: console GCP → APIs e serviços → Credenciais.
+- A chave aparece no `app.js` de propósito (mesmo modelo da apiKey do
+  Firebase: pública por design, segurança vem das restrições).
+- Tentamos o onboarding do Firebase AI Logic por API (403 — exige fluxo
+  do console); a chamada direta equivale e dispensa o clique.
+
+O prompt injeta SOMENTE os dados do `dashboard.json` (macro + ranking do
+horizonte escolhido) + regras do perfil de risco; o sistema exige que a
+IA não invente números e formate assertividade como %.
+
 ## Pendências da Fase 3
 
 - **Cloud Function agendada** (cron diário: update → engines → publish no

@@ -98,6 +98,10 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   análogos, Laplace k=10), política de emissão ≥55%, gatilhos de saída e
   mapa de tickers do eToro (`lab recommend` + topo do dashboard).
 - ✅ Score com cenários análogos + confluência de sinais.
+- ✅ Consultor IA (06/07/2026): Gemini 2.5 Flash (Developer API, free
+  tier, chave restrita por domínio) integrado ao dashboard — seletores
+  responsivos de risco e horizonte, resposta baseada só nos dados do
+  painel (alocação %, o que evitar, gatilhos).
 - ⬜ Integração com a API pública do eToro (portfólio/posições): requer as
   chaves do Gustavo (eToro → Settings → API; conta verificada).
 - ⬜ Tracking de acerto das recomendações emitidas (curva de assertividade

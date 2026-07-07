@@ -1,9 +1,10 @@
-// QuantLab dashboard — vanilla JS + Firebase Auth (Google).
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+// QuantLab dashboard — vanilla JS + Firebase Auth (Google) + Gemini
+// (Gemini Developer API direto, free tier, chave restrita por domínio).
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js';
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
   getRedirectResult, onAuthStateChanged, signOut,
-} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+} from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js';
 
 const app = initializeApp({
   projectId: 'quantlab-lde',
@@ -396,6 +397,150 @@ els.cards.addEventListener('click', (e) => {
   const card = e.target.closest('.card[data-id]');
   if (card) openModal(card.dataset.id);
 });
+
+// ── consultor IA (Gemini Developer API, free tier) ───────────────────
+// Chave PÚBLICA por design (como a apiKey do Firebase): restrita ao
+// serviço generativelanguage e aos domínios do QuantLab. Sem billing no
+// projeto, o teto é o free tier — custo máximo: zero.
+const GEMINI_KEY = 'AIzaSyAjI74u44OYqLOYfaVDs4bmtuWy-P-TIB0';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/'
+  + 'models/gemini-2.5-flash:generateContent?key=' + GEMINI_KEY;
+const AI_SYSTEM =
+  'Você é o consultor quantitativo do QuantLab. Responda em português ' +
+  'do Brasil, em markdown enxuto com as seções: ## Leitura do momento, ' +
+  '## Alocação sugerida, ## O que evitar, ## Gatilhos de saída. ' +
+  'REGRAS INEGOCIÁVEIS: use SOMENTE os dados fornecidos no prompt ' +
+  '(nunca invente números, notícias ou preços); cite sempre a ' +
+  'assertividade e o n dos ativos que recomendar; use o ticker do eToro ' +
+  'quando existir; a alocação deve somar 100% incluindo o percentual em ' +
+  'caixa/renda fixa (cite o juro real fornecido); respeite o perfil de ' +
+  'risco pedido; termine com UMA linha de aviso de risco. ' +
+  'Expresse assertividade e percentuais SEMPRE como porcentagem ' +
+  'arredondada (ex.: 77%, nunca 0.765714) e valores no padrão brasileiro. ' +
+  'Máximo de ~300 palavras.';
+
+let riscoSel = 'moderado';
+let tempoSel = 'medio';
+
+async function chamarGemini(prompt) {
+  const r = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: AI_SYSTEM }] },
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 2000,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error?.message || ('HTTP ' + r.status));
+  const t = (j.candidates?.[0]?.content?.parts || [])
+    .map((p) => p.text || '').join('');
+  if (!t) throw new Error('resposta vazia do modelo');
+  return t;
+}
+
+const regrasPerfil = {
+  conservador:
+    'PERFIL CONSERVADOR: recomende apenas ordens do ranking com ' +
+    'assertividade ≥ 0,65; zero alavancagem; máximo 15% por ativo; todo ' +
+    'o resto em caixa/renda fixa (o juro real está nos dados).',
+  moderado:
+    'PERFIL MODERADO: siga o ranking (assertividade ≥ 0,55); alavancagem ' +
+    'no máximo 1x mesmo que a sugerida seja maior; máximo 25% por ativo; ' +
+    'mantenha reserva em caixa.',
+  agressivo:
+    'PERFIL AGRESSIVO: além do ranking, pode citar sinais segurados pelo ' +
+    'corte de 55% como posições especulativas de no máximo 5% cada, ' +
+    'deixando claro o risco; alavancagem até a máxima sugerida de cada ' +
+    'ativo; máximo 35% por ativo.',
+};
+
+function aiPrompt() {
+  const h = DATA.horizontes[tempoSel];
+  const ops = h.oportunidades.map((o) => ({
+    nome: o.nome,
+    etoro: o.etoro?.ticker ?? null,
+    acao: o.recomendacao?.acao,
+    assertividade: o.recomendacao?.assertividade,
+    n: o.recomendacao?.base,
+    conviccao: o.score,
+    direcao: o.direcao,
+    alavancagemMax: o.alavancagem?.sugerida ?? 0,
+    gatilho: o.recomendacao?.gatilho,
+    vol1a: o.sinais?.vol1y,
+  }));
+  return `${regrasPerfil[riscoSel]}
+HORIZONTE PEDIDO: ${h.label} (${h.janela}).
+MACRO (dados oficiais): ${JSON.stringify(DATA.macro)}
+ATIVOS (ranking do laboratório, dados reais): ${JSON.stringify(ops)}
+Monte a recomendação agora.`;
+}
+
+function mdParaHtml(md) {
+  const linhas = esc(md).split(/\r?\n/);
+  let html = '';
+  let emLista = false;
+  for (const l of linhas) {
+    const t = l.trim();
+    if (t.startsWith('## ')) {
+      if (emLista) { html += '</ul>'; emLista = false; }
+      html += `<h3>${t.slice(3)}</h3>`;
+    } else if (t.startsWith('- ') || t.startsWith('* ')) {
+      if (!emLista) { html += '<ul>'; emLista = true; }
+      html += `<li>${t.slice(2)}</li>`;
+    } else if (t) {
+      if (emLista) { html += '</ul>'; emLista = false; }
+      html += `<p>${t}</p>`;
+    }
+  }
+  if (emLista) html += '</ul>';
+  return html.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+}
+
+async function gerarIA() {
+  if (!DATA) return;
+  const out = $('ai-out');
+  const btn = $('btn-ai');
+  out.classList.remove('hidden');
+  out.innerHTML = '<div class="ai-loading">✨ Analisando os números do '
+    + 'laboratório com o Gemini…</div>';
+  btn.disabled = true;
+  try {
+    const texto = await chamarGemini(aiPrompt());
+    out.innerHTML = mdParaHtml(texto) +
+      `<div class="ai-meta">Gerado por IA (Gemini) a partir dos dados do
+       painel · perfil ${riscoSel} · ${DATA.horizontes[tempoSel].label.toLowerCase()}
+       · não é recomendação de investimento</div>`;
+  } catch (e) {
+    const m = String(e?.message || e);
+    out.innerHTML = `<p><b>Não consegui falar com o Gemini.</b></p>
+      <p>${esc(m).slice(0, 300)}</p>
+      <p>${m.includes('429') || /quota|exceeded/i.test(m)
+        ? 'Limite do plano gratuito atingido — espere ~1 minuto e tente de novo.'
+        : 'Tente novamente em instantes.'}</p>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+for (const [segId, setter] of [
+  ['seg-risco', (v) => { riscoSel = v; }],
+  ['seg-tempo', (v) => { tempoSel = v; }],
+]) {
+  $(segId).addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-v]');
+    if (!b) return;
+    setter(b.dataset.v);
+    $(segId).querySelectorAll('button')
+      .forEach((x) => x.classList.toggle('active', x === b));
+  });
+}
+$('btn-ai').onclick = gerarIA;
 
 // ── PWA ───────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

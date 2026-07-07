@@ -75,6 +75,25 @@
 
     <div id="ranking" class="ranking"></div>
 
+    <section class="ai-sec">
+      <h2 class="rank-title">Consultor IA
+        <span class="h2-sub">Gemini (IA gratuita do Google) — responde usando somente os números deste painel</span></h2>
+      <div class="ai-controls">
+        <div class="seg" id="seg-risco" aria-label="Nível de risco">
+          <button data-v="conservador">🛡 Conservador</button>
+          <button data-v="moderado" class="active">⚖ Moderado</button>
+          <button data-v="agressivo">🔥 Agressivo</button>
+        </div>
+        <div class="seg" id="seg-tempo" aria-label="Tempo de retorno">
+          <button data-v="curto">≤ 3 meses</button>
+          <button data-v="medio" class="active">3–18 meses</button>
+          <button data-v="longo">18+ meses</button>
+        </div>
+        <button id="btn-ai" class="btn btn-ai">✨ Gerar recomendação</button>
+      </div>
+      <div id="ai-out" class="ai-out hidden"></div>
+    </section>
+
     <h2 class="cards-title">Todos os ativos <span class="h2-sub">toque num card para o raio-X completo</span></h2>
     <div id="cards" class="cards"></div>
 
