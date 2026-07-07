@@ -26,11 +26,16 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
   explícitas** para cada nota — cenários análogos e **confluência de
   sinais** dentro do score.
 - **Ranking acionável** (`lab recommend` e topo do dashboard): o que
-  COMPRAR ou VENDER (short) agora, ordenado por **assertividade %**
-  (eficácia direcional dos trades + cenários análogos, com suavização
-  estatística), com gatilho de saída e **ticker do eToro**. Sinais com
-  assertividade < 55% são segurados: o sistema prefere ficar de fora a
-  chutar.
+  COMPRAR ou VENDER (short) agora, com **assertividade %** (eficácia
+  direcional + cenários análogos, com suavização estatística),
+  **retorno esperado** (mediana dos análogos — o ranking ordena por ele),
+  payoff, stop estimado, gatilho de saída e **ticker do eToro**. Sinais
+  abaixo do corte do perfil são segurados.
+- **Dimensionamento de posição**: informe seu capital no dashboard e cada
+  ordem vira **R$ X com risco fixo por trade** (0,5%/1%/2% conforme o
+  perfil), stop estimado e risco em R$ — mais o % em caixa.
+- **`lab go`**: rotina diária completa em um comando (atualiza dados →
+  recalcula tudo → publica o site).
 - **Alavancagem máxima sugerida** por dois freios independentes
   (meio-Kelly e alvo de volatilidade de 15% a.a., teto 3x) — o menor vence.
 - **Backtest de tendência** (SMA-200) por ativo com validação nos 30%

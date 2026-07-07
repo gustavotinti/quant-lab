@@ -48,8 +48,10 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   pesos, ver docs/METODOLOGIA.md), leverageAdvice (meio-Kelly ∧ vol-target
   15%, teto 3x), HypothesisLab (c/ Benjamini-Hochberg), analogousScenarios
 - `apps/lab_cli` — comandos: update, list, macro, analyze, opportunities,
-  recommend (ranking acionável c/ assertividade % + ticker eToro; corte de
-  emissão 55%), scenarios, hypotheses discover|list, report, publish.
+  recommend (ranking acionável ordenado por retorno esperado; corte de
+  emissão 55%; ticker eToro; payoff/stop), scenarios, hypotheses
+  discover|list, report, publish, **go** (update+publish+deploy — rotina
+  diária de 1 comando).
   Mapa eToro em lib/src/etoro.dart (apresentação — domínio não conhece
   corretora). eToro tem API pública oficial (api-portal.etoro.com; chave
   em Settings→API com conta verificada) — integração pendente das chaves.

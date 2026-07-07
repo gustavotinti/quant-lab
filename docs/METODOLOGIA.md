@@ -112,6 +112,26 @@ assertividade for ≥ 55%. Abaixo disso: FICAR DE FORA (o sinal aparece,
 mas "segurado"). Sem base histórica mensurável: OBSERVAR. O ranking
 acionável ordena por assertividade, não por convicção.
 
+## Retorno esperado, payoff e dimensionamento de posição
+
+Acertar muito não basta — importa o **quanto** se ganha quando acerta:
+
+- **Retorno esperado**: mediana dos retornos que se seguiram aos cenários
+  análogos, na direção da ordem (3m no curto; 12m no médio/longo). O
+  ranking acionável ordena por ele (entre as ordens que passaram no corte
+  de assertividade).
+- **Payoff**: ganho médio dos trades vencedores ÷ perda média dos
+  perdedores, por direção (57% de acerto com payoff 1:1 rende menos que
+  45% com 3:1).
+- **Stop estimado**: distância até a invalidação técnica do sinal —
+  SMA-200 para tendência/momentum; 1σ de 60 pregões para reversão
+  (limitado a 2%–25%).
+- **Dimensionamento (risco fixo por trade)**: peso = risco-por-trade ÷
+  stop, limitado por posição e pelo teto investido do perfil
+  (conservador: 0,5% de risco, corte 65%, teto 40% investido; moderado:
+  1%, 55%, 70%; agressivo: 2%, 55%, 100%). O que sobra é caixa — que,
+  com juro real alto, também é posição.
+
 ## Alavancagem sugerida
 
 Dois freios independentes; **vale o menor**, com teto absoluto de 3x

@@ -104,8 +104,15 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   painel (alocação %, o que evitar, gatilhos).
 - ⬜ Integração com a API pública do eToro (portfólio/posições): requer as
   chaves do Gustavo (eToro → Settings → API; conta verificada).
+- ✅ Retorno esperado + payoff por recomendação (07/07/2026): ranking
+  ordena por retorno esperado; stop estimado por estratégia;
+  dimensionamento de posição por risco fixo por trade com capital do
+  usuário (dashboard) e caixa explícito; comando `lab go` (update +
+  publish + deploy em um passo).
 - ⬜ Tracking de acerto das recomendações emitidas (curva de assertividade
   real do sistema ao longo do tempo).
+- ⬜ Automação diária sem PC ligado (GitHub Actions com service account
+  ou Function no Blaze).
 
 ## Regra permanente
 

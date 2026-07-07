@@ -221,38 +221,86 @@ function renderResumo() {
     ${topS ? `<span class="dot">·</span><span>destaque short: <b>${esc(topS.nome)}</b> (${Math.round(topS.score)})</span>` : ''}`;
 }
 
-// ── ranking acionável ─────────────────────────────────────────────────
+// ── ranking acionável + dimensionamento de posição ───────────────────
+// Risco fixo por trade (padrão profissional): peso = riscoPorTrade / stop,
+// limitado por posição e pelo teto investido do perfil; o resto é caixa.
+const perfis = {
+  conservador: { corte: 0.65, risco: 0.005, maxPeso: 0.15, teto: 0.40 },
+  moderado: { corte: 0.55, risco: 0.01, maxPeso: 0.25, teto: 0.70 },
+  agressivo: { corte: 0.55, risco: 0.02, maxPeso: 0.35, teto: 1.00 },
+};
+let capital = +(localStorage.getItem('ql_capital') || 0);
+
 function renderRanking() {
+  const p = perfis[riscoSel];
   const ops = DATA.horizontes[horizonte].oportunidades;
   const ordens = ops
-    .filter((o) => ['comprar', 'vender'].includes(o.recomendacao?.acao))
-    .sort((a, b) => (b.recomendacao.assertividade || 0) - (a.recomendacao.assertividade || 0));
-  const segurados = ops.filter((o) =>
-    o.recomendacao?.acao === 'ficarDeFora' && o.direcao !== 'neutro');
+    .filter((o) => ['comprar', 'vender'].includes(o.recomendacao?.acao) &&
+        (o.recomendacao.assertividade || 0) >= p.corte)
+    .sort((a, b) => (b.recomendacao.retornoEsperado ?? -9) -
+        (a.recomendacao.retornoEsperado ?? -9));
+  const segurados = ops.filter((o) => o.direcao !== 'neutro' &&
+    (o.recomendacao?.acao === 'ficarDeFora' ||
+     (['comprar', 'vender'].includes(o.recomendacao?.acao) &&
+      (o.recomendacao.assertividade || 0) < p.corte)));
 
-  let html = `<h2 class="rank-title">O que fazer agora — ${DATA.horizontes[horizonte].label.toLowerCase()}</h2>`;
+  // pesos por risco fixo, renormalizados se passarem do teto do perfil
+  let pesos = ordens.map((o) =>
+    Math.min(p.risco / (o.recomendacao.stopEstimado || 0.05), p.maxPeso));
+  const soma = pesos.reduce((a, b) => a + b, 0);
+  if (soma > p.teto) pesos = pesos.map((w) => w * p.teto / soma);
+
+  let html = `<h2 class="rank-title">O que fazer agora —
+    ${DATA.horizontes[horizonte].label.toLowerCase()} · perfil ${riscoSel}</h2>`;
   if (!ordens.length) {
-    html += '<div class="rank-empty">Nenhuma ordem com assertividade ≥ 55% neste horizonte — o laboratório prefere ficar de fora a chutar.</div>';
+    html += `<div class="rank-empty">Nenhuma ordem passa no corte de
+      assertividade do perfil ${riscoSel} (${Math.round(p.corte * 100)}%)
+      neste horizonte — o laboratório prefere ficar de fora a chutar.</div>`;
   } else {
     html += ordens.map((o, i) => {
       const r = o.recomendacao;
       const tk = o.etoro?.ticker;
+      const peso = pesos[i];
+      const valor = capital > 0 ? capital * peso : null;
+      const riscoRs = valor != null ? valor * (r.stopEstimado || 0.05) : null;
+      const sizing = valor != null
+        ? `Posição sugerida: <b>R$ ${fmtNum(valor, 0)}</b> (${fmtPct(peso, 1, false)})
+           · risco até o stop ≈ R$ ${fmtNum(riscoRs, 0)}`
+        : `Peso sugerido: <b>${fmtPct(peso, 1, false)}</b> do capital
+           (informe o capital acima para ver em R$)`;
       return `<div class="rank-row" data-id="${esc(o.id)}">
         <div class="rank-pos">${i + 1}</div>
         <span class="badge ${o.direcao}">${r.acao === 'comprar' ? '▲ COMPRAR' : '▼ VENDER (SHORT)'}</span>
         <div class="rank-name">${esc(o.nome)}${tk ? `<span class="tick">eToro: ${esc(tk)}</span>` : ''}</div>
+        <div class="rank-kv"><b>${fmtPct(r.retornoEsperado)}</b><span>retorno esp. (${r.janelaRetorno})</span></div>
         <div class="rank-kv rank-ass"><b>${fmtPct(r.assertividade, 0, false)}</b><span>assertividade · n=${r.base}</span></div>
-        <div class="rank-kv"><b>${Math.round(o.score)}</b><span>convicção</span></div>
+        <div class="rank-kv"><b>${r.stopEstimado ? fmtPct(r.stopEstimado, 0, false) : '—'}</b><span>stop estim.</span></div>
         <div class="rank-kv"><b>${o.alavancagem ? '≤' + fmtNum(o.alavancagem.sugerida) + 'x' : '—'}</b><span>alav. máx.</span></div>
-        <div class="rank-gat">→ ${esc(r.gatilho || '')}${o.etoro?.nota ? ` · <i>${esc(o.etoro.nota)}</i>` : ''}</div>
+        <div class="rank-gat"><span class="rank-sizing">${sizing}</span><br>
+          → ${esc(r.gatilho || '')}${o.etoro?.nota ? ` · <i>${esc(o.etoro.nota)}</i>` : ''}</div>
       </div>`;
     }).join('');
+    const investido = pesos.reduce((a, b) => a + b, 0);
+    const caixaPct = Math.max(0, 1 - investido);
+    html += `<div class="rank-caixa">🏦 Caixa/renda fixa: <b>${fmtPct(caixaPct, 0, false)}</b>
+      ${capital > 0 ? `(R$ ${fmtNum(capital * caixaPct, 0)})` : ''} —
+      com juro real de ${fmtPct(DATA.macro?.juroReal, 1, false)} a.a., caixa
+      também é posição.</div>`;
   }
   if (segurados.length) {
-    html += `<div class="rank-fora">Sinal presente mas segurado pelo corte de 55%: ${segurados.map((o) => esc(o.nome)).join(', ')} — ficar de fora.</div>`;
+    html += `<div class="rank-fora">Sinal presente mas abaixo do corte de
+      ${Math.round(p.corte * 100)}% do perfil: ${segurados.map((o) => esc(o.nome)).join(', ')} — ficar de fora.</div>`;
   }
   els.ranking.innerHTML = html;
 }
+
+const capInput = $('capital');
+if (capital > 0) capInput.value = capital;
+capInput.addEventListener('input', () => {
+  capital = +capInput.value || 0;
+  localStorage.setItem('ql_capital', String(capital));
+  if (DATA) renderRanking();
+});
 els.ranking?.addEventListener('click', (e) => {
   const row = e.target.closest('.rank-row[data-id]');
   if (row) openModal(row.dataset.id);
@@ -468,6 +516,10 @@ function aiPrompt() {
     acao: o.recomendacao?.acao,
     assertividade: o.recomendacao?.assertividade,
     n: o.recomendacao?.base,
+    retornoEsperado: o.recomendacao?.retornoEsperado,
+    janelaRetorno: o.recomendacao?.janelaRetorno,
+    stopEstimado: o.recomendacao?.stopEstimado,
+    payoff: o.recomendacao?.payoff,
     conviccao: o.score,
     direcao: o.direcao,
     alavancagemMax: o.alavancagem?.sugerida ?? 0,
@@ -529,7 +581,8 @@ async function gerarIA() {
 }
 
 for (const [segId, setter] of [
-  ['seg-risco', (v) => { riscoSel = v; }],
+  // o perfil de risco também re-dimensiona as posições do ranking
+  ['seg-risco', (v) => { riscoSel = v; if (DATA) renderRanking(); }],
   ['seg-tempo', (v) => { tempoSel = v; }],
 ]) {
   $(segId).addEventListener('click', (e) => {

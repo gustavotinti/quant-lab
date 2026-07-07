@@ -104,6 +104,34 @@ Map<String, Object?> dashboardJson(
         : null;
     final acao =
         decidirAcao(compra: compra, venda: venda, assertividade: ass);
+
+    // Retorno esperado NA DIREÇÃO: mediana dos cenários análogos na janela
+    // do horizonte (o que liga o sinal a dinheiro, não só a acerto).
+    double? retornoEsperado;
+    if ((compra || venda) && stx != null && !stx.mediana.isNaN) {
+      retornoEsperado = venda ? -stx.mediana : stx.mediana;
+    }
+
+    // Distância estimada até a invalidação do sinal (stop técnico):
+    // tendência/momentum → distância à SMA-200; reversão → 1σ de 60 pregões.
+    double? stopEstimado;
+    if (compra || venda) {
+      final serieAtivo = ctx.series[o.indicator.id];
+      double? sigma60;
+      if (serieAtivo != null && serieAtivo.length >= 60 &&
+          s.lastPrice != 0) {
+        final sd = st.rollingStdLast(serieAtivo.values, 60);
+        if (sd != null) sigma60 = sd / s.lastPrice.abs();
+      }
+      final kind = bt?.kind;
+      if ((kind == StrategyKind.tendencia || kind == StrategyKind.momentum) &&
+          s.distSma200 != null) {
+        stopEstimado = s.distSma200!.abs();
+      } else {
+        stopEstimado = sigma60;
+      }
+      stopEstimado = stopEstimado?.clamp(0.02, 0.25) ?? 0.05;
+    }
     final et = etoroPorIndicador[o.indicator.id];
     final g = _gatilho(bt?.kind, compra);
     final alvo = et?.ticker ?? o.indicator.nome;
@@ -119,6 +147,7 @@ Map<String, Object?> dashboardJson(
           : 'FICAR DE FORA de ${o.indicator.nome} — sem sinal',
     };
 
+    final dirSign2 = compra ? 1 : -1;
     return {
       'recomendacao': {
         'acao': acao.name,
@@ -126,6 +155,15 @@ Map<String, Object?> dashboardJson(
         'gatilho': g,
         'assertividade': _n(ass?.valor),
         'base': ass?.base,
+        'retornoEsperado': _n(retornoEsperado),
+        'janelaRetorno': h == Horizon.curto ? '3m' : '12m',
+        'stopEstimado': _n(stopEstimado),
+        'expectanciaTrade': bt == null || !(compra || venda)
+            ? null
+            : _n(bt.expectanciaDirecional(dirSign2)),
+        'payoff': bt == null || !(compra || venda)
+            ? null
+            : _n(bt.payoffDirecional(dirSign2)),
       },
       'etoro': et == null
           ? null

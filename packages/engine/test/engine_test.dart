@@ -65,6 +65,29 @@ void main() {
       // tendência é long-only: nenhum trade vendido
       expect(bt.nTradesDirecional(-1), 0);
       expect(bt.winRateDirecional(-1).isNaN, isTrue);
+      // com <5 trades, expectância e payoff também viram NaN
+      if (bt.nTrades < 5) {
+        expect(bt.expectanciaDirecional(1).isNaN, isTrue);
+        expect(bt.payoffDirecional(1).isNaN, isTrue);
+      }
+    });
+
+    test('expectância e payoff em série ruidosa com trades suficientes', () {
+      // ruído senoidal sobre tendência de alta → reversão gera vários trades
+      final serie = _serieDiaria(
+          'osc',
+          (i) =>
+              100 *
+              math.pow(1.0004, i).toDouble() *
+              (1 + 0.08 * math.sin(i / 9)),
+          1600);
+      final bt = strategyBacktest(serie, StrategyKind.reversao)!;
+      if (bt.nTrades >= 5) {
+        final e = bt.expectanciaDirecional(1);
+        final p = bt.payoffDirecional(1);
+        expect(e.isFinite, isTrue);
+        if (!p.isNaN) expect(p, greaterThan(0));
+      }
     });
 
     test('estratégia corta a perda em colapso prolongado', () {

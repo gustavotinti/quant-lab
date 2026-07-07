@@ -39,6 +39,8 @@ Future<void> main(List<String> args) async {
       await _report(lab);
     case 'publish':
       await _publish(lab);
+    case 'go':
+      await _go(lab);
     default:
       _help();
   }
@@ -60,6 +62,7 @@ Comandos:
   lab hypotheses discover|list     Minera/lista hipóteses defasadas
   lab report                       Gera relatório markdown em reports/
   lab publish                      Gera dashboard.json + relatório p/ o site
+  lab go                           TUDO de uma vez: update + publish + deploy
 
 Rodar sempre da raiz do repositório: dart run lab_cli:lab <comando>''');
 }
@@ -231,6 +234,22 @@ Future<void> _analyze(Lab lab, List<String> args) async {
   stdout.writeln(disclaimer);
 }
 
+/// Rotina diária completa: dados frescos → recalcular → site atualizado.
+Future<void> _go(Lab lab) async {
+  await _update(lab);
+  await _publish(lab);
+  stdout.writeln('\nPublicando no Firebase Hosting...');
+  final r = await Process.run(
+      'firebase', ['deploy', '--only', 'hosting', '-P', 'quantlab-lde'],
+      runInShell: true);
+  if (r.exitCode == 0) {
+    stdout.writeln('No ar: https://quantlab-lde.web.app');
+  } else {
+    stdout.writeln('Deploy falhou (rode `firebase deploy --only hosting '
+        '-P quantlab-lde` manualmente):\n${r.stderr}');
+  }
+}
+
 Future<void> _recommend(Lab lab, List<String> args) async {
   final ctx = await lab.carregar();
   if (ctx.sinais.isEmpty) {
@@ -252,11 +271,14 @@ Future<void> _recommend(Lab lab, List<String> args) async {
         (o['recomendacao'] as Map).cast<String, Object?>();
     double ass(Map<String, Object?> o) =>
         (rec(o)['assertividade'] as num?)?.toDouble() ?? 0;
+    double ret(Map<String, Object?> o) =>
+        (rec(o)['retornoEsperado'] as num?)?.toDouble() ?? -999;
 
     final ordens = ops
         .where((o) => const {'comprar', 'vender'}.contains(rec(o)['acao']))
         .toList()
-      ..sort((a, b) => ass(b).compareTo(ass(a)));
+      // dinheiro primeiro: ordena pelo retorno esperado na direção
+      ..sort((a, b) => ret(b).compareTo(ret(a)));
     final segurados = ops
         .where((o) =>
             rec(o)['acao'] == 'ficarDeFora' && o['direcao'] != 'neutro')
@@ -281,6 +303,15 @@ Future<void> _recommend(Lab lab, List<String> args) async {
         stdout.writeln('   assertividade ${pct(ass(o), comSinal: false, dec: 0)} '
             '(n=${r['base']}) · convicção ${(o['score'] as num).round()}/100'
             '${alav?['sugerida'] != null ? ' · alavancagem ≤ ${numBr((alav!['sugerida'] as num).toDouble())}x' : ''}');
+        final re = r['retornoEsperado'] as num?;
+        final stop = r['stopEstimado'] as num?;
+        final payoff = r['payoff'] as num?;
+        if (re != null) {
+          stdout.writeln('   retorno esperado (${r['janelaRetorno']}, mediana '
+              'dos análogos): ${pct(re.toDouble())}'
+              '${stop != null ? ' · stop estimado ~${pct(stop.toDouble(), comSinal: false)}' : ''}'
+              '${payoff != null ? ' · payoff ${numBr(payoff.toDouble(), dec: 1)}:1' : ''}');
+        }
         stdout.writeln('   quando sair: ${r['gatilho']}');
         if (et?['nota'] != null) stdout.writeln('   obs: ${et!['nota']}');
         stdout.writeln('');

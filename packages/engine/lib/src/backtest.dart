@@ -118,6 +118,28 @@ class BacktestResult {
   int nTradesDirecional(int direcao) =>
       trades.where((t) => t.direcao == direcao).length;
 
+  /// Expectância por trade na direção: retorno médio por operação.
+  /// É o que liga acerto a DINHEIRO — 57% de acerto com payoff 1:1 rende
+  /// menos que 45% com payoff 3:1.
+  double expectanciaDirecional(int direcao) {
+    final ts = [for (final t in trades) if (t.direcao == direcao) t.retorno];
+    if (ts.length < 5) return double.nan;
+    return ts.reduce((a, b) => a + b) / ts.length;
+  }
+
+  /// Payoff na direção: ganho médio dos trades vencedores dividido pela
+  /// perda média dos perdedores (em módulo). NaN sem amostra dos dois lados.
+  double payoffDirecional(int direcao) {
+    final ts = [for (final t in trades) if (t.direcao == direcao) t.retorno];
+    if (ts.length < 5) return double.nan;
+    final ganhos = ts.where((r) => r > 0).toList();
+    final perdas = ts.where((r) => r < 0).toList();
+    if (ganhos.isEmpty || perdas.isEmpty) return double.nan;
+    final gMedio = ganhos.reduce((a, b) => a + b) / ganhos.length;
+    final pMedio = perdas.reduce((a, b) => a + b) / perdas.length;
+    return gMedio / pMedio.abs();
+  }
+
   static double _winRateDe(List<Trade> ts) => ts.length < 5
       ? double.nan
       : ts.where((t) => t.retorno > 0).length / ts.length;
