@@ -40,9 +40,15 @@ convicção (|soma| × 100).
 - **Longo (>18m):** CAGR 3 anos (peso 0,45) + distância do topo em ativo
   com tendência secular positiva (peso 0,30 — entrada, não fuga) +
   SMA-200 (peso 0,15) + macro (×0,7).
-- **Freio de robustez:** se a estratégia de tendência do ativo NÃO
-  sobreviveu fora da amostra, a convicção cai 30% e a falha é exibida como
-  evidência.
+- **Cenários análogos no score:** a mediana e a % de altas dos episódios
+  historicamente parecidos (3m no curto; 12m no médio/longo) entram como
+  componente (pesos 0,15 + 0,10) — a história condicional puxa a nota.
+- **Confluência:** contam-se os sinais relevantes (|contribuição| ≥ 0,02)
+  a favor e contra a direção final; a nota é multiplicada por
+  `0,7 + 0,3·(a favor / total)`. Sinais independentes concordando valem
+  mais que um sinal isolado gritando.
+- **Freio de robustez:** se a estratégia do horizonte NÃO sobreviveu fora
+  da amostra, a convicção cai 30% e a falha é exibida como evidência.
 
 ## Backtests por estratégia
 
@@ -82,6 +88,29 @@ Duas medidas independentes, sempre com o *n* ao lado:
 IC 90% via **bootstrap de blocos móveis** (blocos de 21 pregões, 500
 reamostragens, seed fixo → reproduzível). Blocos preservam a
 autocorrelação de curto prazo que o bootstrap i.i.d. destruiria.
+
+## Assertividade da recomendação e política de emissão
+
+Cada recomendação carrega **uma única % de assertividade**, combinando as
+evidências de eficácia disponíveis ponderadas pelo tamanho das amostras,
+com suavização de Laplace centrada em 50% (k = 10):
+
+```
+assertividade = (wr·nT + fav·nA + 0,5·k) / (nT + nA + k)
+```
+
+- `wr` = taxa de acerto dos trades históricos **na direção da ordem**
+  (compras e vendas medidas separadamente; se não há 5+ trades na direção,
+  usa-se a taxa geral da estratégia);
+- `fav` = % dos cenários análogos que andaram na direção da ordem (janela
+  de 3m no curto; 12m no médio/longo);
+- a suavização impede que amostras minúsculas gerem números espetaculares
+  (6 acertos em 6 → ~69%, nunca 100%).
+
+**Política de emissão:** um sinal só vira ordem (COMPRAR / VENDER) se a
+assertividade for ≥ 55%. Abaixo disso: FICAR DE FORA (o sinal aparece,
+mas "segurado"). Sem base histórica mensurável: OBSERVAR. O ranking
+acionável ordena por assertividade, não por convicção.
 
 ## Alavancagem sugerida
 

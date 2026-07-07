@@ -45,7 +45,11 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   pesos, ver docs/METODOLOGIA.md), leverageAdvice (meio-Kelly ∧ vol-target
   15%, teto 3x), HypothesisLab (c/ Benjamini-Hochberg), analogousScenarios
 - `apps/lab_cli` — comandos: update, list, macro, analyze, opportunities,
-  scenarios, hypotheses discover|list, report
+  recommend (ranking acionável c/ assertividade % + ticker eToro; corte de
+  emissão 55%), scenarios, hypotheses discover|list, report, publish.
+  Mapa eToro em lib/src/etoro.dart (apresentação — domínio não conhece
+  corretora). eToro tem API pública oficial (api-portal.etoro.com; chave
+  em Settings→API com conta verificada) — integração pendente das chaves.
 
 ## Comandos (da raiz do repo)
 - `C:\flutter\bin\dart.bat pub get`

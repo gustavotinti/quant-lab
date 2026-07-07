@@ -62,6 +62,9 @@ void main() {
       expect(bt.tradeReturns.first, greaterThan(0));
       // menos de 5 trades → eficácia vira NaN, nunca um número enganoso
       if (bt.nTrades < 5) expect(bt.winRate.isNaN, isTrue);
+      // tendência é long-only: nenhum trade vendido
+      expect(bt.nTradesDirecional(-1), 0);
+      expect(bt.winRateDirecional(-1).isNaN, isTrue);
     });
 
     test('estratégia corta a perda em colapso prolongado', () {
@@ -107,6 +110,45 @@ void main() {
       expect(pack.porHorizonte(Horizon.curto)!.kind, StrategyKind.reversao);
       expect(pack.porHorizonte(Horizon.medio)!.kind, StrategyKind.momentum);
       expect(pack.porHorizonte(Horizon.longo)!.kind, StrategyKind.tendencia);
+    });
+  });
+
+  group('assertividade e política de emissão', () {
+    test('combinação ponderada com suavização (valores conhecidos)', () {
+      // wr=0,6 (n=30) e fav=0,7 (n=70) → (18+49+5)/110
+      final a = assertividadeCombinada(
+          winRate: 0.6, nTrades: 30, favoravel: 0.7, nAnalogos: 70)!;
+      expect(a.valor, closeTo(72 / 110, 1e-12));
+      expect(a.base, 100);
+    });
+
+    test('amostra pequena encolhe para perto de 50%', () {
+      // 6 acertos em 6 trades → 68,75%, nunca 100%
+      final a = assertividadeCombinada(winRate: 1.0, nTrades: 6)!;
+      expect(a.valor, closeTo(11 / 16, 1e-12));
+    });
+
+    test('sem evidência → null → ação OBSERVAR', () {
+      expect(assertividadeCombinada(), isNull);
+      expect(decidirAcao(compra: true, venda: false, assertividade: null),
+          Acao.observar);
+    });
+
+    test('corte de 55% segura sinais historicamente fracos', () {
+      expect(
+          decidirAcao(
+              compra: true,
+              venda: false,
+              assertividade: const Assertividade(0.52, 40)),
+          Acao.ficarDeFora);
+      expect(
+          decidirAcao(
+              compra: false,
+              venda: true,
+              assertividade: const Assertividade(0.61, 40)),
+          Acao.vender);
+      expect(decidirAcao(compra: false, venda: false, assertividade: null),
+          Acao.ficarDeFora);
     });
   });
 

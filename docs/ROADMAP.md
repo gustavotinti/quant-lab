@@ -92,6 +92,17 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   correlações; VaR/CVaR; stress tests; dimensionamento por risco total
   (não por ativo isolado).
 
+## 🔄 Fase 6b — Uso pessoal / execução (parcial, 06/07/2026)
+
+- ✅ Ranking acionável com assertividade % (winRate direcional + cenários
+  análogos, Laplace k=10), política de emissão ≥55%, gatilhos de saída e
+  mapa de tickers do eToro (`lab recommend` + topo do dashboard).
+- ✅ Score com cenários análogos + confluência de sinais.
+- ⬜ Integração com a API pública do eToro (portfólio/posições): requer as
+  chaves do Gustavo (eToro → Settings → API; conta verificada).
+- ⬜ Tracking de acerto das recomendações emitidas (curva de assertividade
+  real do sistema ao longo do tempo).
+
 ## Regra permanente
 
 Nenhuma fase adiciona: notícias, opiniões, chatbots, recomendações de

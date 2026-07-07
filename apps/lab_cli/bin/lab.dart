@@ -29,6 +29,8 @@ Future<void> main(List<String> args) async {
       await _analyze(lab, rest);
     case 'opportunities':
       await _opportunities(lab, rest);
+    case 'recommend':
+      await _recommend(lab, rest);
     case 'scenarios':
       await _scenarios(lab, rest);
     case 'hypotheses':
@@ -52,6 +54,8 @@ Comandos:
   lab macro                        Regime macroeconômico atual
   lab analyze <id>                 Sinais + backtest de um ativo
   lab opportunities [horizonte]    Oportunidades (curto | medio | longo)
+  lab recommend [horizonte]        RANKING ACIONÁVEL: o que fazer, com
+                                   assertividade % e ticker do eToro
   lab scenarios <id>               Cenários análogos históricos do ativo
   lab hypotheses discover|list     Minera/lista hipóteses defasadas
   lab report                       Gera relatório markdown em reports/
@@ -224,6 +228,71 @@ Future<void> _analyze(Lab lab, List<String> args) async {
     _printScenarioStats('3 meses depois ', cen.fwd3m);
     _printScenarioStats('12 meses depois', cen.fwd12m);
   }
+  stdout.writeln(disclaimer);
+}
+
+Future<void> _recommend(Lab lab, List<String> args) async {
+  final ctx = await lab.carregar();
+  if (ctx.sinais.isEmpty) {
+    stdout.writeln('Sem dados — rode `lab update` primeiro.');
+    return;
+  }
+  final data = dashboardJson(lab, ctx, await lab.lerHipoteses());
+  final horizontes = switch (args.isEmpty ? null : args.first) {
+    'curto' => [Horizon.curto],
+    'medio' => [Horizon.medio],
+    'longo' => [Horizon.longo],
+    _ => Horizon.values,
+  };
+
+  for (final h in horizontes) {
+    final bloco = (data['horizontes'] as Map)[h.name] as Map;
+    final ops = (bloco['oportunidades'] as List).cast<Map<String, Object?>>();
+    Map<String, Object?> rec(Map<String, Object?> o) =>
+        (o['recomendacao'] as Map).cast<String, Object?>();
+    double ass(Map<String, Object?> o) =>
+        (rec(o)['assertividade'] as num?)?.toDouble() ?? 0;
+
+    final ordens = ops
+        .where((o) => const {'comprar', 'vender'}.contains(rec(o)['acao']))
+        .toList()
+      ..sort((a, b) => ass(b).compareTo(ass(a)));
+    final segurados = ops
+        .where((o) =>
+            rec(o)['acao'] == 'ficarDeFora' && o['direcao'] != 'neutro')
+        .toList();
+
+    stdout.writeln('\n═══ ${h.label.toUpperCase()} (${h.janela}) — '
+        'RANKING ACIONÁVEL ═══\n');
+    if (ordens.isEmpty) {
+      stdout.writeln('Nenhuma ordem com assertividade ≥ 55% — o laboratório '
+          'prefere ficar de fora a chutar.');
+    } else {
+      var i = 0;
+      for (final o in ordens) {
+        i++;
+        final r = rec(o);
+        final et = (o['etoro'] as Map?)?.cast<String, Object?>();
+        final alav = (o['alavancagem'] as Map?)?.cast<String, Object?>();
+        stdout.writeln(
+            '$i. ${r['acao'] == 'comprar' ? 'COMPRAR' : 'VENDER (short)'}  '
+            '${o['nome']}'
+            '${et?['ticker'] != null ? '  [eToro: ${et!['ticker']}]' : ''}');
+        stdout.writeln('   assertividade ${pct(ass(o), comSinal: false, dec: 0)} '
+            '(n=${r['base']}) · convicção ${(o['score'] as num).round()}/100'
+            '${alav?['sugerida'] != null ? ' · alavancagem ≤ ${numBr((alav!['sugerida'] as num).toDouble())}x' : ''}');
+        stdout.writeln('   quando sair: ${r['gatilho']}');
+        if (et?['nota'] != null) stdout.writeln('   obs: ${et!['nota']}');
+        stdout.writeln('');
+      }
+    }
+    if (segurados.isNotEmpty) {
+      stdout.writeln('Sinal presente mas SEGURADO pelo corte de 55%: '
+          '${segurados.map((o) => o['nome']).join(', ')}.');
+    }
+  }
+  stdout.writeln('\nSinais recalculados a cada `lab update` (ideal: diário). '
+      'Validade: até a próxima atualização ou o gatilho de saída.');
   stdout.writeln(disclaimer);
 }
 

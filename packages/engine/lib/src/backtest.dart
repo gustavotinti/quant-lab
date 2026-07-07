@@ -51,6 +51,16 @@ class BacktestMetrics {
   }
 }
 
+/// Um trade fechado: episódio contínuo de posição ≠ 0.
+/// [retorno] já está na direção da posição (short que caiu = positivo).
+class Trade {
+  const Trade(this.direcao, this.retorno);
+
+  /// +1 comprado, -1 vendido.
+  final int direcao;
+  final double retorno;
+}
+
 /// Resultado do backtest de uma estratégia.
 ///
 /// Honestidade metodológica: fora do mercado rende 0 (não aplica caixa em
@@ -66,7 +76,7 @@ class BacktestResult {
     required this.buyHoldOos,
     required this.trocasDePosicao,
     required this.segmentos,
-    required this.tradeReturns,
+    required this.trades,
   });
 
   final String assetId;
@@ -88,17 +98,29 @@ class BacktestResult {
   int get segmentosPositivos =>
       segmentos.where((s) => !s.sharpe.isNaN && s.sharpe > 0).length;
 
-  /// Retorno de cada trade fechado (episódio contínuo de posição ≠ 0,
-  /// já na direção da posição: um short que caiu vira retorno positivo).
-  final List<double> tradeReturns;
+  /// Trades fechados, com direção — permite medir eficácia separada de
+  /// compras e vendas (um sinal pode acertar comprando e errar vendendo).
+  final List<Trade> trades;
 
-  int get nTrades => tradeReturns.length;
+  List<double> get tradeReturns =>
+      [for (final t in trades) t.retorno];
+
+  int get nTrades => trades.length;
 
   /// Eficácia histórica: fração dos trades que terminaram no lucro.
   /// NaN com menos de 5 trades (amostra pequena demais para virar número).
-  double get winRate => tradeReturns.length < 5
+  double get winRate => _winRateDe(trades);
+
+  /// Eficácia só dos trades na direção dada (+1 compras, -1 vendas).
+  double winRateDirecional(int direcao) =>
+      _winRateDe([for (final t in trades) if (t.direcao == direcao) t]);
+
+  int nTradesDirecional(int direcao) =>
+      trades.where((t) => t.direcao == direcao).length;
+
+  static double _winRateDe(List<Trade> ts) => ts.length < 5
       ? double.nan
-      : tradeReturns.where((t) => t > 0).length / tradeReturns.length;
+      : ts.where((t) => t.retorno > 0).length / ts.length;
 
   /// A estratégia sobreviveu fora da amostra? (Sharpe positivo no trecho OOS)
   bool get sobreviveuForaDaAmostra =>
@@ -117,7 +139,7 @@ BacktestResult? strategyBacktest(TimeSeries daily, StrategyKind kind) {
 
   final stratRets = <double>[];
   final bhRets = <double>[];
-  final tradeReturns = <double>[];
+  final trades = <Trade>[];
   var trocas = 0;
   var tradeEq = 1.0;
   double? prevPos;
@@ -130,14 +152,16 @@ BacktestResult? strategyBacktest(TimeSeries daily, StrategyKind kind) {
     if (prevPos != null && pos != prevPos) {
       trocas++;
       if (prevPos != 0) {
-        tradeReturns.add(tradeEq - 1);
+        trades.add(Trade(prevPos > 0 ? 1 : -1, tradeEq - 1));
         tradeEq = 1.0;
       }
     }
     if (pos != 0) tradeEq *= 1 + pos * r;
     prevPos = pos;
   }
-  if (prevPos != null && prevPos != 0) tradeReturns.add(tradeEq - 1);
+  if (prevPos != null && prevPos != 0) {
+    trades.add(Trade(prevPos > 0 ? 1 : -1, tradeEq - 1));
+  }
   if (stratRets.length < 60) return null;
 
   final years = d.last.difference(d[start]).inDays / 365.25;
@@ -164,7 +188,7 @@ BacktestResult? strategyBacktest(TimeSeries daily, StrategyKind kind) {
     buyHoldOos: BacktestMetrics.fromReturns(bhRets.sublist(cut), oosYears),
     trocasDePosicao: trocas,
     segmentos: segmentos,
-    tradeReturns: tradeReturns,
+    trades: trades,
   );
 }
 

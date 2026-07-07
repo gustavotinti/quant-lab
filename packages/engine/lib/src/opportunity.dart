@@ -6,6 +6,7 @@ import 'asset_signals.dart';
 import 'backtest.dart';
 import 'leverage.dart';
 import 'macro_regime.dart';
+import 'scenarios.dart';
 
 /// Uma evidência objetiva que contribuiu para a nota da oportunidade.
 /// [contribuicao] em [-1, 1]: positivo empurra para COMPRA, negativo para VENDA.
@@ -55,6 +56,7 @@ class OpportunityEngine {
     required Map<String, BacktestPack> backtests,
     required MacroRegime? macro,
     required Horizon horizon,
+    Map<String, ScenarioReport>? cenarios,
   }) {
     final out = <Oportunidade>[];
     for (final ind in ativos.where((a) => a.negociavel)) {
@@ -62,8 +64,8 @@ class OpportunityEngine {
       if (s == null) continue;
       // o edge e o freio de robustez vêm da estratégia compatível com o
       // horizonte (reversão p/ curto, momentum p/ médio, tendência p/ longo)
-      out.add(_avaliarAtivo(
-          ind, s, backtests[ind.id]?.porHorizonte(horizon), macro, horizon));
+      out.add(_avaliarAtivo(ind, s, backtests[ind.id]?.porHorizonte(horizon),
+          macro, horizon, cenarios?[ind.id]));
     }
     out.sort((a, b) => b.score.compareTo(a.score));
     return out;
@@ -75,6 +77,7 @@ class OpportunityEngine {
     BacktestResult? bt,
     MacroRegime? macro,
     Horizon horizon,
+    ScenarioReport? cen,
   ) {
     final ev = <Evidencia>[];
     void add(String texto, double c) => ev.add(Evidencia(texto, c));
@@ -148,6 +151,43 @@ class OpportunityEngine {
           add(m.texto, m.contribuicao * 0.7);
           raw += m.contribuicao * 0.7;
         }
+    }
+
+    // O que a história condicional diz: cenários análogos ao estado atual
+    // entram no score (mediana e % de altas do período à frente).
+    final st = horizon == Horizon.curto
+        ? cen?.fwd3m
+        : (cen?.fwd12m ?? cen?.fwd3m);
+    if (st != null && !st.mediana.isNaN && !st.pctPositivo.isNaN) {
+      final escala = horizon == Horizon.curto ? 0.05 : 0.15;
+      final c = _tanh(st.mediana / escala) * 0.15 +
+          (st.pctPositivo - 0.5) * 2 * 0.10;
+      add(
+          'Cenários análogos (n=${st.n}): mediana '
+          '${horizon == Horizon.curto ? "3m" : "12m"} de '
+          '${_pct(st.mediana)}, ${_pct(st.pctPositivo)} subiram',
+          c);
+      raw += c;
+    }
+
+    // Confluência: sinais independentes concordando valem mais do que um
+    // sinal isolado gritando. Discordância derruba a convicção.
+    if (raw != 0) {
+      var aFavor = 0, contra = 0;
+      for (final e in ev) {
+        if (e.contribuicao.abs() < 0.02) continue;
+        if (e.contribuicao.sign == raw.sign) {
+          aFavor++;
+        } else {
+          contra++;
+        }
+      }
+      if (aFavor + contra >= 2) {
+        final conf = aFavor / (aFavor + contra);
+        raw *= 0.7 + 0.3 * conf;
+        add('Confluência: $aFavor de ${aFavor + contra} sinais apontam na '
+            'mesma direção', 0);
+      }
     }
 
     // Freio de robustez: se a estratégia compatível com o horizonte não

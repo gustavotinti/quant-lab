@@ -23,7 +23,14 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
   vs 3m anualizado, juro real, dólar global.
 - **Oportunidades por horizonte** (curto/médio/longo) com direção
   (compra/venda/neutro), convicção 0–100 e **evidências numéricas
-  explícitas** para cada nota.
+  explícitas** para cada nota — cenários análogos e **confluência de
+  sinais** dentro do score.
+- **Ranking acionável** (`lab recommend` e topo do dashboard): o que
+  COMPRAR ou VENDER (short) agora, ordenado por **assertividade %**
+  (eficácia direcional dos trades + cenários análogos, com suavização
+  estatística), com gatilho de saída e **ticker do eToro**. Sinais com
+  assertividade < 55% são segurados: o sistema prefere ficar de fora a
+  chutar.
 - **Alavancagem máxima sugerida** por dois freios independentes
   (meio-Kelly e alvo de volatilidade de 15% a.a., teto 3x) — o menor vence.
 - **Backtest de tendência** (SMA-200) por ativo com validação nos 30%
@@ -58,6 +65,7 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
 dart pub get
 dart run lab_cli:lab update           # baixa/atualiza as 20 séries
 dart run lab_cli:lab macro            # regime macroeconômico
+dart run lab_cli:lab recommend        # RANKING ACIONÁVEL c/ assertividade %
 dart run lab_cli:lab opportunities    # oportunidades nos 3 horizontes
 dart run lab_cli:lab hypotheses discover
 dart run lab_cli:lab report           # gera reports/relatorio_AAAA-MM-DD.md

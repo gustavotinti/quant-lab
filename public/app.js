@@ -1,7 +1,8 @@
 // QuantLab dashboard — vanilla JS + Firebase Auth (Google).
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut,
+  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
+  getRedirectResult, onAuthStateChanged, signOut,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 
 const app = initializeApp({
@@ -17,8 +18,8 @@ const els = {
   login: $('btn-login'), loginHero: $('btn-login-hero'), heroHint: $('hero-hint'),
   userChip: $('user-chip'), userPhoto: $('user-photo'), userName: $('user-name'),
   logout: $('btn-logout'), dash: $('dash'), hero: $('hero'),
-  macro: $('macro-strip'), resumo: $('resumo'), cards: $('cards'),
-  hipoteses: $('hipoteses'),
+  macro: $('macro-strip'), resumo: $('resumo'), ranking: $('ranking'),
+  cards: $('cards'), hipoteses: $('hipoteses'),
   tabs: $('tabs'), filters: $('filters'), updated: $('updated-at'),
   toast: $('toast'),
 };
@@ -46,14 +47,27 @@ async function login() {
   try {
     await signInWithPopup(auth, new GoogleAuthProvider());
   } catch (e) {
-    if (e.code === 'auth/operation-not-allowed' || e.code === 'auth/configuration-not-found') {
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/internal-error' ||
+        e.code === 'auth/operation-not-supported-in-this-environment') {
+      // popup bloqueado (comum no mobile/PWA) → tenta o fluxo por redirect
+      try {
+        await signInWithRedirect(auth, new GoogleAuthProvider());
+      } catch (e2) {
+        toast('Falha no login: ' + (e2.code || e2.message));
+      }
+    } else if (e.code === 'auth/operation-not-allowed' || e.code === 'auth/configuration-not-found') {
       toast('Login Google ainda não está ativado no console do Firebase ' +
             '(Authentication → Sign-in method → Google).', 9000);
+    } else if (e.code === 'auth/unauthorized-domain') {
+      toast('Este domínio não está autorizado no Firebase Auth.', 9000);
     } else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
       toast('Falha no login: ' + (e.code || e.message));
     }
   }
 }
+getRedirectResult(auth).catch((e) => {
+  if (e.code !== 'auth/no-auth-event') toast('Falha no login: ' + (e.code || e.message));
+});
 els.login.onclick = login;
 els.loginHero.onclick = login;
 els.logout.onclick = () => signOut(auth);
@@ -206,8 +220,46 @@ function renderResumo() {
     ${topS ? `<span class="dot">·</span><span>destaque short: <b>${esc(topS.nome)}</b> (${Math.round(topS.score)})</span>` : ''}`;
 }
 
+// ── ranking acionável ─────────────────────────────────────────────────
+function renderRanking() {
+  const ops = DATA.horizontes[horizonte].oportunidades;
+  const ordens = ops
+    .filter((o) => ['comprar', 'vender'].includes(o.recomendacao?.acao))
+    .sort((a, b) => (b.recomendacao.assertividade || 0) - (a.recomendacao.assertividade || 0));
+  const segurados = ops.filter((o) =>
+    o.recomendacao?.acao === 'ficarDeFora' && o.direcao !== 'neutro');
+
+  let html = `<h2 class="rank-title">O que fazer agora — ${DATA.horizontes[horizonte].label.toLowerCase()}</h2>`;
+  if (!ordens.length) {
+    html += '<div class="rank-empty">Nenhuma ordem com assertividade ≥ 55% neste horizonte — o laboratório prefere ficar de fora a chutar.</div>';
+  } else {
+    html += ordens.map((o, i) => {
+      const r = o.recomendacao;
+      const tk = o.etoro?.ticker;
+      return `<div class="rank-row" data-id="${esc(o.id)}">
+        <div class="rank-pos">${i + 1}</div>
+        <span class="badge ${o.direcao}">${r.acao === 'comprar' ? '▲ COMPRAR' : '▼ VENDER (SHORT)'}</span>
+        <div class="rank-name">${esc(o.nome)}${tk ? `<span class="tick">eToro: ${esc(tk)}</span>` : ''}</div>
+        <div class="rank-kv rank-ass"><b>${fmtPct(r.assertividade, 0, false)}</b><span>assertividade · n=${r.base}</span></div>
+        <div class="rank-kv"><b>${Math.round(o.score)}</b><span>convicção</span></div>
+        <div class="rank-kv"><b>${o.alavancagem ? '≤' + fmtNum(o.alavancagem.sugerida) + 'x' : '—'}</b><span>alav. máx.</span></div>
+        <div class="rank-gat">→ ${esc(r.gatilho || '')}${o.etoro?.nota ? ` · <i>${esc(o.etoro.nota)}</i>` : ''}</div>
+      </div>`;
+    }).join('');
+  }
+  if (segurados.length) {
+    html += `<div class="rank-fora">Sinal presente mas segurado pelo corte de 55%: ${segurados.map((o) => esc(o.nome)).join(', ')} — ficar de fora.</div>`;
+  }
+  els.ranking.innerHTML = html;
+}
+els.ranking?.addEventListener('click', (e) => {
+  const row = e.target.closest('.rank-row[data-id]');
+  if (row) openModal(row.dataset.id);
+});
+
 function render() {
   renderResumo();
+  renderRanking();
   const ops = DATA.horizontes[horizonte].oportunidades
     .filter((o) => filtro === 'todos' ? true : o.direcao === filtro)
     .sort((a, b) => (b.direcao !== 'neutro') - (a.direcao !== 'neutro') || b.score - a.score);

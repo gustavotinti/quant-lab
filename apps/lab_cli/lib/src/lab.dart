@@ -11,12 +11,14 @@ class LabContext {
     required this.series,
     required this.sinais,
     required this.backtests,
+    required this.cenarios,
     required this.macro,
   });
 
   final Map<String, TimeSeries> series;
   final Map<String, AssetSignals> sinais;
   final Map<String, BacktestPack> backtests;
+  final Map<String, ScenarioReport> cenarios;
   final MacroRegime? macro;
 }
 
@@ -52,11 +54,14 @@ class Lab {
 
     final sinais = <String, AssetSignals>{};
     final backtests = <String, BacktestPack>{};
+    final cenarios = <String, ScenarioReport>{};
     for (final ind in catalogoInicial.where((i) => i.negociavel)) {
       final s = series[ind.id];
       if (s == null || s.length < 60) continue;
       sinais[ind.id] = AssetSignals.fromDaily(s);
       backtests[ind.id] = BacktestPack.fromDaily(s);
+      final cen = analogousScenarios(s);
+      if (cen != null) cenarios[ind.id] = cen;
     }
 
     MacroRegime? macro;
@@ -73,7 +78,11 @@ class Lab {
     }
 
     return LabContext(
-        series: series, sinais: sinais, backtests: backtests, macro: macro);
+        series: series,
+        sinais: sinais,
+        backtests: backtests,
+        cenarios: cenarios,
+        macro: macro);
   }
 
   List<Oportunidade> oportunidades(LabContext ctx, Horizon h) =>
@@ -83,6 +92,7 @@ class Lab {
         backtests: ctx.backtests,
         macro: ctx.macro,
         horizon: h,
+        cenarios: ctx.cenarios,
       );
 
   List<Hypothesis> descobrirHipoteses(LabContext ctx) {

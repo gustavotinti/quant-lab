@@ -3,6 +3,7 @@ import 'package:quant_engine/quant_engine.dart';
 import 'package:quant_market_data/quant_market_data.dart';
 import 'package:quant_stats/quant_stats.dart' as st;
 
+import 'etoro.dart';
 import 'lab.dart';
 
 /// Monta o JSON consumido pelo dashboard web (public/data/dashboard.json).
@@ -12,13 +13,22 @@ Object? _n(double? v) =>
 
 String _iso(DateTime d) => d.toIso8601String().substring(0, 10);
 
+/// Gatilho de saída/manutenção da posição — o "quando" da recomendação.
+String _gatilho(StrategyKind? kind, bool compra) => switch (kind) {
+      StrategyKind.tendencia => compra
+          ? 'manter enquanto fechar acima da SMA-200; sair no fechamento abaixo'
+          : 'manter enquanto fechar abaixo da SMA-200; recomprar no fechamento acima',
+      StrategyKind.momentum => compra
+          ? 'manter enquanto o momentum 12-1 for positivo; reavaliar a cada atualização'
+          : 'manter enquanto o momentum 12-1 for negativo; reavaliar a cada atualização',
+      StrategyKind.reversao =>
+        'alvo: volta à média de 60 pregões (z = 0); reavaliar se esticar mais 1σ contra a posição',
+      null => 'reavaliar a cada atualização diária dos dados',
+    };
+
 Map<String, Object?> dashboardJson(
     Lab lab, LabContext ctx, List<Hypothesis> hs) {
-  // cenários calculados uma vez por ativo (independem do horizonte)
-  final cenarios = <String, ScenarioReport?>{
-    for (final id in ctx.sinais.keys)
-      id: ctx.series[id] == null ? null : analogousScenarios(ctx.series[id]!),
-  };
+  final cenarios = ctx.cenarios;
 
   Map<String, Object?> cenStats(ScenarioStats s, String direcao) => {
         'n': s.n,
@@ -63,7 +73,63 @@ Map<String, Object?> dashboardJson(
     final bt = ctx.backtests[o.indicator.id]?.porHorizonte(h);
     final cen = cenarios[o.indicator.id];
     final s = o.sinais;
+
+    // ── recomendação acionável (assertividade + política de emissão) ────
+    final compra = o.direcao == DirecaoOportunidade.compra;
+    final venda = o.direcao == DirecaoOportunidade.venda;
+    double? wr;
+    var nT = 0;
+    if (bt != null && (compra || venda)) {
+      final dirSign = compra ? 1 : -1;
+      final wd = bt.winRateDirecional(dirSign);
+      if (!wd.isNaN) {
+        wr = wd;
+        nT = bt.nTradesDirecional(dirSign);
+      } else if (!bt.winRate.isNaN) {
+        wr = bt.winRate;
+        nT = bt.nTrades;
+      }
+    }
+    final stx =
+        h == Horizon.curto ? cen?.fwd3m : (cen?.fwd12m ?? cen?.fwd3m);
+    double? fav;
+    var nA = 0;
+    if ((compra || venda) && stx != null && !stx.pctPositivo.isNaN) {
+      fav = venda ? 1 - stx.pctPositivo : stx.pctPositivo;
+      nA = stx.n;
+    }
+    final ass = (compra || venda)
+        ? assertividadeCombinada(
+            winRate: wr, nTrades: nT, favoravel: fav, nAnalogos: nA)
+        : null;
+    final acao =
+        decidirAcao(compra: compra, venda: venda, assertividade: ass);
+    final et = etoroPorIndicador[o.indicator.id];
+    final g = _gatilho(bt?.kind, compra);
+    final alvo = et?.ticker ?? o.indicator.nome;
+    final texto = switch (acao) {
+      Acao.comprar => 'COMPRAR $alvo — $g',
+      Acao.vender => 'VENDER (short) $alvo — $g',
+      Acao.observar =>
+        'OBSERVAR ${o.indicator.nome} — sem base histórica suficiente '
+            'para medir assertividade',
+      Acao.ficarDeFora => compra || venda
+          ? 'FICAR DE FORA de ${o.indicator.nome} — sinal presente, mas '
+              'assertividade histórica abaixo de 55%'
+          : 'FICAR DE FORA de ${o.indicator.nome} — sem sinal',
+    };
+
     return {
+      'recomendacao': {
+        'acao': acao.name,
+        'texto': texto,
+        'gatilho': g,
+        'assertividade': _n(ass?.valor),
+        'base': ass?.base,
+      },
+      'etoro': et == null
+          ? null
+          : {'ticker': et.ticker, 'nota': et.nota},
       'id': o.indicator.id,
       'nome': o.indicator.nome,
       'categoria': o.indicator.category.label,
