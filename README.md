@@ -37,7 +37,16 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
   ordem vira **R$ X com risco fixo por trade** (0,5%/1%/2% conforme o
   perfil), com **preços de Stop Loss e alvo**, teto de concentração por
   classe de ativo, filtro "🎯 só eToro" e o % em caixa.
-- **Consultor IA com plano de execução literal**: "Abra o eToro e busque
+- **Copiloto de posições**: registre o que executou ("✔ Executei" no
+  ranking ou manualmente) e o painel monitora cada posição com veredito
+  ✅ MANTER / ⚠️ ATENÇÃO / 🛑 FECHAR (stop rompido, alvo atingido ou sinal
+  invertido), P&L com alavancagem, histórico com taxa de acerto real e o
+  **Oráculo** dando o veredito por posição.
+- **Alavancagem preditiva**: X2 (ou X5, raro) só quando a evidência
+  autoriza — robustez fora da amostra + assertividade ≥60% + meio-Kelly
+  ≥1 + vol contida; a margem é reduzida na mesma proporção (risco por
+  trade não muda).
+- **Oráculo (IA) com plano de execução literal**: "Abra o eToro e busque
   NSDQ100 → COMPRAR → valor R$ 451 → alavancagem X1 → Stop Loss em
   23.479 → Take Profit em 30.354 → confirme", seguido da rotina de
   acompanhamento e do Plano B se o mercado virar — sempre com os valores

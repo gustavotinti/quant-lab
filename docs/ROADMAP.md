@@ -109,8 +109,16 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   concentração por classe; Consultor IA gera plano passo a passo
   numerado com os valores exatos calculados (R$, SL, TP, alavancagem),
   rotina pós-execução e Plano B.
+- ✅ Copiloto (07/07/2026): journal de posições (✔ Executei / manual),
+  monitor com veredito MANTER/ATENÇÃO/FECHAR (stop, alvo, sinal
+  invertido), P&L com alavancagem, histórico com taxa de acerto real
+  (início do tracking) e Oráculo por posição. Persistência: localStorage.
+- ✅ Alavancagem preditiva (07/07/2026): degraus X1/X2/X5 condicionados a
+  robustez OOS + assertividade + meio-Kelly + vol; IA renomeada Oráculo.
 - ⬜ Integração com a API pública do eToro (portfólio/posições): requer as
-  chaves do Gustavo (eToro → Settings → API; conta verificada).
+  chaves do Gustavo (eToro → Settings → API; conta verificada) —
+  substituirá o registro manual do Copiloto.
+- ⬜ Posições do Copiloto no Firestore (sincronizar entre aparelhos).
 - ✅ Retorno esperado + payoff por recomendação (07/07/2026): ranking
   ordena por retorno esperado; stop estimado por estratégia;
   dimensionamento de posição por risco fixo por trade com capital do

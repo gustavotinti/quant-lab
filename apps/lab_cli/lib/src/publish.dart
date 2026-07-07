@@ -147,6 +147,31 @@ Map<String, Object?> dashboardJson(
           : 'FICAR DE FORA de ${o.indicator.nome} — sem sinal',
     };
 
+    // Alavancagem PREDITIVA em degraus do eToro (X1/X2/X5): só sobe do X1
+    // quando a evidência autoriza — meio-Kelly folgado E robustez fora da
+    // amostra E assertividade alta. Prever não é chutar: é condicionar.
+    // Como o risco por trade é fixado pelo stop, alavancar não aumenta a
+    // perda planejada — aumenta a eficiência do capital. O degrau só sobe
+    // quando o edge (meio-Kelly) é forte, a robustez confirma e a vol é
+    // contida (liquidação em X2 exige ~50% adverso >> qualquer stop nosso).
+    var alavancagemRecomendada = 1;
+    if ((compra || venda) && bt != null && o.alavancagem != null &&
+        ass != null) {
+      final kelly = o.alavancagem!.kellyMeio;
+      final vol = s.vol1yAnn ?? 1.0;
+      final robusto = bt.sobreviveuForaDaAmostra &&
+          bt.segmentosPositivos >= 2 &&
+          ass.valor >= 0.60 &&
+          kelly >= 1.0 &&
+          vol <= 0.30;
+      final muitoRobusto = robusto &&
+          bt.segmentosPositivos == 3 &&
+          ass.valor >= 0.70 &&
+          kelly >= 2.5 &&
+          vol <= 0.20;
+      alavancagemRecomendada = muitoRobusto ? 5 : (robusto ? 2 : 1);
+    }
+
     final dirSign2 = compra ? 1 : -1;
     return {
       'recomendacao': {
@@ -164,6 +189,7 @@ Map<String, Object?> dashboardJson(
         'payoff': bt == null || !(compra || venda)
             ? null
             : _n(bt.payoffDirecional(dirSign2)),
+        'alavancagemRecomendada': alavancagemRecomendada,
       },
       'etoro': et == null
           ? null

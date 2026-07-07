@@ -89,6 +89,29 @@ IC 90% via **bootstrap de blocos móveis** (blocos de 21 pregões, 500
 reamostragens, seed fixo → reproduzível). Blocos preservam a
 autocorrelação de curto prazo que o bootstrap i.i.d. destruiria.
 
+## Alavancagem preditiva (degraus do eToro)
+
+Com o risco por trade fixado pelo stop, alavancar **não aumenta a perda
+planejada** — o dimensionador reduz a margem na mesma proporção (margem =
+exposição ÷ X). O degrau só sobe quando a evidência autoriza:
+
+- **X2**: sobreviveu fora da amostra E walk-forward ≥ 2/3 E assertividade
+  ≥ 60% E meio-Kelly ≥ 1 E vol anual ≤ 30% (a liquidação em X2 exige
+  ~50% adverso — muito além de qualquer stop do sistema);
+- **X5**: tudo acima E walk-forward 3/3 E assertividade ≥ 70% E
+  meio-Kelly ≥ 2,5 E vol ≤ 20% (raro por construção);
+- caso contrário, **X1**. O perfil limita: conservador X1, moderado ≤X2,
+  agressivo ≤X5.
+
+## Sobre "lucro diário" (honestidade)
+
+Os sinais do laboratório são de **fechamento diário** — não existe aqui
+um preditor intradiário validado, e prometê-lo seria inventar precisão.
+O ciclo rentável honesto é diário: atualizar dados → executar o plano →
+Copiloto monitora → fechar no gatilho/stop/alvo. Day trade de varejo tem
+evidência estatística amplamente negativa; o Oráculo é instruído a dizer
+isso se solicitado.
+
 ## Assertividade da recomendação e política de emissão
 
 Cada recomendação carrega **uma única % de assertividade**, combinando as

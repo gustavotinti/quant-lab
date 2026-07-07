@@ -84,8 +84,8 @@
     <div id="ranking" class="ranking"></div>
 
     <section class="ai-sec">
-      <h2 class="rank-title">Consultor IA
-        <span class="h2-sub">Gemini (IA gratuita do Google) — responde usando somente os números deste painel</span></h2>
+      <h2 class="rank-title">🔮 Oráculo
+        <span class="h2-sub">IA do QuantLab (Gemini) — plano de execução com os números deste painel</span></h2>
       <div class="ai-controls">
         <div class="seg" id="seg-risco" aria-label="Nível de risco">
           <button data-v="conservador">🛡 Conservador</button>
@@ -100,6 +100,34 @@
         <button id="btn-ai" class="btn btn-ai">✨ Gerar recomendação</button>
       </div>
       <div id="ai-out" class="ai-out hidden"></div>
+    </section>
+
+    <section class="cop-sec">
+      <h2 class="rank-title">🧭 Copiloto — minhas posições
+        <span class="h2-sub">registre o que você executou no eToro; o painel avisa quando fechar (cotações do fechamento diário)</span></h2>
+      <div id="pos-list" class="pos-list"></div>
+      <details class="pos-add">
+        <summary>+ adicionar posição que já existe na sua conta</summary>
+        <div class="pos-form">
+          <select id="pf-ativo"></select>
+          <select id="pf-dir">
+            <option value="compra">COMPRA (long)</option>
+            <option value="venda">VENDA (short)</option>
+          </select>
+          <input id="pf-entrada" type="number" step="any" min="0" placeholder="preço de entrada">
+          <input id="pf-valor" type="number" step="any" min="0" placeholder="valor investido (R$)">
+          <select id="pf-lev">
+            <option value="1">X1</option><option value="2">X2</option>
+            <option value="5">X5</option><option value="10">X10</option>
+          </select>
+          <button id="pf-add" class="btn">Adicionar</button>
+        </div>
+      </details>
+      <div class="cop-actions">
+        <button id="btn-oraculo-pos" class="btn btn-ai">🔮 Perguntar ao Oráculo sobre minhas posições</button>
+      </div>
+      <div id="oraculo-pos-out" class="ai-out hidden"></div>
+      <div id="pos-hist" class="pos-hist"></div>
     </section>
 
     <h2 class="cards-title">Todos os ativos <span class="h2-sub">toque num card para o raio-X completo</span></h2>

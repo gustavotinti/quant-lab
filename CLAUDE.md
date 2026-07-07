@@ -27,9 +27,13 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   LONG/SHORT + % eficácia, sparklines, modal raio-X (deep link #a=id).
   Ícones: public/icons (regenerar 192px: `dart run
   apps/lab_cli/tool/make_icons.dart` após recapturar o 512 do SVG).
-- Consultor IA: Gemini 2.5 Flash via generativelanguage (REST direto no
+- IA = "Oráculo": Gemini 2.5 Flash via generativelanguage (REST direto no
   app.js; free tier; chave restrita a domínio+serviço — detalhes e
-  rotação em docs/FIREBASE.md). SDK firebase no CDN: v12.4.0.
+  rotação em docs/FIREBASE.md). SDK firebase no CDN: v12.4.0. Dois
+  systems: plano de execução (AI_SYSTEM) e veredito de posições
+  (ORACULO_POS_SYSTEM). Copiloto: posições em localStorage (ql_pos/
+  ql_hist); alavancagem preditiva X1/X2/X5 em recomendacao.
+  alavancagemRecomendada (publish.dart; margem = exposição ÷ X).
   Fluxo de publicação: `lab update` → `lab publish` (gera
   public/data/dashboard.json + relatorio.txt) → `firebase deploy --only
   hosting -P quantlab-lde`. Firestore (default) criado c/ regras

@@ -107,6 +107,8 @@ async function loadData() {
   renderMacro();
   render();
   renderHipoteses();
+  preencherFormAtivos();
+  renderPosicoes();
   if (location.hash.startsWith('#a=')) openModal(location.hash.slice(3));
 }
 
@@ -225,9 +227,9 @@ function renderResumo() {
 // Risco fixo por trade (padrão profissional): peso = riscoPorTrade / stop,
 // limitado por posição e pelo teto investido do perfil; o resto é caixa.
 const perfis = {
-  conservador: { corte: 0.65, risco: 0.005, maxPeso: 0.15, teto: 0.40 },
-  moderado: { corte: 0.55, risco: 0.01, maxPeso: 0.25, teto: 0.70 },
-  agressivo: { corte: 0.55, risco: 0.02, maxPeso: 0.35, teto: 1.00 },
+  conservador: { corte: 0.65, risco: 0.005, maxPeso: 0.15, teto: 0.40, levMax: 1 },
+  moderado: { corte: 0.55, risco: 0.01, maxPeso: 0.25, teto: 0.70, levMax: 2 },
+  agressivo: { corte: 0.55, risco: 0.02, maxPeso: 0.35, teto: 1.00, levMax: 5 },
 };
 let capital = +(localStorage.getItem('ql_capital') || 0);
 let soEtoro = true; // uso pessoal: só o que dá para executar na conta
@@ -272,10 +274,16 @@ function calcularOrdens(hKey) {
     const r = o.recomendacao;
     const stop = r.stopEstimado || 0.05;
     const compra = r.acao === 'comprar';
+    // alavancagem preditiva do laboratório, limitada pelo perfil.
+    // peso = EXPOSIÇÃO; margem = o que se digita no eToro (exposição ÷ X).
+    const lev = Math.min(r.alavancagemRecomendada || 1, p.levMax);
+    const exposicao = capital > 0 ? capital * pesos[i] : null;
     return {
       o,
       peso: pesos[i],
-      valor: capital > 0 ? capital * pesos[i] : null,
+      lev,
+      valor: exposicao,
+      margem: exposicao == null ? null : exposicao / lev,
       stopPreco: o.preco != null
         ? o.preco * (compra ? 1 - stop : 1 + stop) : null,
       alvoPreco: o.preco != null && r.retornoEsperado != null
@@ -317,8 +325,13 @@ function renderRanking() {
         ? ` · SL ~<b>${nivel(l.stopPreco)}</b> · alvo ~<b>${nivel(l.alvoPreco)}</b>`
         : '';
       const sizing = (valor != null
-        ? `Posição sugerida: <b>R$ ${fmtNum(valor, 0)}</b> (${fmtPct(peso, 1, false)})
-           · risco até o stop ≈ R$ ${fmtNum(riscoRs, 0)}`
+        ? (l.lev > 1
+            ? `Invista <b>R$ ${fmtNum(l.margem, 0)}</b> com alavancagem
+               <b>X${l.lev}</b> (exposição R$ ${fmtNum(valor, 0)} ·
+               ${fmtPct(peso, 1, false)}) · risco ≈ R$ ${fmtNum(riscoRs, 0)}`
+            : `Posição sugerida: <b>R$ ${fmtNum(valor, 0)}</b>
+               (${fmtPct(peso, 1, false)}) · X1
+               · risco até o stop ≈ R$ ${fmtNum(riscoRs, 0)}`)
         : `Peso sugerido: <b>${fmtPct(peso, 1, false)}</b> do capital
            (informe o capital acima para ver em R$)`) + sl;
       return `<div class="rank-row" data-id="${esc(o.id)}">
@@ -328,8 +341,10 @@ function renderRanking() {
         <div class="rank-kv"><b>${fmtPct(r.retornoEsperado)}</b><span>retorno esp. (${r.janelaRetorno})</span></div>
         <div class="rank-kv rank-ass"><b>${fmtPct(r.assertividade, 0, false)}</b><span>assertividade · n=${r.base}</span></div>
         <div class="rank-kv"><b>${r.stopEstimado ? fmtPct(r.stopEstimado, 0, false) : '—'}</b><span>stop estim.</span></div>
-        <div class="rank-kv"><b>${o.alavancagem ? '≤' + fmtNum(o.alavancagem.sugerida) + 'x' : '—'}</b><span>alav. máx.</span></div>
-        <div class="rank-gat"><span class="rank-sizing">${sizing}</span><br>
+        <div class="rank-kv"><b>X${l.lev}</b><span>alavancagem</span></div>
+        <div class="rank-gat"><span class="rank-sizing">${sizing}</span>
+          <button class="btn-exec" data-exec="${esc(o.id)}"
+            title="Registrar no Copiloto que você executou esta ordem">✔ Executei</button><br>
           → ${esc(r.gatilho || '')}${o.etoro?.nota ? ` · <i>${esc(o.etoro.nota)}</i>` : ''}</div>
       </div>`;
     }).join('');
@@ -358,6 +373,11 @@ capInput.addEventListener('input', () => {
   if (DATA) renderRanking();
 });
 els.ranking?.addEventListener('click', (e) => {
+  const exec = e.target.closest('[data-exec]');
+  if (exec) {
+    registrarExecucao(exec.dataset.exec);
+    return;
+  }
   const row = e.target.closest('.rank-row[data-id]');
   if (row) openModal(row.dataset.id);
 });
@@ -516,14 +536,16 @@ const GEMINI_KEY = 'AIzaSyAjI74u44OYqLOYfaVDs4bmtuWy-P-TIB0';
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/'
   + 'models/gemini-2.5-flash:generateContent?key=' + GEMINI_KEY;
 const AI_SYSTEM =
-  'Você é o operador-chefe do QuantLab dando instruções de EXECUÇÃO no ' +
-  'eToro. Responda em português do Brasil, markdown enxuto, tom ' +
-  'IMPERATIVO e específico, nestas seções: ' +
+  'Você é o ORÁCULO, o operador-chefe do QuantLab dando instruções de ' +
+  'EXECUÇÃO no eToro. Responda em português do Brasil, markdown enxuto, ' +
+  'tom IMPERATIVO e específico, nestas seções: ' +
   '## Plano de execução — hoje: passo a passo numerado, UMA ordem por ' +
   'passo: "Abra o eToro e busque {TICKER} → toque em COMPRAR (ou ' +
-  'VENDER) → valor R$ {valorRs} → alavancagem X{n} (X1 se não houver) → ' +
+  'VENDER) → valor R$ {valorRs} → alavancagem {alavancagem} → ' +
   'Stop Loss em {stopLossPreco} → Take Profit em {takeProfitPreco} → ' +
-  'confirme." Use exatamente os valores fornecidos. ' +
+  'confirme." Use exatamente os valores fornecidos (valorRs já é a ' +
+  'MARGEM a digitar; se a alavancagem for X2+, mencione a exposição ' +
+  'exposicaoRs). ' +
   '## Depois de executar: rotina de acompanhamento (1x por dia, após a ' +
   'atualização do painel) e o gatilho de saída de cada posição. ' +
   '## Plano B — se o mercado virar: o que fazer se um stop for atingido ' +
@@ -536,19 +558,33 @@ const AI_SYSTEM =
   'fechamento DIÁRIO — instrua a executar hoje, dentro do horário do ' +
   'mercado de cada ativo (cripto: 24h/7d; índices e ações: pregão da ' +
   'bolsa local; FX e futuros: ~24h em dias úteis), sem prometer timing ' +
-  'intradiário. Reserve o percentual de caixa informado e cite o juro ' +
-  'real. Percentuais arredondados (77%, nunca 0.7657) e R$ no padrão ' +
-  'brasileiro. Termine com UMA linha de aviso de risco. ~350 palavras.';
+  'intradiário. Se o usuário sugerir day trade ou "lucro diário", ' +
+  'explique em 1 frase que os sinais do laboratório são de ciclo diário ' +
+  '(fechamento) e não sustentam promessas intradiárias — a rotina ' +
+  'rentável honesta é a revisão diária. Reserve o percentual de caixa ' +
+  'informado e cite o juro real. Percentuais arredondados (77%, nunca ' +
+  '0.7657) e R$ no padrão brasileiro. Termine com UMA linha de aviso de ' +
+  'risco. ~350 palavras.';
+
+const ORACULO_POS_SYSTEM =
+  'Você é o ORÁCULO do QuantLab acompanhando posições ABERTAS do usuário ' +
+  'no eToro. Para CADA posição, dê o veredito em negrito — MANTER, ' +
+  'FECHAR AGORA ou AJUSTAR STOP (com o novo preço) — seguido de UMA linha ' +
+  'de motivo baseada apenas nos dados fornecidos (status do painel, ' +
+  'sinal atual, P&L, stop/alvo). Depois, uma linha de resumo do risco ' +
+  'total. Não invente números nem notícias; as cotações são do ' +
+  'fechamento diário informado. Português do Brasil, markdown com lista, ' +
+  '~200 palavras, termine com uma linha de aviso de risco.';
 
 let riscoSel = 'moderado';
 let tempoSel = 'medio';
 
-async function chamarGemini(prompt) {
+async function chamarGemini(prompt, sys = AI_SYSTEM) {
   const r = await fetch(GEMINI_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      system_instruction: { parts: [{ text: AI_SYSTEM }] },
+      system_instruction: { parts: [{ text: sys }] },
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.3,
@@ -572,13 +608,14 @@ const regrasPerfil = {
     'o resto em caixa/renda fixa (o juro real está nos dados).',
   moderado:
     'PERFIL MODERADO: siga o ranking (assertividade ≥ 0,55); alavancagem ' +
-    'no máximo 1x mesmo que a sugerida seja maior; máximo 25% por ativo; ' +
-    'mantenha reserva em caixa.',
+    'exatamente a fornecida em cada ordem (no máximo X2, e só quando o ' +
+    'laboratório recomendou); máximo 25% por ativo; mantenha reserva em ' +
+    'caixa.',
   agressivo:
     'PERFIL AGRESSIVO: além do ranking, pode citar sinais segurados pelo ' +
     'corte de 55% como posições especulativas de no máximo 5% cada, ' +
-    'deixando claro o risco; alavancagem até a máxima sugerida de cada ' +
-    'ativo; máximo 35% por ativo.',
+    'deixando claro o risco; alavancagem exatamente a fornecida em cada ' +
+    'ordem; máximo 35% por ativo.',
 };
 
 function aiPrompt() {
@@ -593,12 +630,13 @@ function aiPrompt() {
     notaEtoro: l.o.etoro?.nota ?? null,
     acao: l.o.recomendacao.acao, // comprar | vender (short)
     categoria: l.o.categoria,
-    valorRs: l.valor == null ? null : Math.round(l.valor),
+    valorRs: l.margem == null ? null : Math.round(l.margem),
+    exposicaoRs: l.valor == null ? null : Math.round(l.valor),
+    alavancagem: 'X' + l.lev,
     pesoPct: arred(l.peso * 100, 1),
     precoAtual: nivel(l.o.preco),
     stopLossPreco: nivel(l.stopPreco),
     takeProfitPreco: nivel(l.alvoPreco),
-    alavancagemMax: l.o.alavancagem?.sugerida ?? 0,
     assertividadePct: arred((l.o.recomendacao.assertividade || 0) * 100, 0),
     n: l.o.recomendacao.base,
     retornoEsperadoPct:
@@ -643,13 +681,13 @@ async function gerarIA() {
   const out = $('ai-out');
   const btn = $('btn-ai');
   out.classList.remove('hidden');
-  out.innerHTML = '<div class="ai-loading">✨ Analisando os números do '
-    + 'laboratório com o Gemini…</div>';
+  out.innerHTML = '<div class="ai-loading">🔮 O Oráculo está analisando '
+    + 'os números do laboratório…</div>';
   btn.disabled = true;
   try {
     const texto = await chamarGemini(aiPrompt());
     out.innerHTML = mdParaHtml(texto) +
-      `<div class="ai-meta">Gerado por IA (Gemini) a partir dos dados do
+      `<div class="ai-meta">Oráculo (Gemini) — gerado a partir dos dados do
        painel · perfil ${riscoSel} · ${DATA.horizontes[tempoSel].label.toLowerCase()}
        · não é recomendação de investimento</div>`;
   } catch (e) {
@@ -678,6 +716,197 @@ for (const [segId, setter] of [
   });
 }
 $('btn-ai').onclick = gerarIA;
+
+// ── copiloto: minhas posições (journal + monitor) ─────────────────────
+let posicoes = JSON.parse(localStorage.getItem('ql_pos') || '[]');
+let historico = JSON.parse(localStorage.getItem('ql_hist') || '[]');
+const salvarCopiloto = () => {
+  localStorage.setItem('ql_pos', JSON.stringify(posicoes));
+  localStorage.setItem('ql_hist', JSON.stringify(historico));
+};
+
+function opAtual(ativoId) {
+  for (const h of Object.values(DATA?.horizontes || {})) {
+    const o = h.oportunidades.find((x) => x.id === ativoId);
+    if (o?.preco != null) return o;
+  }
+  return null;
+}
+
+function statusPos(p, op) {
+  const atual = op?.preco;
+  if (atual == null) return { txt: 'sem cotação', cls: 'flat', varr: null };
+  const dir = p.dir === 'compra' ? 1 : -1;
+  const varr = dir * (atual / p.entrada - 1);
+  if (p.sl != null && (dir > 0 ? atual <= p.sl : atual >= p.sl)) {
+    return { txt: '🛑 STOP ROMPIDO — FECHE', cls: 'down', varr };
+  }
+  if (p.tp != null && (dir > 0 ? atual >= p.tp : atual <= p.tp)) {
+    return { txt: '🎯 ALVO ATINGIDO — realize', cls: 'up', varr };
+  }
+  if (op && ((p.dir === 'compra' && op.direcao === 'venda') ||
+             (p.dir === 'venda' && op.direcao === 'compra'))) {
+    return { txt: '⚠️ Sinal virou contra — feche', cls: 'down', varr };
+  }
+  if (p.sl != null && p.entrada !== p.sl) {
+    const dist = dir > 0 ? (atual - p.sl) / (p.entrada - p.sl)
+                         : (p.sl - atual) / (p.sl - p.entrada);
+    if (dist < 0.35) return { txt: '⚠️ Perto do stop', cls: 'flat', varr };
+  }
+  return { txt: '✅ MANTER', cls: 'up', varr };
+}
+
+const nivelFmt = (x) => x == null ? '—' : fmtNum(x, x >= 100 ? 0 : 4);
+
+function renderPosicoes() {
+  if (!DATA) return;
+  const list = $('pos-list');
+  if (!posicoes.length) {
+    list.innerHTML = `<div class="pos-vazio">Nenhuma posição registrada.
+      Use "✔ Executei" numa ordem do ranking, ou adicione abaixo o que já
+      está aberto na sua conta — o Copiloto avisa quando fechar.</div>`;
+  } else {
+    list.innerHTML = posicoes.map((p) => {
+      const op = opAtual(p.ativoId);
+      const st = statusPos(p, op);
+      const plPct = st.varr == null ? null : st.varr * p.lev;
+      const plRs = plPct == null || !p.valor ? null : p.valor * plPct;
+      const cls = plPct == null ? '' : (plPct >= 0 ? 'pl-pos' : 'pl-neg');
+      return `<div class="pos-row">
+        <span class="badge ${p.dir}">${p.dir === 'compra' ? '▲ LONG' : '▼ SHORT'}</span>
+        <div class="nome">${esc(p.nome)}${p.ticker ? ` <span class="tick">${esc(p.ticker)}</span>` : ''}</div>
+        <div class="pos-kv"><b class="${cls}">${plPct == null ? '—' : fmtPct(plPct)}</b>
+          <span>P&L${p.lev > 1 ? ' (X' + p.lev + ')' : ''}</span></div>
+        <span class="st-chip ${st.cls}">${st.txt}</span>
+        <button class="btn-close-pos" data-fechar="${p.id}">fechar</button>
+        <div class="det">entrada ${nivelFmt(p.entrada)} → atual ${nivelFmt(op?.preco)}
+          ${p.valor ? ` · R$ ${fmtNum(p.valor, 0)} investido` : ''}
+          ${plRs != null ? ` · resultado <b class="${cls}">R$ ${fmtNum(plRs, 0)}</b>` : ''}
+          ${p.sl != null ? ` · SL ${nivelFmt(p.sl)}` : ''}${p.tp != null ? ` · TP ${nivelFmt(p.tp)}` : ''}
+          · aberta em ${fmtData(p.abertaEm)}</div>
+      </div>`;
+    }).join('');
+  }
+  const hist = $('pos-hist');
+  if (!historico.length) { hist.innerHTML = ''; return; }
+  const total = historico.reduce((a, h) => a + (h.resultadoRs || 0), 0);
+  const acertos = historico.filter((h) => (h.resultadoPct || 0) > 0).length;
+  hist.innerHTML = `<div class="placar">📒 Histórico: ${historico.length}
+    fechadas · acerto ${Math.round(acertos / historico.length * 100)}% ·
+    resultado acumulado R$ ${fmtNum(total, 0)}</div>` +
+    historico.slice(-8).reverse().map((h) => `<div class="h-row">
+      ${esc(h.nome)} (${h.dir === 'compra' ? 'long' : 'short'}) ·
+      ${fmtPct(h.resultadoPct)}${h.resultadoRs != null ? ` · R$ ${fmtNum(h.resultadoRs, 0)}` : ''}
+      · fechada em ${fmtData(h.fechadaEm)}</div>`).join('');
+}
+
+function registrarExecucao(id) {
+  const l = calcularOrdens(horizonte).linhas.find((x) => x.o.id === id);
+  if (!l) return;
+  posicoes.push({
+    id: Date.now(), ativoId: l.o.id, nome: l.o.nome,
+    ticker: l.o.etoro?.ticker || null,
+    dir: l.o.recomendacao.acao === 'comprar' ? 'compra' : 'venda',
+    entrada: l.o.preco, valor: l.margem, lev: l.lev,
+    sl: l.stopPreco, tp: l.alvoPreco, abertaEm: DATA.ultimaObservacao,
+  });
+  salvarCopiloto();
+  renderPosicoes();
+  toast('Posição registrada no Copiloto — o painel avisa quando fechar.');
+}
+
+$('pos-list').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-fechar]');
+  if (!b) return;
+  const p = posicoes.find((x) => x.id === +b.dataset.fechar);
+  if (!p) return;
+  const op = opAtual(p.ativoId);
+  const st = statusPos(p, op);
+  const plPct = st.varr == null ? null : st.varr * p.lev;
+  historico.push({
+    ...p, fechadaEm: DATA.ultimaObservacao, saida: op?.preco ?? null,
+    resultadoPct: plPct,
+    resultadoRs: plPct != null && p.valor ? p.valor * plPct : null,
+  });
+  posicoes = posicoes.filter((x) => x.id !== p.id);
+  salvarCopiloto();
+  renderPosicoes();
+});
+
+function preencherFormAtivos() {
+  const vistos = new Set();
+  const opts = [];
+  for (const h of Object.values(DATA.horizontes)) {
+    for (const o of h.oportunidades) {
+      if (vistos.has(o.id)) continue;
+      vistos.add(o.id);
+      opts.push(`<option value="${esc(o.id)}">${esc(o.nome)}${o.etoro?.ticker ? ' · ' + esc(o.etoro.ticker) : ''}</option>`);
+    }
+  }
+  $('pf-ativo').innerHTML = opts.join('');
+}
+
+$('pf-add').onclick = () => {
+  const id = $('pf-ativo').value;
+  const op = opAtual(id);
+  const entrada = +$('pf-entrada').value;
+  if (!op || !(entrada > 0)) { toast('Preencha o preço de entrada.'); return; }
+  posicoes.push({
+    id: Date.now(), ativoId: id, nome: op.nome,
+    ticker: op.etoro?.ticker || null, dir: $('pf-dir').value,
+    entrada, valor: +$('pf-valor').value || null, lev: +$('pf-lev').value,
+    sl: null, tp: null, abertaEm: DATA.ultimaObservacao,
+  });
+  salvarCopiloto();
+  renderPosicoes();
+  toast('Posição adicionada ao Copiloto.');
+};
+
+async function oraculoPosicoes() {
+  if (!DATA) return;
+  if (!posicoes.length) {
+    toast('Nenhuma posição registrada ainda — use "✔ Executei" no ranking.');
+    return;
+  }
+  const out = $('oraculo-pos-out');
+  const btn = $('btn-oraculo-pos');
+  out.classList.remove('hidden');
+  out.innerHTML =
+    '<div class="ai-loading">🔮 O Oráculo está avaliando suas posições…</div>';
+  btn.disabled = true;
+  try {
+    const ctx = posicoes.map((p) => {
+      const op = opAtual(p.ativoId);
+      const st = statusPos(p, op);
+      return {
+        ativo: p.nome, ticker: p.ticker, direcao: p.dir,
+        precoEntrada: p.entrada, precoAtual: op?.preco ?? null,
+        alavancagem: 'X' + p.lev, valorInvestidoRs: p.valor,
+        plPct: st.varr == null ? null : +(st.varr * p.lev * 100).toFixed(1),
+        stopLoss: p.sl, takeProfit: p.tp, statusPainel: st.txt,
+        sinalAtualDoLaboratorio: op ? {
+          direcao: op.direcao,
+          acao: op.recomendacao?.acao,
+          assertividadePct:
+            Math.round((op.recomendacao?.assertividade || 0) * 100),
+          gatilho: op.recomendacao?.gatilho,
+        } : null,
+      };
+    });
+    const texto = await chamarGemini(
+      `POSIÇÕES ABERTAS (cotações do fechamento de ${DATA.ultimaObservacao}): ${JSON.stringify(ctx)}
+MACRO: ${JSON.stringify(DATA.macro)}
+Dê o veredito de cada posição agora.`, ORACULO_POS_SYSTEM);
+    out.innerHTML = mdParaHtml(texto) +
+      '<div class="ai-meta">Oráculo (Gemini) · cotações do fechamento diário · não é recomendação de investimento</div>';
+  } catch (e) {
+    out.innerHTML = `<p><b>Não consegui falar com o Oráculo.</b></p>
+      <p>${esc(String(e?.message || e)).slice(0, 300)}</p>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+$('btn-oraculo-pos').onclick = oraculoPosicoes;
 
 // ── PWA ───────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
