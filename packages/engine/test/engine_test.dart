@@ -175,6 +175,35 @@ void main() {
     });
   });
 
+  group('radar de picos', () {
+    // Onda senoidal: nos topos da onda, o radar deve apontar 'topo' com
+    // probabilidade alta de virada (todos os análogos caíram depois).
+    TimeSeries onda(int len) => _serieDiaria(
+        'onda', (i) => 100 + 12 * math.sin(i / 20), len);
+
+    test('na crista da onda: tipo topo e virada quase certa', () {
+      // crista: i/20 ≈ π/2 + 2πk → i ≈ 31,4 + 125,7k → i=1916 (k=15)
+      final r = radarPico(onda(1917))!;
+      expect(r.tipo, 'topo');
+      expect(r.prob, greaterThan(0.85));
+      expect(r.medianaFwd21, lessThan(0));
+      expect(r.n, greaterThanOrEqualTo(12));
+    });
+
+    test('no vale da onda: tipo fundo e virada quase certa', () {
+      // vale: i ≈ 94,2 + 125,7k → i=1979 (k=15)
+      final r = radarPico(onda(1980))!;
+      expect(r.tipo, 'fundo');
+      expect(r.prob, greaterThan(0.85));
+      expect(r.medianaFwd21, greaterThan(0));
+    });
+
+    test('sem estado esticado ou série curta → null (sem chute)', () {
+      expect(radarPico(_serieDiaria('curta', (i) => 100.0 + i, 300)),
+          isNull);
+    });
+  });
+
   group('cenários análogos', () {
     test('em alta persistente, todos os análogos tiveram futuro positivo', () {
       final serie = _serieDiaria(

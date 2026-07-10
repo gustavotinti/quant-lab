@@ -37,6 +37,12 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
   ordem vira **R$ X com risco fixo por trade** (0,5%/1%/2% conforme o
   perfil), com **preços de Stop Loss e alvo**, teto de concentração por
   classe de ativo, filtro "🎯 só eToro" e o % em caixa.
+- **📡 Radar de Picos**: leitura técnica do gráfico (RSI, Bollinger,
+  canal de regressão = as "linhas do esquadro", squeeze de volatilidade,
+  topos/fundos de 52 semanas) calibrada por k-vizinhos nos episódios
+  históricos idênticos — lista ranqueada com **% de probabilidade de
+  virada em ~21 pregões** (medidor animado), n explícito e leituras.
+  `lab radar` na CLI; integrado ao Oráculo.
 - **Copiloto de posições**: registre o que executou ("✔ Executei" no
   ranking ou manualmente) e o painel monitora cada posição com veredito
   ✅ MANTER / ⚠️ ATENÇÃO / 🛑 FECHAR (stop rompido, alvo atingido ou sinal

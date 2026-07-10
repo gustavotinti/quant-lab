@@ -263,7 +263,7 @@ details.evid li { font-size: .8rem; color: var(--dim); padding: 3px 0;
   box-shadow: 0 12px 32px rgba(0,0,0,.35); }
 .rank-pos { font: 800 1.15rem var(--mono); color: var(--dimmer); }
 .rank-name { font-weight: 700; }
-.rank-name .tick { font: 700 .68rem var(--mono); color: var(--accent-2);
+.tick { font: 700 .68rem var(--mono); color: var(--accent-2);
   border: 1px solid rgba(79,156,255,.35); border-radius: 6px;
   padding: 2px 7px; margin-left: 8px; vertical-align: 2px; }
 .rank-kv { text-align: right; }
@@ -319,6 +319,33 @@ details.evid li { font-size: .8rem; color: var(--dim); padding: 3px 0;
 @keyframes pulse { 50% { opacity: .45; } }
 .ai-meta { margin-top: 14px; font-size: .72rem; color: var(--dimmer);
   border-top: 1px dashed var(--border); padding-top: 10px; }
+
+/* radar de picos */
+.radar-sec { margin: 6px 0 30px; }
+.radar-row {
+  display: grid; grid-template-columns: auto 1fr minmax(180px, 300px) auto;
+  gap: 6px 16px; align-items: center;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 13px 17px; margin-bottom: 10px;
+  cursor: pointer; transition: border-color .2s;
+}
+.radar-row:hover { border-color: rgba(120,160,210,.32); }
+.rr-name { font-weight: 700; }
+.rr-meter { position: relative; height: 22px; border-radius: 999px;
+  background: rgba(120,160,210,.12); overflow: hidden; }
+.rr-fill { height: 100%; border-radius: 999px; width: 0;
+  transition: width 1.1s cubic-bezier(.22,1,.36,1); }
+.rr-fill.topo { background: linear-gradient(90deg, #7a2c3c, var(--red)); }
+.rr-fill.fundo { background: linear-gradient(90deg, #1d6b4f, var(--accent)); }
+.rr-pct { position: absolute; right: 10px; top: 50%;
+  transform: translateY(-50%); font: 800 .82rem var(--mono); }
+.rr-info { font: 600 .74rem var(--mono); color: var(--dim);
+  text-align: right; white-space: nowrap; }
+.rr-leituras { grid-column: 1 / -1; font-size: .76rem; color: var(--dimmer);
+  border-top: 1px dashed var(--border); padding-top: 7px; }
+.radar-nota { font-size: .78rem; color: var(--dim);
+  border-left: 3px solid var(--amber); padding-left: 12px; margin-top: 4px; }
+.radar-vazio { color: var(--dimmer); font-size: .85rem; padding: 10px 4px; }
 
 /* copiloto */
 .cop-sec { margin: 6px 0 30px; }

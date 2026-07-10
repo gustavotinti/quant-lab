@@ -106,6 +106,7 @@ async function loadData() {
     `dados até ${fmtData(DATA.ultimaObservacao)} · gerado ${fmtData(DATA.geradoEm?.slice(0, 10))}`;
   renderMacro();
   render();
+  renderRadar();
   renderHipoteses();
   preencherFormAtivos();
   renderPosicoes();
@@ -545,7 +546,9 @@ const AI_SYSTEM =
   'Stop Loss em {stopLossPreco} → Take Profit em {takeProfitPreco} → ' +
   'confirme." Use exatamente os valores fornecidos (valorRs já é a ' +
   'MARGEM a digitar; se a alavancagem for X2+, mencione a exposição ' +
-  'exposicaoRs). ' +
+  'exposicaoRs). Cruze com o radarDePico quando existir: se a ordem ' +
+  'concordar com o radar, reforce; se o radar apontar contra a ordem, ' +
+  'diga para reduzir o tamanho ou aguardar. ' +
   '## Depois de executar: rotina de acompanhamento (1x por dia, após a ' +
   'atualização do painel) e o gatilho de saída de cada posição. ' +
   '## Plano B — se o mercado virar: o que fazer se um stop for atingido ' +
@@ -643,7 +646,13 @@ function aiPrompt() {
         arred((l.o.recomendacao.retornoEsperado || 0) * 100, 1),
     janela: l.o.recomendacao.janelaRetorno,
     gatilhoSaida: l.o.recomendacao.gatilho,
+    radarDePico: l.o.radar
+      ? { tipo: l.o.radar.tipo,
+          probPct: Math.round((l.o.radar.prob || 0) * 100) }
+      : null,
   }));
+  const alertasRadar = (DATA.radarPicos || []).slice(0, 3).map((r) =>
+    `${r.nome}: ${r.tipo.toUpperCase()} ${Math.round(r.prob * 100)}% (n=${r.n})`);
   return `${regrasPerfil[riscoSel]}
 HORIZONTE PEDIDO: ${h.label} (${h.janela}).
 CAPITAL DO USUÁRIO: ${capital > 0 ? 'R$ ' + capital : 'não informado (use % do capital)'}.
@@ -652,6 +661,8 @@ MACRO (dados oficiais): ${JSON.stringify(DATA.macro)}
 ORDENS APROVADAS PELO LABORATÓRIO (já dimensionadas — monte o passo a
 passo EXATAMENTE com estes valores): ${JSON.stringify(ordens)}
 NÃO OPERAR (sinal fraco ou segurado): ${plano.segurados.map((o) => o.nome).join(', ') || 'nenhum'}.
+ALERTAS DO RADAR DE PICOS (leitura técnica; probabilidade empírica de
+virada em ~21 pregões): ${alertasRadar.join(' | ') || 'nenhum'}.
 Monte o plano de execução agora.`;
 }
 
@@ -716,6 +727,43 @@ for (const [segId, setter] of [
   });
 }
 $('btn-ai').onclick = gerarIA;
+
+// ── radar de picos ────────────────────────────────────────────────────
+function renderRadar() {
+  const list = $('radar-list');
+  const radar = DATA.radarPicos || [];
+  if (!radar.length) {
+    list.innerHTML = `<div class="radar-vazio">Nenhum ativo em estado
+      esticado hoje — sem candidato a pico. O radar só fala quando o
+      gráfico está em extremo E existem análogos históricos suficientes.</div>`;
+    return;
+  }
+  list.innerHTML = radar.map((r) => {
+    const topo = r.tipo === 'topo';
+    return `<div class="radar-row" data-id="${esc(r.id)}">
+      <span class="badge ${topo ? 'venda' : 'compra'}">
+        ${topo ? '⛰ TOPO — pico p/ baixo' : '🕳 FUNDO — virada p/ cima'}</span>
+      <div class="rr-name">${esc(r.nome)}${r.ticker ? `<span class="tick">${esc(r.ticker)}</span>` : ''}</div>
+      <div class="rr-meter"><div class="rr-fill ${r.tipo}" data-w="${(r.prob * 100).toFixed(0)}"></div>
+        <span class="rr-pct">${fmtPct(r.prob, 0, false)}</span></div>
+      <div class="rr-info">n=${r.n} · 21d: ${fmtPct(r.medianaFwd21)}</div>
+      <div class="rr-leituras">${r.leituras.map(esc).join(' · ')}</div>
+    </div>`;
+  }).join('') +
+  `<div class="radar-nota">Probabilidade empírica: em n episódios em que o
+   gráfico esteve NESTE estado, a % indica quantas vezes veio a virada em
+   ~21 pregões. 99% não existe em mercado — acima de 70% já é raro; trate
+   como alerta forte, não como certeza.</div>`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    list.querySelectorAll('.rr-fill').forEach((f) => {
+      f.style.width = f.dataset.w + '%';
+    });
+  }));
+}
+$('radar-list').addEventListener('click', (e) => {
+  const row = e.target.closest('.radar-row[data-id]');
+  if (row) openModal(row.dataset.id);
+});
 
 // ── copiloto: minhas posições (journal + monitor) ─────────────────────
 let posicoes = JSON.parse(localStorage.getItem('ql_pos') || '[]');
@@ -890,6 +938,10 @@ async function oraculoPosicoes() {
           assertividadePct:
             Math.round((op.recomendacao?.assertividade || 0) * 100),
           gatilho: op.recomendacao?.gatilho,
+          radarDePico: op.radar ? {
+            tipo: op.radar.tipo,
+            probPct: Math.round((op.radar.prob || 0) * 100),
+          } : null,
         } : null,
       };
     });

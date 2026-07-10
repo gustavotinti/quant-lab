@@ -13,4 +13,5 @@ export 'src/multiple_testing.dart';
 export 'src/performance.dart';
 export 'src/regression.dart';
 export 'src/returns.dart';
+export 'src/rsi.dart';
 export 'src/special.dart';

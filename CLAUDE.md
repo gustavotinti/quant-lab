@@ -53,7 +53,9 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   15%, teto 3x), HypothesisLab (c/ Benjamini-Hochberg), analogousScenarios
 - `apps/lab_cli` — comandos: update, list, macro, analyze, opportunities,
   recommend (ranking acionável ordenado por retorno esperado; corte de
-  emissão 55%; ticker eToro; payoff/stop), scenarios, hypotheses
+  emissão 55%; ticker eToro; payoff/stop), radar (📡 picos:
+  engine/radar.dart — kNN 16 análogos sobre estado técnico de 7 medidas
+  → prob de virada em 21d), scenarios, hypotheses
   discover|list, report, publish, **go** (update+publish+deploy — rotina
   diária de 1 comando).
   Mapa eToro em lib/src/etoro.dart (apresentação — domínio não conhece

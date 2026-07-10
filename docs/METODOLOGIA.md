@@ -172,6 +172,35 @@ Dois freios independentes; **vale o menor**, com teto absoluto de 3x
 Kelly ≤ 0 ⇒ alavancagem 0 ("matematicamente não alavancar"). Avisos de
 liquidação sempre presentes.
 
+## 📡 Radar de Picos (leitura técnica calibrada)
+
+O "esquadro" dos gráficos, em matemática auditável. Estado técnico diário
+com 7 medidas objetivas:
+
+| Medida | O que captura |
+|---|---|
+| RSI(14) de Wilder | exaustão do movimento (0–100) |
+| Z-score 20 pregões | posição nas bandas de Bollinger (σ) |
+| Canal de regressão 63 | as "linhas de tendência": resíduo da reta OLS em σ |
+| Squeeze vol20/vol100 | triângulos/cunhas = compressão de volatilidade |
+| Dist. topo/fundo 252 | proximidade dos extremos de 52 semanas |
+| Sequência (streak) | pregões consecutivos na mesma direção |
+
+1. O radar só liga quando o estado está **esticado** (≥2 sinais clássicos
+   na mesma direção: z20 >1σ, RSI >65, canal >1,2σ, a <2% do extremo de
+   52s, ≥4 pregões seguidos — ou os espelhos para baixo).
+2. **k-vizinhos**: os 16 momentos históricos mais parecidos (distância
+   média por medida, em σ; espaçados ≥10 pregões; teto 1σ; mínimo 12).
+3. **Probabilidade de virada** = fração desses análogos em que veio o
+   movimento contrário nos 21 pregões seguintes, com mediana do retorno.
+4. Validação: em onda senoidal sintética, o radar identifica cristas e
+   vales com >85% — e em ruído/estado neutro fica calado (null).
+
+**Honestidade**: 99% não existe em mercado — se existisse, seria
+arbitrado até sumir. Acima de 70% é raro; é alerta forte, não certeza.
+O radar alimenta o Oráculo (reforça ou reduz ordens) e aparece como
+lista ranqueada com medidor de probabilidade.
+
 ## Cenários análogos
 
 Em vez de prever, o sistema pergunta: *"quantas vezes este ativo já esteve

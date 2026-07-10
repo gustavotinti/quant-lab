@@ -102,6 +102,24 @@ void main() {
     });
   });
 
+  group('rsi', () {
+    test('alta monotônica satura em 100; queda em ~0', () {
+      final sobe = List.generate(40, (i) => 100.0 + i);
+      expect(rsiSeries(sobe).last, closeTo(100, 1e-9));
+      final cai = List.generate(40, (i) => 100.0 - i);
+      expect(rsiSeries(cai).last!, lessThan(1));
+    });
+
+    test('ganhos e perdas alternados iguais ≈ 50', () {
+      final zig = List.generate(60, (i) => 100.0 + (i.isEven ? 0 : 1));
+      expect(rsiSeries(zig).last!, closeTo(50, 6));
+    });
+
+    test('janela incompleta → null', () {
+      expect(rsiSeries([1.0, 2.0, 3.0]).last, isNull);
+    });
+  });
+
   group('funções especiais', () {
     test('logGamma em valores conhecidos', () {
       expect(logGamma(1), closeTo(0, 1e-10)); // Γ(1)=1

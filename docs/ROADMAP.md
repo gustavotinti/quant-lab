@@ -115,6 +115,11 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   (início do tracking) e Oráculo por posição. Persistência: localStorage.
 - ✅ Alavancagem preditiva (07/07/2026): degraus X1/X2/X5 condicionados a
   robustez OOS + assertividade + meio-Kelly + vol; IA renomeada Oráculo.
+- ✅ 📡 Radar de Picos (10/07/2026): estado técnico de 7 medidas (RSI,
+  z20, canal de regressão, squeeze, topo/fundo 52s, streak) + kNN de 16
+  análogos → probabilidade de virada em 21 pregões; validado em onda
+  sintética (>85% nas cristas/vales, mudo em ruído); UI com medidor,
+  `lab radar` e integração no Oráculo (ordens e posições).
 - ⬜ Integração com a API pública do eToro (portfólio/posições): requer as
   chaves do Gustavo (eToro → Settings → API; conta verificada) —
   substituirá o registro manual do Copiloto.

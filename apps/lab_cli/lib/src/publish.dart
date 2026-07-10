@@ -69,6 +69,21 @@ Map<String, Object?> dashboardJson(
     for (final id in ctx.sinais.keys) id: chartData(id),
   };
 
+  // 📡 radar de picos por ativo (independe do horizonte)
+  final radares = <String, RadarPico?>{
+    for (final id in ctx.sinais.keys)
+      id: ctx.series[id] == null ? null : radarPico(ctx.series[id]!),
+  };
+  Map<String, Object?>? radarJson(RadarPico? r) => r == null
+      ? null
+      : {
+          'tipo': r.tipo,
+          'prob': _n(r.prob),
+          'n': r.n,
+          'medianaFwd21': _n(r.medianaFwd21),
+          'leituras': r.leituras,
+        };
+
   Map<String, Object?> oportunidadeJson(Oportunidade o, Horizon h) {
     final bt = ctx.backtests[o.indicator.id]?.porHorizonte(h);
     final cen = cenarios[o.indicator.id];
@@ -191,6 +206,7 @@ Map<String, Object?> dashboardJson(
             : _n(bt.payoffDirecional(dirSign2)),
         'alavancagemRecomendada': alavancagemRecomendada,
       },
+      'radar': radarJson(radares[o.indicator.id]),
       'etoro': et == null
           ? null
           : {'ticker': et.ticker, 'nota': et.nota},
@@ -285,6 +301,18 @@ Map<String, Object?> dashboardJson(
           ],
         },
     },
+    // radar de picos ranqueado por probabilidade de virada
+    'radarPicos': ([
+      for (final ind in catalogoInicial)
+        if (ind.negociavel && radares[ind.id] != null)
+          {
+            'id': ind.id,
+            'nome': ind.nome,
+            'ticker': etoroPorIndicador[ind.id]?.ticker,
+            ...radarJson(radares[ind.id])!,
+          },
+    ]..sort((a, b) => ((b['prob'] as num?) ?? 0)
+        .compareTo((a['prob'] as num?) ?? 0))),
     // um gráfico por ativo (não por horizonte — evita triplicar o payload)
     'charts': {
       for (final e in charts.entries)

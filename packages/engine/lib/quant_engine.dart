@@ -12,5 +12,6 @@ export 'src/hypothesis.dart';
 export 'src/leverage.dart';
 export 'src/macro_regime.dart';
 export 'src/opportunity.dart';
+export 'src/radar.dart';
 export 'src/recommendation.dart';
 export 'src/scenarios.dart';

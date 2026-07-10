@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:lab_cli/src/etoro.dart';
 import 'package:lab_cli/src/format.dart';
 import 'package:lab_cli/src/lab.dart';
 import 'package:lab_cli/src/publish.dart';
@@ -31,6 +32,8 @@ Future<void> main(List<String> args) async {
       await _opportunities(lab, rest);
     case 'recommend':
       await _recommend(lab, rest);
+    case 'radar':
+      await _radar(lab);
     case 'scenarios':
       await _scenarios(lab, rest);
     case 'hypotheses':
@@ -58,6 +61,7 @@ Comandos:
   lab opportunities [horizonte]    Oportunidades (curto | medio | longo)
   lab recommend [horizonte]        RANKING ACIONÁVEL: o que fazer, com
                                    assertividade % e ticker do eToro
+  lab radar                        📡 Radar de Picos (prob. de virada ~21d)
   lab scenarios <id>               Cenários análogos históricos do ativo
   lab hypotheses discover|list     Minera/lista hipóteses defasadas
   lab report                       Gera relatório markdown em reports/
@@ -324,6 +328,40 @@ Future<void> _recommend(Lab lab, List<String> args) async {
   }
   stdout.writeln('\nSinais recalculados a cada `lab update` (ideal: diário). '
       'Validade: até a próxima atualização ou o gatilho de saída.');
+  stdout.writeln(disclaimer);
+}
+
+Future<void> _radar(Lab lab) async {
+  final ctx = await lab.carregar();
+  if (ctx.sinais.isEmpty) {
+    stdout.writeln('Sem dados — rode `lab update` primeiro.');
+    return;
+  }
+  final resultados = <(Indicator, RadarPico)>[];
+  for (final ind in catalogoInicial.where((i) => i.negociavel)) {
+    final s = ctx.series[ind.id];
+    if (s == null) continue;
+    final r = radarPico(s);
+    if (r != null) resultados.add((ind, r));
+  }
+  resultados.sort((a, b) => b.$2.prob.compareTo(a.$2.prob));
+
+  stdout.writeln('📡 RADAR DE PICOS — probabilidade empírica de virada '
+      'em ~21 pregões\n');
+  if (resultados.isEmpty) {
+    stdout.writeln('Nenhum ativo em estado esticado hoje — sem candidato '
+        'a pico.');
+  }
+  for (final (ind, r) in resultados) {
+    final tk = etoroPorIndicador[ind.id]?.ticker;
+    stdout.writeln('${r.tipo == 'topo' ? '⛰ TOPO — pico p/ baixo ' : '🕳 FUNDO — virada p/ cima'}  '
+        '${ind.nome}${tk != null ? '  [eToro: $tk]' : ''}');
+    stdout.writeln('   virada: ${pct(r.prob, comSinal: false, dec: 0)} '
+        '(n=${r.n}) · mediana dos 21d seguintes: ${pct(r.medianaFwd21)}');
+    stdout.writeln('   ${r.leituras.join(' · ')}\n');
+  }
+  stdout.writeln('Leitura honesta: 99% não existe em mercado; acima de '
+      '70% já é raro — trate como alerta forte, não como certeza.');
   stdout.writeln(disclaimer);
 }
 
