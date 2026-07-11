@@ -76,6 +76,18 @@ O prompt injeta SOMENTE os dados do `dashboard.json` (macro + ranking do
 horizonte escolhido) + regras do perfil de risco; o sistema exige que a
 IA não invente números e formate assertividade como %.
 
+## Automação (GitHub Actions — sem Blaze, custo zero)
+
+`.github/workflows/atualizar.yml`: cron a cada 2h + workflow_dispatch.
+Passos: setup Dart → `lab update` + `lab publish` → deploy do Hosting
+com a service account `gh-deploy@quantlab-lde.iam.gserviceaccount.com`
+(papéis: Firebase Hosting Admin + Firebase Viewer; chave JSON no secret
+`FIREBASE_SERVICE_ACCOUNT` do repositório — criada e selada via API).
+Rotação da chave: IAM → Service Accounts → gh-deploy → Keys (revogar) e
+regravar o secret. O front faz polling do dashboard.json a cada 5 min.
+O plano free do Actions (repo privado: 2.000 min/mês) comporta ~12
+execuções/dia de ~4 min.
+
 ## Pendências da Fase 3
 
 - **Cloud Function agendada** (cron diário: update → engines → publish no

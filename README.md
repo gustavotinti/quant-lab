@@ -13,7 +13,11 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
 
 ## O que já funciona (v0.2)
 
-- **40 indicadores oficiais** baixados de fontes públicas e gratuitas, sem
+- **Atualização automática na nuvem (grátis)**: GitHub Actions roda o
+  pipeline a cada 2 horas (update → publish → deploy) — os dados nunca
+  dependem do PC ligado, e o painel se auto-atualiza no navegador a cada
+  5 minutos quando sai versão nova.
+- **55 indicadores oficiais** baixados de fontes públicas e gratuitas, sem
   chave de API: Banco Central do Brasil (Selic, CDI, IPCA, IGP-M, INPC,
   PTAX, desemprego, IBC-Br, reservas, base monetária, M2, IC-Br) e bolsas
   via Yahoo Finance — índices (S&P 500, Nasdaq, Dow Jones, Ibovespa, DAX,

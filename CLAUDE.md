@@ -90,6 +90,11 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   XRP-USD SOL-USD ADA-USD EURUSD=X GBPUSD=X JPY=X DX-Y.NYB ^TNX
   (User-Agent obrigatório) — total 40 indicadores, priorizando eToro
 
-## Git
+## Git / Automação
 - origin: https://github.com/gustavotinti/quant-lab (privado, branch master)
 - Sem gh CLI — GitHub via API REST com token do `git credential fill`
+- **Pipeline automático**: .github/workflows/atualizar.yml (cron 2h) —
+  update+publish+deploy c/ SA gh-deploy@quantlab-lde (secret
+  FIREBASE_SERVICE_ACCOUNT; selado via libsodium-wrappers + API).
+  Front: polling do dashboard.json a cada 5 min (atualizarTopo/toast).
+  Total 55 indicadores (43 negociáveis eToro).

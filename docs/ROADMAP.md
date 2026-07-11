@@ -54,7 +54,10 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   resumo do dia, guia "como ler", **PWA** (manifest + service worker
   network-first + ícones) e payload deduplicado (490→190 KB).
 - ⬜ Ativar provedor Google no console (1 min, manual — docs/FIREBASE.md).
-- ⬜ Plano Blaze (cartão no console — ação manual) para liberar Functions.
+- ✅ Automação na nuvem SEM Blaze (11/07/2026): GitHub Actions a cada 2h
+  (update+publish+deploy c/ service account) + auto-refresh do painel a
+  cada 5 min. Dados nunca mais dependem do PC.
+- ⬜ Plano Blaze (opcional agora — só se quisermos Functions/Firestore).
 - ⬜ Cloud Function agendada (cron diário): roda update + engines e grava
   resultados no Firestore (`indicators`, `opportunities`, `hypotheses`) e
   publica o relatório no Hosting.
