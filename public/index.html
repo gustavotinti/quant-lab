@@ -156,6 +156,32 @@
 
   <div id="toast" class="toast hidden"></div>
 
+  <!-- mentor: chat do Oráculo (flutuante, sincronizado com o painel) -->
+  <button id="fab-oraculo" class="fab hidden" title="Falar com o Oráculo" aria-label="Falar com o Oráculo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.1 4.9L19 10l-4.9 2.1L12 17l-2.1-4.9L5 10l4.9-2.1z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/></svg>
+  </button>
+  <div id="chat-panel" class="chat-panel hidden" role="dialog" aria-label="Mentor Oráculo">
+    <div class="chat-head">
+      <div>
+        <b>Oráculo — mentor</b>
+        <span id="chat-ctx" class="chat-ctx"></span>
+      </div>
+      <button id="chat-close" class="modal-x" aria-label="Fechar">✕</button>
+    </div>
+    <div id="chat-msgs" class="chat-msgs">
+      <div class="msg model">Sou o mentor do QuantLab. Pergunte sobre
+        qualquer ativo, peça orientação nas suas posições ("fecho o ouro?")
+        ou um plano — respondo com os números do painel e explico o
+        porquê. Cotações são do fechamento diário: confira o preço no
+        eToro antes de executar.</div>
+    </div>
+    <div class="chat-inputbar">
+      <input id="chat-inp" type="text" maxlength="500"
+        placeholder="Pergunte ao mentor…" autocomplete="off">
+      <button id="chat-send" class="btn btn-ai">Enviar</button>
+    </div>
+  </div>
+
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
     <div id="modal-back" class="modal-back"></div>
     <div class="modal-card">

@@ -127,9 +127,14 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   (horizonte + perfil de risco global + capital + filtros) e Oráculo
   sincronizado com o estado da plataforma (segue as abas/perfil/capital
   e marca o plano como desatualizado quando a seleção muda).
+- ✅ Mentor ao vivo (11/07/2026): chat flutuante do Oráculo com memória
+  de conversa e contexto completo do painel (ordens dimensionadas, radar,
+  posições com status, macro, seleção); persona professor+operador com
+  "Ação:" e veredito por posição; atalhos no Raio-X e no Copiloto;
+  honestidade de cotação (fechamento diário + conferir preço no eToro).
 - ⬜ Integração com a API pública do eToro (portfólio/posições): requer as
   chaves do Gustavo (eToro → Settings → API; conta verificada) —
-  substituirá o registro manual do Copiloto.
+  substituirá o registro manual do Copiloto e dará preço vivo ao mentor.
 - ⬜ Posições do Copiloto no Firestore (sincronizar entre aparelhos).
 - ✅ Retorno esperado + payoff por recomendação (07/07/2026): ranking
   ordena por retorno esperado; stop estimado por estratégia;

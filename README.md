@@ -52,6 +52,14 @@ ao usuário sem antes **tentar ser destruído** (validação fora da amostra).
   autoriza — robustez fora da amostra + assertividade ≥60% + meio-Kelly
   ≥1 + vol contida; a margem é reduzida na mesma proporção (risco por
   trade não muda).
+- **Mentor ao vivo (chat do Oráculo)**: botão flutuante abre um chat que
+  conhece TODO o estado do painel (ordens, radar, suas posições, perfil,
+  capital) e responde com memória de conversa — "fecho o ouro?", "vale
+  entrar no Ibovespa?" — explicando como professor e fechando sempre com
+  **Ação:** e veredito MANTER/FECHAR/AJUSTAR STOP. Atalhos "Orientação do
+  Oráculo" no Raio-X de cada ativo e em cada posição do Copiloto.
+  Honestidade: cotações do fechamento diário; ele manda conferir o preço
+  no eToro antes de executar.
 - **Oráculo (IA) com plano de execução literal**: "Abra o eToro e busque
   NSDQ100 → COMPRAR → valor R$ 451 → alavancagem X1 → Stop Loss em
   23.479 → Take Profit em 30.354 → confirme", seguido da rotina de

@@ -103,6 +103,7 @@ onAuthStateChanged(auth, (user) => {
   els.userChip.classList.toggle('hidden', !logged);
   els.dash.classList.toggle('hidden', !logged);
   els.hero.classList.toggle('hidden', logged);
+  $('fab-oraculo').classList.toggle('hidden', !logged);
   if (logged) {
     els.userPhoto.src = user.photoURL || '';
     els.userName.textContent = (user.displayName || user.email || '').split(' ')[0];
@@ -554,7 +555,11 @@ function openModal(id) {
       ${kv('vs SMA-200', fmtPct(s.distSma200))}${kv('Z-score 60d', fmtNum(s.z60))}
       ${kv('Vol 1a', fmtPct(s.vol1y, 0, false))}${kv('Do topo', fmtPct(s.ddTopo))}</div>
     ${o.evidencias?.length ? `<div class="m-sec">Evidências</div>
-      <ul class="m-evid">${o.evidencias.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`;
+      <ul class="m-evid">${o.evidencias.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    <div class="row-actions" style="margin-top:18px">
+      <button class="btn-raiox" data-mentor data-nome="${esc(o.nome)}">
+        Orientação do Oráculo sobre este ativo</button>
+    </div>`;
   modalEl.classList.remove('hidden');
   history.replaceState(null, '', '#a=' + id);
 }
@@ -758,6 +763,7 @@ function sincronizarOraculo(marcarDesatualizado = true) {
       `${DATA.horizontes[horizonte].label.toLowerCase()}` +
       (capital > 0 ? ` · R$ ${fmtNum(capital, 0)}` : '');
   }
+  atualizarChatCtx();
   if (!marcarDesatualizado) return;
   for (const id of ['ai-out', 'oraculo-pos-out']) {
     const out = $(id);
@@ -892,6 +898,7 @@ function renderPosicoes() {
             · aberta em ${fmtData(p.abertaEm)}</p>
           <div class="row-actions">
             <button class="btn-close-pos" data-fechar="${p.id}">Fechar posição (registrar)</button>
+            <button class="btn-raiox" data-mentor-pos="${p.id}">Orientação do Oráculo</button>
             <button class="btn-raiox" data-modal="${esc(p.ativoId)}">${icon('chart')} Raio-X do ativo</button>
           </div>
         </div>
@@ -929,6 +936,16 @@ function registrarExecucao(id) {
 $('pos-list').addEventListener('click', (e) => {
   const raiox = e.target.closest('[data-modal]');
   if (raiox) { openModal(raiox.dataset.modal); return; }
+  const mp = e.target.closest('[data-mentor-pos]');
+  if (mp) {
+    const p = posicoes.find((x) => x.id === +mp.dataset.mentorPos);
+    if (p) {
+      abrirMentor(`Tenho uma posição de ${p.dir === 'compra' ? 'COMPRA' : 'VENDA'} ` +
+        `em ${p.nome} (entrada ${p.entrada}). Devo fechar, manter ou ` +
+        'ajustar o stop agora? Explique como mentor.');
+    }
+    return;
+  }
   const b = e.target.closest('[data-fechar]');
   if (!b) return;
   const p = posicoes.find((x) => x.id === +b.dataset.fechar);
@@ -1024,6 +1041,172 @@ Dê o veredito de cada posição agora.`, ORACULO_POS_SYSTEM);
   }
 }
 $('btn-oraculo-pos').onclick = oraculoPosicoes;
+
+// ── mentor: chat do Oráculo (ao vivo, sincronizado com o painel) ──────
+const ORACULO_MENTOR_SYSTEM =
+  'Você é o ORÁCULO, mentor de investimentos do QuantLab, conversando ' +
+  'com o dono da conta no eToro. Papel duplo: EXPLICAR como professor ' +
+  '(por que os números dizem o que dizem) e ORIENTAR com ação concreta ' +
+  '(comprar/vender/manter/fechar/aguardar, com valores, stop e gatilho ' +
+  'quando existirem no contexto). REGRAS: use SOMENTE os dados do bloco ' +
+  'CONTEXTO (nunca invente preços, notícias ou eventos); as cotações são ' +
+  'do fechamento diário indicado — quando a decisão depender do preço de ' +
+  'agora, mande conferir o preço atual no eToro antes de executar; se ' +
+  'perguntarem sobre ativo fora do contexto, diga que o laboratório ' +
+  'ainda não cobre esse ativo; sinais são de ciclo diário (nada de day ' +
+  'trade); português do Brasil, tom direto e didático, no MÁXIMO ~180 ' +
+  'palavras, markdown leve (negrito e listas curtas). Números SEMPRE no ' +
+  'padrão brasileiro (162.885, nunca 162884.55; R$ 1.803). Feche sempre ' +
+  'com uma linha começando com "Ação:" e, ao falar de posição aberta, dê ' +
+  'o veredito MANTER / FECHAR / AJUSTAR STOP em negrito. Nunca prometa ' +
+  'retorno.';
+
+function contextoMentor() {
+  const plano = calcularOrdens(horizonte);
+  const ordens = plano.linhas.slice(0, 6).map((l) => ({
+    ativo: l.o.nome, ticker: l.o.etoro?.ticker ?? null,
+    acao: l.o.recomendacao.acao,
+    assertividadePct: Math.round((l.o.recomendacao.assertividade || 0) * 100),
+    investirRs: l.margem == null ? null : Math.round(l.margem),
+    alavancagem: 'X' + l.lev,
+    stopLoss: l.stopPreco, takeProfit: l.alvoPreco,
+    gatilho: l.o.recomendacao.gatilho,
+    radar: l.o.radar ? l.o.radar.tipo + ' ' +
+      Math.round((l.o.radar.prob || 0) * 100) + '%' : null,
+  }));
+  const radar = (DATA.radarPicos || []).slice(0, 4).map((r) =>
+    `${r.nome}: ${r.tipo} ${Math.round(r.prob * 100)}% (n=${r.n})`);
+  const pos = posicoes.map((p) => {
+    const op = opAtual(p.ativoId);
+    const st = statusPos(p, op);
+    return {
+      ativo: p.nome, direcao: p.dir, entrada: p.entrada,
+      atual: op?.preco ?? null,
+      plPct: st.varr == null ? null : +(st.varr * p.lev * 100).toFixed(1),
+      alavancagem: 'X' + p.lev, stopLoss: p.sl, takeProfit: p.tp,
+      statusPainel: st.txt,
+      sinalAtual: op?.recomendacao?.acao ?? null,
+    };
+  });
+  return `CONTEXTO ATUAL (cotações do fechamento de ${DATA.ultimaObservacao}):
+${JSON.stringify({
+    selecao: {
+      perfil: riscoSel,
+      horizonte: DATA.horizontes[horizonte].label,
+      capitalRs: capital > 0 ? capital : null,
+      caixaSugeridoPct: Math.round(plano.caixaPct * 100),
+    },
+    macro: DATA.macro,
+    ordensAprovadas: ordens,
+    naoOperar: plano.segurados.map((o) => o.nome),
+    radarDePicos: radar,
+    minhasPosicoes: pos,
+  })}`;
+}
+
+const chatHist = [];
+
+function atualizarChatCtx() {
+  const el = $('chat-ctx');
+  if (!el || !DATA) return;
+  el.textContent = `${riscoSel} · ${DATA.horizontes[horizonte].label.toLowerCase()}` +
+    (capital > 0 ? ` · R$ ${fmtNum(capital, 0)}` : '') +
+    ` · dados de ${fmtData(DATA.ultimaObservacao)}`;
+}
+
+function chatMsg(role, html) {
+  const box = $('chat-msgs');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerHTML = html;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  return div;
+}
+
+async function mentorPerguntar(texto) {
+  if (!DATA || !texto.trim()) return;
+  chatMsg('user', esc(texto));
+  const load = chatMsg('model', 'Analisando o painel…');
+  load.classList.add('loading');
+  $('chat-send').disabled = true;
+  try {
+    const contents = [
+      { role: 'user', parts: [{ text: contextoMentor() }] },
+      { role: 'model', parts: [{ text: 'Contexto recebido.' }] },
+      ...chatHist.slice(-8).map((m) => ({
+        role: m.role, parts: [{ text: m.text }],
+      })),
+      { role: 'user', parts: [{ text: texto }] },
+    ];
+    const r = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: ORACULO_MENTOR_SYSTEM }] },
+        contents,
+        generationConfig: {
+          temperature: 0.35,
+          maxOutputTokens: 1200,
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error?.message || ('HTTP ' + r.status));
+    const t = (j.candidates?.[0]?.content?.parts || [])
+      .map((p) => p.text || '').join('');
+    if (!t) throw new Error('resposta vazia do modelo');
+    load.classList.remove('loading');
+    load.innerHTML = mdParaHtml(t);
+    chatHist.push({ role: 'user', text: texto }, { role: 'model', text: t });
+    if (chatHist.length > 12) chatHist.splice(0, chatHist.length - 12);
+  } catch (e) {
+    load.classList.remove('loading');
+    load.innerHTML = '<b>Falha ao consultar o mentor.</b> ' +
+      esc(String(e?.message || e)).slice(0, 200);
+  } finally {
+    $('chat-send').disabled = false;
+    $('chat-msgs').scrollTop = $('chat-msgs').scrollHeight;
+  }
+}
+
+function abrirChat() {
+  $('chat-panel').classList.remove('hidden');
+  $('fab-oraculo').classList.add('hidden');
+  atualizarChatCtx();
+  $('chat-inp').focus();
+}
+function fecharChat() {
+  $('chat-panel').classList.add('hidden');
+  if (!$('dash').classList.contains('hidden')) {
+    $('fab-oraculo').classList.remove('hidden');
+  }
+}
+function abrirMentor(pergunta) {
+  abrirChat();
+  if (pergunta) mentorPerguntar(pergunta);
+}
+$('fab-oraculo').onclick = abrirChat;
+$('chat-close').onclick = fecharChat;
+const enviarChat = () => {
+  const inp = $('chat-inp');
+  const t = inp.value.trim();
+  if (!t) return;
+  inp.value = '';
+  mentorPerguntar(t);
+};
+$('chat-send').onclick = enviarChat;
+$('chat-inp').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') enviarChat();
+});
+$('modal-body').addEventListener('click', (e) => {
+  const m = e.target.closest('[data-mentor]');
+  if (m) {
+    abrirMentor(`O que devo fazer com ${m.dataset.nome} agora? ` +
+      'Explique como mentor e diga a ação concreta.');
+  }
+});
 
 // ── PWA ───────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

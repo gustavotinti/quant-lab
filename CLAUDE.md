@@ -29,7 +29,12 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   apps/lab_cli/tool/make_icons.dart` após recapturar o 512 do SVG).
 - IA = "Oráculo": Gemini 2.5 Flash via generativelanguage (REST direto no
   app.js; free tier; chave restrita a domínio+serviço — detalhes e
-  rotação em docs/FIREBASE.md). SDK firebase no CDN: v12.4.0.
+  rotação em docs/FIREBASE.md). SDK firebase no CDN: v12.4.0. TRÊS
+  systems: plano (AI_SYSTEM), posições (ORACULO_POS_SYSTEM) e mentor
+  chat (ORACULO_MENTOR_SYSTEM — multi-turn: contents = contexto fresco +
+  chatHist máx 12 + pergunta; contextoMentor() injeta ordens/radar/
+  posições/seleção). Chat: fab + #chat-panel; atalhos data-mentor
+  (modal) e data-mentor-pos (Copiloto).
 - Design v3 (11/07/2026): SEM emojis — ícones SVG no mapa ICONS/icon()
   do app.js (+ inline nos títulos do index.html). Acordeões
   (details/summary) no ranking/radar/posições; seções "Todos os ativos"
