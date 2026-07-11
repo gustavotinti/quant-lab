@@ -1,0 +1,38 @@
+name: Atualizar dados e publicar
+
+on:
+  schedule:
+    # a cada 2 horas (minuto 17 para fugir dos picos do GitHub)
+    - cron: '17 */2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: atualizar
+  cancel-in-progress: true
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Dependências
+        run: dart pub get
+
+      - name: Atualizar séries e gerar painel
+        run: |
+          dart run lab_cli:lab update
+          dart run lab_cli:lab publish
+
+      - name: Publicar no Firebase Hosting
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "$FIREBASE_SA" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx --yes firebase-tools deploy --only hosting --project quantlab-lde --non-interactive

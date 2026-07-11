@@ -125,8 +125,7 @@ async function loadData() {
     toast('Não consegui carregar os dados do painel.');
     return;
   }
-  els.updated.textContent =
-    `dados até ${fmtData(DATA.ultimaObservacao)} · gerado ${fmtData(DATA.geradoEm?.slice(0, 10))}`;
+  atualizarTopo();
   renderMacro();
   render();
   renderRadar();
@@ -136,6 +135,37 @@ async function loadData() {
   sincronizarOraculo(false);
   if (location.hash.startsWith('#a=')) openModal(location.hash.slice(3));
 }
+
+function atualizarTopo() {
+  const hora = DATA.geradoEm
+    ? new Date(DATA.geradoEm).toLocaleTimeString('pt-BR',
+        { hour: '2-digit', minute: '2-digit' })
+    : '';
+  els.updated.textContent =
+    `dados até ${fmtData(DATA.ultimaObservacao)} · ` +
+    `gerado ${fmtData(DATA.geradoEm?.slice(0, 10))} ${hora}`;
+}
+
+// auto-refresh: o pipeline roda na nuvem a cada 2h — o painel se
+// atualiza sozinho quando sai versão nova (verifica a cada 5 min)
+setInterval(async () => {
+  if (!DATA) return;
+  try {
+    const r = await fetch('/data/dashboard.json', { cache: 'no-cache' });
+    const novo = await r.json();
+    if (novo.geradoEm && novo.geradoEm !== DATA.geradoEm) {
+      DATA = novo;
+      renderMacro();
+      render();
+      renderRadar();
+      renderHipoteses();
+      renderPosicoes();
+      sincronizarOraculo();
+      atualizarTopo();
+      toast('Dados atualizados automaticamente.');
+    }
+  } catch { /* offline/transiente: tenta de novo no próximo ciclo */ }
+}, 5 * 60 * 1000);
 
 // ── macro strip ───────────────────────────────────────────────────────
 const dirTxt = { subindo: ['▲ subindo', 'up'], caindo: ['▼ caindo', 'down'], estavel: ['◆ estável', 'flat'] };
