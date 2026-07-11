@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#070b12">
-<meta name="description" content="Laboratório de Descoberta Econômica: oportunidades LONG e SHORT com % de eficácia histórica, derivadas só de dados oficiais.">
+<meta name="description" content="Laboratório de Descoberta Econômica: ordens LONG e SHORT com assertividade histórica, derivadas só de dados oficiais.">
 <meta property="og:title" content="QuantLab — Laboratório de Descoberta Econômica">
 <meta property="og:description" content="O mercado, medido. Nunca adivinhado.">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
@@ -24,7 +24,7 @@
   <div class="topbar-right">
     <span id="updated-at" class="updated"></span>
     <button id="btn-login" class="btn btn-google">
-      <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 40.4 44 35 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+      <svg width="15" height="15" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 40.4 44 35 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
       Entrar com Google
     </button>
     <div id="user-chip" class="user-chip hidden">
@@ -40,8 +40,8 @@
   <section id="hero" class="hero">
     <div class="hero-glow"></div>
     <h1>O mercado, medido.<br><em>Nunca adivinhado.</em></h1>
-    <p class="hero-sub">Oportunidades <b class="long">LONG</b> e
-      <b class="short">SHORT</b> em 3 horizontes, com <b>% de eficácia
+    <p class="hero-sub">Ordens <b class="long">LONG</b> e
+      <b class="short">SHORT</b> em 3 horizontes, com <b>assertividade
       histórica</b>, alavancagem calculada e evidências numéricas — tudo
       derivado só de dados oficiais.</p>
     <div class="hero-stats">
@@ -59,61 +59,48 @@
     <div id="macro-strip" class="macro-strip"></div>
     <div id="resumo" class="resumo"></div>
 
+    <!-- controles unificados: horizonte · perfil · capital · filtros -->
     <div class="controls">
       <nav id="tabs" class="tabs">
         <button class="tab active" data-h="curto">Curto <span>≤ 3m</span></button>
         <button class="tab" data-h="medio">Médio <span>3–18m</span></button>
         <button class="tab" data-h="longo">Longo <span>18m+</span></button>
       </nav>
-      <div id="filters" class="filters">
-        <button class="chip active" data-f="todos">Todos</button>
-        <button class="chip chip-long" data-f="compra">▲ LONG</button>
-        <button class="chip chip-short" data-f="venda">▼ SHORT</button>
-        <button class="chip" data-f="neutro">Neutros</button>
-        <button class="chip chip-etoro active" id="chip-etoro"
-          title="Mostrar no ranking apenas ativos com instrumento no eToro">🎯 só eToro</button>
+      <div class="seg" id="seg-risco" aria-label="Perfil de risco"></div>
+      <div class="capital-mini">
+        <label for="inp-capital">Capital R$</label>
+        <input id="inp-capital" type="number" min="0" step="100" placeholder="10000">
       </div>
+      <div id="filters" class="filters"></div>
     </div>
 
-    <div class="capital-bar">
-      <label for="capital">💰 Meu capital: R$</label>
-      <input id="capital" type="number" min="0" step="100" placeholder="10000" inputmode="numeric">
-      <span class="cap-hint">dimensiona cada posição por risco fixo por
-        trade (usa o perfil de risco escolhido no Consultor IA)</span>
-    </div>
     <div id="ranking" class="ranking"></div>
 
     <section class="radar-sec">
-      <h2 class="rank-title">📡 Radar de Picos
-        <span class="h2-sub">leitura técnica do gráfico (RSI, Bollinger, canal de regressão, squeeze, topos/fundos 52s) calibrada nos episódios históricos idênticos — probabilidade de virada em ~1 mês</span></h2>
+      <h2 class="sec-title"><svg class="ic ic-t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6a6 6 0 1 0 6 6"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><path d="M12 12l7-7"/></svg>
+        Radar de Picos
+        <span class="h2-sub">probabilidade de virada em ~1 mês, calibrada nos episódios históricos idênticos</span></h2>
       <div id="radar-list"></div>
     </section>
 
     <section class="ai-sec">
-      <h2 class="rank-title">🔮 Oráculo
-        <span class="h2-sub">IA do QuantLab (Gemini) — plano de execução com os números deste painel</span></h2>
+      <h2 class="sec-title"><svg class="ic ic-t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.1 4.9L19 10l-4.9 2.1L12 17l-2.1-4.9L5 10l4.9-2.1z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/></svg>
+        Oráculo
+        <span class="h2-sub">plano de execução com os números do painel — segue o horizonte, o perfil e o capital selecionados acima</span></h2>
       <div class="ai-controls">
-        <div class="seg" id="seg-risco" aria-label="Nível de risco">
-          <button data-v="conservador">🛡 Conservador</button>
-          <button data-v="moderado" class="active">⚖ Moderado</button>
-          <button data-v="agressivo">🔥 Agressivo</button>
-        </div>
-        <div class="seg" id="seg-tempo" aria-label="Tempo de retorno">
-          <button data-v="curto">≤ 3 meses</button>
-          <button data-v="medio" class="active">3–18 meses</button>
-          <button data-v="longo">18+ meses</button>
-        </div>
-        <button id="btn-ai" class="btn btn-ai">✨ Gerar recomendação</button>
+        <button id="btn-ai" class="btn btn-ai">Gerar plano de execução</button>
+        <span id="ai-contexto" class="ai-contexto"></span>
       </div>
       <div id="ai-out" class="ai-out hidden"></div>
     </section>
 
     <section class="cop-sec">
-      <h2 class="rank-title">🧭 Copiloto — minhas posições
-        <span class="h2-sub">registre o que você executou no eToro; o painel avisa quando fechar (cotações do fechamento diário)</span></h2>
+      <h2 class="sec-title"><svg class="ic ic-t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 5-4 1 2-5z"/></svg>
+        Copiloto — minhas posições
+        <span class="h2-sub">registre o que executou; o painel avisa quando fechar (cotações do fechamento diário)</span></h2>
       <div id="pos-list" class="pos-list"></div>
       <details class="pos-add">
-        <summary>+ adicionar posição que já existe na sua conta</summary>
+        <summary>adicionar posição que já existe na sua conta</summary>
         <div class="pos-form">
           <select id="pf-ativo"></select>
           <select id="pf-dir">
@@ -121,7 +108,7 @@
             <option value="venda">VENDA (short)</option>
           </select>
           <input id="pf-entrada" type="number" step="any" min="0" placeholder="preço de entrada">
-          <input id="pf-valor" type="number" step="any" min="0" placeholder="valor investido (R$)">
+          <input id="pf-valor" type="number" step="any" min="0" placeholder="valor investido R$">
           <select id="pf-lev">
             <option value="1">X1</option><option value="2">X2</option>
             <option value="5">X5</option><option value="10">X10</option>
@@ -130,43 +117,41 @@
         </div>
       </details>
       <div class="cop-actions">
-        <button id="btn-oraculo-pos" class="btn btn-ai">🔮 Perguntar ao Oráculo sobre minhas posições</button>
+        <button id="btn-oraculo-pos" class="btn btn-ai btn-sec">Analisar minhas posições com o Oráculo</button>
       </div>
       <div id="oraculo-pos-out" class="ai-out hidden"></div>
       <div id="pos-hist" class="pos-hist"></div>
     </section>
 
-    <h2 class="cards-title">Todos os ativos <span class="h2-sub">toque num card para o raio-X completo</span></h2>
-    <div id="cards" class="cards"></div>
+    <details class="sec-fold">
+      <summary>Todos os ativos <span class="fold-sub">raio-X completo de cada um</span></summary>
+      <div id="cards" class="cards"></div>
+    </details>
+
+    <details class="sec-fold">
+      <summary>Hipóteses vivas <span class="fold-sub">relações defasadas que sobreviveram ao treino/teste</span></summary>
+      <div id="hipoteses" class="hip-list"></div>
+    </details>
 
     <details class="como-ler">
       <summary>Como ler este painel</summary>
       <ul>
-        <li><b>Convicção (0–100)</b>: soma ponderada de sinais objetivos
-          (momentum, tendência, reversão, macro). Não é probabilidade — é a
-          força da evidência na direção.</li>
-        <li><b>Eficácia da estratégia</b>: % dos trades históricos da
-          estratégia daquele horizonte que deram lucro neste ativo, com o
-          número de trades ao lado. Menos de 5 trades = "n/d".</li>
-        <li><b>Cenários análogos a favor</b>: % das vezes em que, numa
-          situação parecida com a de hoje, o ativo andou na direção
-          apontada nos 3 meses seguintes.</li>
-        <li><b>Alavancagem ≤ x</b>: menor valor entre meio-Kelly e alvo de
-          volatilidade de 15% a.a. (teto 3x). Kelly negativo = 0x.</li>
-        <li><b>Toque num card</b> para abrir o raio-X completo do ativo
-          (gráfico de 3 anos, backtest, cenários e evidências).</li>
+        <li><b>Assertividade</b>: % dos casos históricos (trades da
+          estratégia + cenários análogos) em que a direção deu certo, com o
+          n ao lado. Só vira ordem acima do corte do perfil.</li>
+        <li><b>Radar de Picos</b>: quando o gráfico está esticado, a % diz
+          quantas vezes veio virada em ~21 pregões nos episódios idênticos.</li>
+        <li><b>Posição e alavancagem</b>: risco fixo por trade; a margem já
+          vem dividida pela alavancagem recomendada (X2 só com evidência).</li>
+        <li><b>Toque numa linha</b> para os detalhes; "Raio-X" abre o
+          dossiê completo do ativo.</li>
       </ul>
     </details>
 
-    <section class="hip-section">
-      <h2>Hipóteses vivas <span class="h2-sub">relações defasadas que sobreviveram ao treino/teste + Benjamini-Hochberg</span></h2>
-      <div id="hipoteses" class="hip-list"></div>
-    </section>
-
     <p class="aviso">Estatística derivada de dados públicos (BCB, bolsas).
-    <b>Não é recomendação de investimento.</b> Eficácia histórica não
+    <b>Não é recomendação de investimento.</b> Assertividade histórica não
     garante resultado futuro. Alavancagem pode gerar perdas superiores ao
-    capital. Metodologia completa no repositório.</p>
+    capital.</p>
   </section>
 
   <div id="toast" class="toast hidden"></div>

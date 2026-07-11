@@ -29,7 +29,13 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   apps/lab_cli/tool/make_icons.dart` após recapturar o 512 do SVG).
 - IA = "Oráculo": Gemini 2.5 Flash via generativelanguage (REST direto no
   app.js; free tier; chave restrita a domínio+serviço — detalhes e
-  rotação em docs/FIREBASE.md). SDK firebase no CDN: v12.4.0. Dois
+  rotação em docs/FIREBASE.md). SDK firebase no CDN: v12.4.0.
+- Design v3 (11/07/2026): SEM emojis — ícones SVG no mapa ICONS/icon()
+  do app.js (+ inline nos títulos do index.html). Acordeões
+  (details/summary) no ranking/radar/posições; seções "Todos os ativos"
+  e "Hipóteses" dobradas (.sec-fold). Estado global único: horizonte
+  (abas) + riscoSel + capital + soEtoro alimentam ranking, sizing E
+  Oráculo (sincronizarOraculo() marca plano desatualizado ao mudar). Dois
   systems: plano de execução (AI_SYSTEM) e veredito de posições
   (ORACULO_POS_SYSTEM). Copiloto: posições em localStorage (ql_pos/
   ql_hist); alavancagem preditiva X1/X2/X5 em recomendacao.

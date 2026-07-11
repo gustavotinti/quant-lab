@@ -43,6 +43,28 @@ function toast(msg, ms = 6000) {
   toast._t = setTimeout(() => els.toast.classList.add('hidden'), ms);
 }
 
+// ── ícones temáticos (SVG inline, sem emoji) ──────────────────────────
+const ICONS = {
+  shield: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>',
+  scales: '<path d="M12 4v16M8 20h8M4 8h16"/><path d="M7 8l-3 5a3 3 0 0 0 6 0zM17 8l-3 5a3 3 0 0 0 6 0z"/>',
+  bolt: '<path d="M13 2L5 13h5l-1 9 8-11h-5z"/>',
+  target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
+  bank: '<path d="M3 9.5l9-5.5 9 5.5M5 10v7M9.5 10v7M14.5 10v7M19 10v7M3 19.5h18"/>',
+  alert: '<path d="M12 4.5l8.5 15h-17z"/><path d="M12 10v4M12 17.2v.3"/>',
+  stop: '<circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6M15 9l-6 6"/>',
+  check: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.5l2.5 2.5 4.5-5.5"/>',
+  flag: '<path d="M6 21V4h11.5l-2.2 4 2.2 4H6"/>',
+  up: '<path d="M4 17l5.5-5.5 3.5 3L19 8"/><path d="M13.5 8H19v5.5"/>',
+  down: '<path d="M4 8l5.5 5.5 3.5-3L19 17"/><path d="M13.5 17H19v-5.5"/>',
+  chart: '<path d="M4 20V4M4 20h16"/><path d="M8.5 16v-5M12.5 16V8M16.5 16v-3"/>',
+  chevron: '<path d="M9 6.5l5.5 5.5L9 17.5"/>',
+  book: '<path d="M5 5a2 2 0 0 1 2-2h12v16H7a2 2 0 0 0-2 2z"/><path d="M5 19a2 2 0 0 1 2-2h12"/>',
+};
+const icon = (n, cls = '') =>
+  `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true">${ICONS[n] || ''}</svg>`;
+
 // ── auth ──────────────────────────────────────────────────────────────
 async function login() {
   try {
@@ -110,6 +132,7 @@ async function loadData() {
   renderHipoteses();
   preencherFormAtivos();
   renderPosicoes();
+  sincronizarOraculo(false);
   if (location.hash.startsWith('#a=')) openModal(location.hash.slice(3));
 }
 
@@ -159,55 +182,28 @@ function cardHtml(o, i) {
   const neutro = dir === 'neutro';
   const score = neutro ? 0 : o.score;
   const C = 2 * Math.PI * 32;
-  const wr = o.estrategia?.winRate;
-  const fav = o.cenarios?.fwd3m?.pctFavoravel;
-  const cen12 = o.cenarios?.fwd12m;
-  const s = o.sinais || {};
 
+  // card minimalista — o dossiê completo mora no Raio-X (modal)
   return `
   <div class="card ${neutro ? 'neutro' : ''}" data-dir="${dir}" data-id="${esc(o.id)}" style="transition-delay:${Math.min(i * 45, 400)}ms">
     <div class="card-top">
       <div>
         <h3>${esc(o.nome)}</h3>
-        <div class="cat">${esc(o.categoria)} · ${esc(o.unidade)}</div>
-        <div class="preco">${fmtNum(o.preco)} · ${fmtData(o.dataPreco)}</div>
+        <div class="cat">${esc(o.categoria)} · ${fmtNum(o.preco)}</div>
       </div>
       <span class="badge ${dir}">${badgeTxt[dir]}</span>
     </div>
     <div class="card-mid">
       <div class="ring ${dir}">
-        <svg width="74" height="74">
+        <svg width="64" height="64" viewBox="0 0 74 74">
           <circle class="track" r="32" cx="37" cy="37" fill="none" stroke-width="7"/>
           <circle class="bar" r="32" cx="37" cy="37" fill="none" stroke-width="7"
             stroke-dasharray="${C}" stroke-dashoffset="${C}" data-off="${C * (1 - score / 100)}"/>
         </svg>
         <div class="num">${neutro ? '—' : Math.round(score)}<small>convicção</small></div>
       </div>
-      <div class="effs">
-        <div class="eff">
-          <div class="eff-lbl"><span>Eficácia · ${esc(o.estrategia?.nome || 'estratégia')}</span>
-            <b>${wr == null ? 'n/d' : fmtPct(wr, 0, false)}${o.estrategia?.trades ? ` · ${o.estrategia.trades} trades` : ''}</b></div>
-          <div class="eff-bar"><div class="eff-fill ${effClass(wr)}" data-w="${wr == null ? 0 : wr * 100}"></div></div>
-        </div>
-        <div class="eff">
-          <div class="eff-lbl"><span>Cenários análogos a favor (3m)</span>
-            <b>${fav == null ? 'n/d' : fmtPct(fav, 0, false)}${o.cenarios?.n ? ` · n=${o.cenarios.n}` : ''}</b></div>
-          <div class="eff-bar"><div class="eff-fill ${effClass(fav)}" data-w="${fav == null ? 0 : fav * 100}"></div></div>
-        </div>
-        ${!neutro && o.alavancagem ? `<span class="lev">⚡ alavancagem ≤ ${fmtNum(o.alavancagem.sugerida)}x</span>` : ''}
-      </div>
+      <div class="card-spark">${sparkSvg(o)}</div>
     </div>
-    <div class="mini">
-      <div><div class="k">Mom 12-1</div><div class="v">${fmtPct(s.mom12x1)}</div></div>
-      <div><div class="k">vs SMA-200</div><div class="v">${fmtPct(s.distSma200)}</div></div>
-      <div><div class="k">Vol 1a</div><div class="v">${fmtPct(s.vol1y, 0, false)}</div></div>
-      <div><div class="k">Do topo</div><div class="v">${fmtPct(s.ddTopo)}</div></div>
-    </div>
-    ${sparkSvg(o)}
-    ${cen12 ? `<div class="cen-line">12m após análogos: mediana <b>${fmtPct(cen12.mediana)}</b>
-      [${fmtPct(cen12.q1)} … ${fmtPct(cen12.q3)}] · ${fmtPct(cen12.pctPositivo, 0, false)} subiram</div>` : ''}
-    ${o.evidencias?.length ? `<details class="evid"><summary>evidências (${o.evidencias.length})</summary>
-      <ul>${o.evidencias.map((e) => `<li>${esc(e)}</li>`).join('')}</ul></details>` : ''}
   </div>`;
 }
 
@@ -234,6 +230,44 @@ const perfis = {
 };
 let capital = +(localStorage.getItem('ql_capital') || 0);
 let soEtoro = true; // uso pessoal: só o que dá para executar na conta
+let riscoSel = 'moderado'; // perfil GLOBAL: sizing, ranking e Oráculo
+
+// ── controles unificados (perfil, filtros, capital) ───────────────────
+$('seg-risco').innerHTML = [
+  ['conservador', 'shield', 'Conservador'],
+  ['moderado', 'scales', 'Moderado'],
+  ['agressivo', 'bolt', 'Agressivo'],
+].map(([v, ic, l]) =>
+  `<button data-v="${v}" class="${v === riscoSel ? 'active' : ''}">${icon(ic)}<span class="seg-lbl">${l}</span></button>`).join('');
+$('seg-risco').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-v]');
+  if (!b) return;
+  riscoSel = b.dataset.v;
+  $('seg-risco').querySelectorAll('button')
+    .forEach((x) => x.classList.toggle('active', x === b));
+  if (DATA) { renderRanking(); sincronizarOraculo(); }
+});
+
+els.filters.innerHTML = `
+  <button class="chip active" data-f="todos">Todos</button>
+  <button class="chip chip-long" data-f="compra">▲ LONG</button>
+  <button class="chip chip-short" data-f="venda">▼ SHORT</button>
+  <button class="chip" data-f="neutro">Neutros</button>
+  <button class="chip chip-etoro active" id="chip-etoro"
+    title="Somente ativos com instrumento no eToro">${icon('target')} eToro</button>`;
+$('chip-etoro').addEventListener('click', () => {
+  soEtoro = !soEtoro;
+  $('chip-etoro').classList.toggle('active', soEtoro);
+  if (DATA) { renderRanking(); sincronizarOraculo(); }
+});
+
+const capInput = $('inp-capital');
+if (capital > 0) capInput.value = capital;
+capInput.addEventListener('input', () => {
+  capital = +capInput.value || 0;
+  localStorage.setItem('ql_capital', String(capital));
+  if (DATA) { renderRanking(); sincronizarOraculo(); }
+});
 
 /// Sizing compartilhado entre o ranking e o Consultor IA.
 /// Além do teto do perfil, nenhuma CLASSE de ativo (ações, cripto...)
@@ -335,28 +369,42 @@ function renderRanking() {
                · risco até o stop ≈ R$ ${fmtNum(riscoRs, 0)}`)
         : `Peso sugerido: <b>${fmtPct(peso, 1, false)}</b> do capital
            (informe o capital acima para ver em R$)`) + sl;
-      return `<div class="rank-row" data-id="${esc(o.id)}">
-        <div class="rank-pos">${i + 1}</div>
-        <span class="badge ${o.direcao}">${r.acao === 'comprar' ? '▲ COMPRAR' : '▼ VENDER (SHORT)'}</span>
-        <div class="rank-name">${esc(o.nome)}${tk ? `<span class="tick">eToro: ${esc(tk)}</span>` : ''}</div>
-        <div class="rank-kv"><b>${fmtPct(r.retornoEsperado)}</b><span>retorno esp. (${r.janelaRetorno})</span></div>
-        <div class="rank-kv rank-ass"><b>${fmtPct(r.assertividade, 0, false)}</b><span>assertividade · n=${r.base}</span></div>
-        <div class="rank-kv"><b>${r.stopEstimado ? fmtPct(r.stopEstimado, 0, false) : '—'}</b><span>stop estim.</span></div>
-        <div class="rank-kv"><b>X${l.lev}</b><span>alavancagem</span></div>
-        <div class="rank-gat"><span class="rank-sizing">${sizing}</span>
-          <button class="btn-exec" data-exec="${esc(o.id)}"
-            title="Registrar no Copiloto que você executou esta ordem">✔ Executei</button><br>
-          → ${esc(r.gatilho || '')}${o.etoro?.nota ? ` · <i>${esc(o.etoro.nota)}</i>` : ''}</div>
-      </div>`;
+      const kv = (k, v) =>
+        `<div class="kv"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+      return `<details class="rank-row" data-id="${esc(o.id)}">
+        <summary>
+          <span class="rank-pos">${i + 1}</span>
+          <span class="badge ${o.direcao}">${r.acao === 'comprar' ? '▲ COMPRAR' : '▼ VENDER'}</span>
+          <span class="row-name">${esc(o.nome)}${tk ? `<span class="tick">${esc(tk)}</span>` : ''}</span>
+          <span class="row-ass"><b>${fmtPct(r.assertividade, 0, false)}</b><small>assertividade</small></span>
+          <span class="chev">${icon('chevron')}</span>
+        </summary>
+        <div class="row-body">
+          <div class="kv-grid kv-mini">
+            ${kv('Retorno esp. (' + r.janelaRetorno + ')', fmtPct(r.retornoEsperado))}
+            ${kv('Base histórica', 'n=' + r.base)}
+            ${kv('Stop estimado', r.stopEstimado ? fmtPct(r.stopEstimado, 0, false) : '—')}
+            ${kv('Alavancagem', 'X' + l.lev)}
+            ${kv('Convicção', Math.round(o.score) + '/100')}
+          </div>
+          <p class="row-sizing">${sizing}</p>
+          <p class="row-gat">${icon('flag')} ${esc(r.gatilho || '')}${o.etoro?.nota ? ` · <i>${esc(o.etoro.nota)}</i>` : ''}</p>
+          <div class="row-actions">
+            <button class="btn-exec" data-exec="${esc(o.id)}">Executei no eToro</button>
+            <button class="btn-raiox" data-modal="${esc(o.id)}">${icon('chart')} Raio-X completo</button>
+          </div>
+        </div>
+      </details>`;
     }).join('');
-    html += `<div class="rank-caixa">🏦 Caixa/renda fixa: <b>${fmtPct(caixaPct, 0, false)}</b>
+    html += `<div class="rank-caixa">${icon('bank')} Caixa/renda fixa:
+      <b>${fmtPct(caixaPct, 0, false)}</b>
       ${capital > 0 ? `(R$ ${fmtNum(capital * caixaPct, 0)})` : ''} —
       com juro real de ${fmtPct(DATA.macro?.juroReal, 1, false)} a.a., caixa
       também é posição.</div>`;
   }
   if (foraEtoro.length) {
-    html += `<div class="rank-fora">Aprovados mas SEM instrumento no eToro
-      (desative o filtro 🎯 para ver):
+    html += `<div class="rank-fora">Aprovados mas sem instrumento no eToro
+      (desative o filtro eToro para ver):
       ${foraEtoro.map((o) => esc(o.nome)).join(', ')}.</div>`;
   }
   if (segurados.length) {
@@ -366,21 +414,14 @@ function renderRanking() {
   els.ranking.innerHTML = html;
 }
 
-const capInput = $('capital');
-if (capital > 0) capInput.value = capital;
-capInput.addEventListener('input', () => {
-  capital = +capInput.value || 0;
-  localStorage.setItem('ql_capital', String(capital));
-  if (DATA) renderRanking();
-});
 els.ranking?.addEventListener('click', (e) => {
   const exec = e.target.closest('[data-exec]');
   if (exec) {
     registrarExecucao(exec.dataset.exec);
     return;
   }
-  const row = e.target.closest('.rank-row[data-id]');
-  if (row) openModal(row.dataset.id);
+  const raiox = e.target.closest('[data-modal]');
+  if (raiox) openModal(raiox.dataset.modal);
 });
 
 function render() {
@@ -395,7 +436,6 @@ function render() {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     els.cards.querySelectorAll('.card').forEach((c) => c.classList.add('vis'));
     els.cards.querySelectorAll('.bar').forEach((b) => { b.style.strokeDashoffset = b.dataset.off; });
-    els.cards.querySelectorAll('.eff-fill').forEach((f) => { f.style.width = f.dataset.w + '%'; });
   }));
 }
 
@@ -405,6 +445,7 @@ els.tabs.addEventListener('click', (e) => {
   horizonte = t.dataset.h;
   els.tabs.querySelectorAll('.tab').forEach((x) => x.classList.toggle('active', x === t));
   render();
+  sincronizarOraculo();
 });
 els.filters.addEventListener('click', (e) => {
   const c = e.target.closest('.chip');
@@ -413,11 +454,6 @@ els.filters.addEventListener('click', (e) => {
   els.filters.querySelectorAll('.chip[data-f]')
     .forEach((x) => x.classList.toggle('active', x === c));
   render();
-});
-$('chip-etoro').addEventListener('click', () => {
-  soEtoro = !soEtoro;
-  $('chip-etoro').classList.toggle('active', soEtoro);
-  if (DATA) renderRanking();
 });
 
 // ── hipóteses ─────────────────────────────────────────────────────────
@@ -579,8 +615,8 @@ const ORACULO_POS_SYSTEM =
   'fechamento diário informado. Português do Brasil, markdown com lista, ' +
   '~200 palavras, termine com uma linha de aviso de risco.';
 
-let riscoSel = 'moderado';
-let tempoSel = 'medio';
+// riscoSel é global (controles unificados); o Oráculo segue o horizonte
+// ativo das abas — uma única fonte de verdade para toda a plataforma.
 
 async function chamarGemini(prompt, sys = AI_SYSTEM) {
   const r = await fetch(GEMINI_URL, {
@@ -622,8 +658,8 @@ const regrasPerfil = {
 };
 
 function aiPrompt() {
-  const h = DATA.horizontes[tempoSel];
-  const plano = calcularOrdens(tempoSel);
+  const h = DATA.horizontes[horizonte];
+  const plano = calcularOrdens(horizonte);
   const arred = (x, d = 2) => x == null ? null : +(+x).toFixed(d);
   // preços já formatados em pt-BR para a IA copiar sem mutilar
   const nivel = (x) => x == null ? null : fmtNum(x, x >= 100 ? 0 : 4);
@@ -692,14 +728,14 @@ async function gerarIA() {
   const out = $('ai-out');
   const btn = $('btn-ai');
   out.classList.remove('hidden');
-  out.innerHTML = '<div class="ai-loading">🔮 O Oráculo está analisando '
+  out.innerHTML = '<div class="ai-loading">O Oráculo está analisando '
     + 'os números do laboratório…</div>';
   btn.disabled = true;
   try {
     const texto = await chamarGemini(aiPrompt());
     out.innerHTML = mdParaHtml(texto) +
       `<div class="ai-meta">Oráculo (Gemini) — gerado a partir dos dados do
-       painel · perfil ${riscoSel} · ${DATA.horizontes[tempoSel].label.toLowerCase()}
+       painel · perfil ${riscoSel} · ${DATA.horizontes[horizonte].label.toLowerCase()}
        · não é recomendação de investimento</div>`;
   } catch (e) {
     const m = String(e?.message || e);
@@ -713,18 +749,24 @@ async function gerarIA() {
   }
 }
 
-for (const [segId, setter] of [
-  // o perfil de risco também re-dimensiona as posições do ranking
-  ['seg-risco', (v) => { riscoSel = v; if (DATA) renderRanking(); }],
-  ['seg-tempo', (v) => { tempoSel = v; }],
-]) {
-  $(segId).addEventListener('click', (e) => {
-    const b = e.target.closest('button[data-v]');
-    if (!b) return;
-    setter(b.dataset.v);
-    $(segId).querySelectorAll('button')
-      .forEach((x) => x.classList.toggle('active', x === b));
-  });
+/// Sincroniza o Oráculo com o estado global (horizonte, perfil, capital):
+/// atualiza o contexto exibido e marca o plano anterior como desatualizado.
+function sincronizarOraculo(marcarDesatualizado = true) {
+  const ctx = $('ai-contexto');
+  if (ctx && DATA) {
+    ctx.textContent = `${riscoSel} · ` +
+      `${DATA.horizontes[horizonte].label.toLowerCase()}` +
+      (capital > 0 ? ` · R$ ${fmtNum(capital, 0)}` : '');
+  }
+  if (!marcarDesatualizado) return;
+  for (const id of ['ai-out', 'oraculo-pos-out']) {
+    const out = $(id);
+    if (out && !out.classList.contains('hidden') &&
+        !out.querySelector('.ai-stale')) {
+      out.insertAdjacentHTML('afterbegin',
+        '<div class="ai-stale">A seleção mudou — gere novamente para sincronizar.</div>');
+    }
+  }
 }
 $('btn-ai').onclick = gerarIA;
 
@@ -740,18 +782,29 @@ function renderRadar() {
   }
   list.innerHTML = radar.map((r) => {
     const topo = r.tipo === 'topo';
-    return `<div class="radar-row" data-id="${esc(r.id)}">
-      <span class="badge ${topo ? 'venda' : 'compra'}">
-        ${topo ? '⛰ TOPO — pico p/ baixo' : '🕳 FUNDO — virada p/ cima'}</span>
-      <div class="rr-name">${esc(r.nome)}${r.ticker ? `<span class="tick">${esc(r.ticker)}</span>` : ''}</div>
-      <div class="rr-meter"><div class="rr-fill ${r.tipo}" data-w="${(r.prob * 100).toFixed(0)}"></div>
-        <span class="rr-pct">${fmtPct(r.prob, 0, false)}</span></div>
-      <div class="rr-info">n=${r.n} · 21d: ${fmtPct(r.medianaFwd21)}</div>
-      <div class="rr-leituras">${r.leituras.map(esc).join(' · ')}</div>
-    </div>`;
+    return `<details class="radar-row" data-id="${esc(r.id)}">
+      <summary>
+        <span class="badge ${topo ? 'venda' : 'compra'}">
+          ${icon(topo ? 'down' : 'up')} ${topo ? 'TOPO' : 'FUNDO'}</span>
+        <span class="row-name">${esc(r.nome)}${r.ticker ? `<span class="tick">${esc(r.ticker)}</span>` : ''}</span>
+        <span class="rr-meter"><span class="rr-fill ${r.tipo}" data-w="${(r.prob * 100).toFixed(0)}"></span>
+          <span class="rr-pct">${fmtPct(r.prob, 0, false)}</span></span>
+        <span class="chev">${icon('chevron')}</span>
+      </summary>
+      <div class="row-body">
+        <p class="rr-sub">${topo ? 'Esticado para cima — probabilidade de virada para baixo'
+          : 'Esticado para baixo — probabilidade de virada para cima'}
+          em ~21 pregões: <b>${fmtPct(r.prob, 0, false)}</b>
+          (n=${r.n} · mediana dos 21d seguintes: ${fmtPct(r.medianaFwd21)}).</p>
+        <p class="rr-leituras">${r.leituras.map(esc).join(' · ')}</p>
+        <div class="row-actions">
+          <button class="btn-raiox" data-modal="${esc(r.id)}">${icon('chart')} Raio-X completo</button>
+        </div>
+      </div>
+    </details>`;
   }).join('') +
   `<div class="radar-nota">Probabilidade empírica: em n episódios em que o
-   gráfico esteve NESTE estado, a % indica quantas vezes veio a virada em
+   gráfico esteve neste estado, a % indica quantas vezes veio a virada em
    ~21 pregões. 99% não existe em mercado — acima de 70% já é raro; trate
    como alerta forte, não como certeza.</div>`;
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -761,8 +814,8 @@ function renderRadar() {
   }));
 }
 $('radar-list').addEventListener('click', (e) => {
-  const row = e.target.closest('.radar-row[data-id]');
-  if (row) openModal(row.dataset.id);
+  const raiox = e.target.closest('[data-modal]');
+  if (raiox) openModal(raiox.dataset.modal);
 });
 
 // ── copiloto: minhas posições (journal + monitor) ─────────────────────
@@ -787,21 +840,23 @@ function statusPos(p, op) {
   const dir = p.dir === 'compra' ? 1 : -1;
   const varr = dir * (atual / p.entrada - 1);
   if (p.sl != null && (dir > 0 ? atual <= p.sl : atual >= p.sl)) {
-    return { txt: '🛑 STOP ROMPIDO — FECHE', cls: 'down', varr };
+    return { txt: 'STOP ROMPIDO — FECHE', cls: 'down', ic: 'stop', varr };
   }
   if (p.tp != null && (dir > 0 ? atual >= p.tp : atual <= p.tp)) {
-    return { txt: '🎯 ALVO ATINGIDO — realize', cls: 'up', varr };
+    return { txt: 'ALVO ATINGIDO — realize', cls: 'up', ic: 'flag', varr };
   }
   if (op && ((p.dir === 'compra' && op.direcao === 'venda') ||
              (p.dir === 'venda' && op.direcao === 'compra'))) {
-    return { txt: '⚠️ Sinal virou contra — feche', cls: 'down', varr };
+    return { txt: 'Sinal virou contra — feche', cls: 'down', ic: 'alert', varr };
   }
   if (p.sl != null && p.entrada !== p.sl) {
     const dist = dir > 0 ? (atual - p.sl) / (p.entrada - p.sl)
                          : (p.sl - atual) / (p.sl - p.entrada);
-    if (dist < 0.35) return { txt: '⚠️ Perto do stop', cls: 'flat', varr };
+    if (dist < 0.35) {
+      return { txt: 'Perto do stop', cls: 'flat', ic: 'alert', varr };
+    }
   }
-  return { txt: '✅ MANTER', cls: 'up', varr };
+  return { txt: 'MANTER', cls: 'up', ic: 'check', varr };
 }
 
 const nivelFmt = (x) => x == null ? '—' : fmtNum(x, x >= 100 ? 0 : 4);
@@ -811,8 +866,8 @@ function renderPosicoes() {
   const list = $('pos-list');
   if (!posicoes.length) {
     list.innerHTML = `<div class="pos-vazio">Nenhuma posição registrada.
-      Use "✔ Executei" numa ordem do ranking, ou adicione abaixo o que já
-      está aberto na sua conta — o Copiloto avisa quando fechar.</div>`;
+      Use "Executei no eToro" numa ordem do ranking, ou adicione abaixo o
+      que já está aberto na sua conta — o Copiloto avisa quando fechar.</div>`;
   } else {
     list.innerHTML = posicoes.map((p) => {
       const op = opAtual(p.ativoId);
@@ -820,26 +875,34 @@ function renderPosicoes() {
       const plPct = st.varr == null ? null : st.varr * p.lev;
       const plRs = plPct == null || !p.valor ? null : p.valor * plPct;
       const cls = plPct == null ? '' : (plPct >= 0 ? 'pl-pos' : 'pl-neg');
-      return `<div class="pos-row">
-        <span class="badge ${p.dir}">${p.dir === 'compra' ? '▲ LONG' : '▼ SHORT'}</span>
-        <div class="nome">${esc(p.nome)}${p.ticker ? ` <span class="tick">${esc(p.ticker)}</span>` : ''}</div>
-        <div class="pos-kv"><b class="${cls}">${plPct == null ? '—' : fmtPct(plPct)}</b>
-          <span>P&L${p.lev > 1 ? ' (X' + p.lev + ')' : ''}</span></div>
-        <span class="st-chip ${st.cls}">${st.txt}</span>
-        <button class="btn-close-pos" data-fechar="${p.id}">fechar</button>
-        <div class="det">entrada ${nivelFmt(p.entrada)} → atual ${nivelFmt(op?.preco)}
-          ${p.valor ? ` · R$ ${fmtNum(p.valor, 0)} investido` : ''}
-          ${plRs != null ? ` · resultado <b class="${cls}">R$ ${fmtNum(plRs, 0)}</b>` : ''}
-          ${p.sl != null ? ` · SL ${nivelFmt(p.sl)}` : ''}${p.tp != null ? ` · TP ${nivelFmt(p.tp)}` : ''}
-          · aberta em ${fmtData(p.abertaEm)}</div>
-      </div>`;
+      return `<details class="pos-row">
+        <summary>
+          <span class="badge ${p.dir}">${p.dir === 'compra' ? '▲ LONG' : '▼ SHORT'}</span>
+          <span class="row-name">${esc(p.nome)}${p.ticker ? `<span class="tick">${esc(p.ticker)}</span>` : ''}</span>
+          <span class="pos-kv"><b class="${cls}">${plPct == null ? '—' : fmtPct(plPct)}</b>
+            <span>P&L${p.lev > 1 ? ' (X' + p.lev + ')' : ''}</span></span>
+          <span class="st-chip ${st.cls}">${icon(st.ic)} ${st.txt}</span>
+          <span class="chev">${icon('chevron')}</span>
+        </summary>
+        <div class="row-body">
+          <p class="det">entrada ${nivelFmt(p.entrada)} → atual ${nivelFmt(op?.preco)}
+            ${p.valor ? ` · R$ ${fmtNum(p.valor, 0)} investido` : ''}
+            ${plRs != null ? ` · resultado <b class="${cls}">R$ ${fmtNum(plRs, 0)}</b>` : ''}
+            ${p.sl != null ? ` · SL ${nivelFmt(p.sl)}` : ''}${p.tp != null ? ` · TP ${nivelFmt(p.tp)}` : ''}
+            · aberta em ${fmtData(p.abertaEm)}</p>
+          <div class="row-actions">
+            <button class="btn-close-pos" data-fechar="${p.id}">Fechar posição (registrar)</button>
+            <button class="btn-raiox" data-modal="${esc(p.ativoId)}">${icon('chart')} Raio-X do ativo</button>
+          </div>
+        </div>
+      </details>`;
     }).join('');
   }
   const hist = $('pos-hist');
   if (!historico.length) { hist.innerHTML = ''; return; }
   const total = historico.reduce((a, h) => a + (h.resultadoRs || 0), 0);
   const acertos = historico.filter((h) => (h.resultadoPct || 0) > 0).length;
-  hist.innerHTML = `<div class="placar">📒 Histórico: ${historico.length}
+  hist.innerHTML = `<div class="placar">${icon('book')} Histórico: ${historico.length}
     fechadas · acerto ${Math.round(acertos / historico.length * 100)}% ·
     resultado acumulado R$ ${fmtNum(total, 0)}</div>` +
     historico.slice(-8).reverse().map((h) => `<div class="h-row">
@@ -864,6 +927,8 @@ function registrarExecucao(id) {
 }
 
 $('pos-list').addEventListener('click', (e) => {
+  const raiox = e.target.closest('[data-modal]');
+  if (raiox) { openModal(raiox.dataset.modal); return; }
   const b = e.target.closest('[data-fechar]');
   if (!b) return;
   const p = posicoes.find((x) => x.id === +b.dataset.fechar);
@@ -913,14 +978,14 @@ $('pf-add').onclick = () => {
 async function oraculoPosicoes() {
   if (!DATA) return;
   if (!posicoes.length) {
-    toast('Nenhuma posição registrada ainda — use "✔ Executei" no ranking.');
+    toast('Nenhuma posição registrada ainda — use "Executei no eToro" no ranking.');
     return;
   }
   const out = $('oraculo-pos-out');
   const btn = $('btn-oraculo-pos');
   out.classList.remove('hidden');
   out.innerHTML =
-    '<div class="ai-loading">🔮 O Oráculo está avaliando suas posições…</div>';
+    '<div class="ai-loading">O Oráculo está avaliando suas posições…</div>';
   btn.disabled = true;
   try {
     const ctx = posicoes.map((p) => {

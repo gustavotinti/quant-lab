@@ -120,6 +120,13 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   análogos → probabilidade de virada em 21 pregões; validado em onda
   sintética (>85% nas cristas/vales, mudo em ruído); UI com medidor,
   `lab radar` e integração no Oráculo (ordens e posições).
+- ✅ Redesign profissional v3 (11/07/2026): zero emojis (ícones SVG
+  temáticos), divulgação progressiva (ranking/radar/posições viram
+  acordeões — detalhes só ao expandir; cards minimalistas; "todos os
+  ativos" e hipóteses dobrados), controles unificados numa única barra
+  (horizonte + perfil de risco global + capital + filtros) e Oráculo
+  sincronizado com o estado da plataforma (segue as abas/perfil/capital
+  e marca o plano como desatualizado quando a seleção muda).
 - ⬜ Integração com a API pública do eToro (portfólio/posições): requer as
   chaves do Gustavo (eToro → Settings → API; conta verificada) —
   substituirá o registro manual do Copiloto.
