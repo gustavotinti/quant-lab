@@ -5,6 +5,9 @@ import {
   getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
   getRedirectResult, onAuthStateChanged, signOut,
 } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js';
+import {
+  getFirestore, doc, getDoc,
+} from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js';
 
 const app = initializeApp({
   projectId: 'quantlab-lde',
@@ -13,6 +16,7 @@ const app = initializeApp({
   authDomain: 'quantlab-lde.firebaseapp.com',
 });
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -108,8 +112,21 @@ onAuthStateChanged(auth, (user) => {
     els.userPhoto.src = user.photoURL || '';
     els.userName.textContent = (user.displayName || user.email || '').split(' ')[0];
     loadData();
+    carregarPortfolioEtoro();
   }
 });
+
+// ── portfólio real do eToro (privado, lido do Firestore) ──────────────
+let etoroPortfolio = null; // { atualizadoEm, posicoes:[...] }
+async function carregarPortfolioEtoro() {
+  try {
+    const snap = await getDoc(doc(db, 'private', 'portfolio'));
+    etoroPortfolio = snap.exists() ? snap.data() : null;
+  } catch (_) {
+    etoroPortfolio = null; // sem permissão (outro usuário) ou offline
+  }
+  if (DATA) { renderEtoroPortfolio(); }
+}
 
 // ── dados ─────────────────────────────────────────────────────────────
 let DATA = null;
@@ -897,8 +914,42 @@ function statusPos(p, op) {
 
 const nivelFmt = (x) => x == null ? '—' : fmtNum(x, x >= 100 ? 0 : 4);
 
+function renderEtoroPortfolio() {
+  const box = $('etoro-portfolio');
+  if (!box) return;
+  const pf = etoroPortfolio;
+  if (!pf || !(pf.posicoes || []).length) { box.innerHTML = ''; return; }
+  const nivel = (x) => x == null ? '—' : fmtNum(x, x >= 100 ? 0 : 4);
+  const quando = pf.atualizadoEm
+    ? new Date(pf.atualizadoEm).toLocaleString('pt-BR',
+        { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    : '';
+  box.innerHTML = `
+    <div class="etoro-head">
+      <span class="etoro-tag">${icon('shield')} eToro · conta real</span>
+      <span class="etoro-when">${pf.posicoes.length} posições · sincronizado ${quando}</span>
+    </div>` +
+    pf.posicoes.map((p) => `<details class="pos-row etoro">
+      <summary>
+        <span class="badge ${p.isBuy ? 'compra' : 'venda'}">${p.isBuy ? '▲ LONG' : '▼ SHORT'}</span>
+        <span class="row-name">${esc(p.nome || '—')}${p.leverage > 1 ? `<span class="tick">X${p.leverage}</span>` : ''}</span>
+        <span class="pos-kv"><b>${nivel(p.openRate)}</b><span>entrada</span></span>
+        <span class="chev">${icon('chevron')}</span>
+      </summary>
+      <div class="row-body">
+        <p class="det">${p.amount ? `R$/US$ ${fmtNum(p.amount, 0)} investido · ` : ''}alavancagem X${p.leverage || 1}
+          ${p.stopLoss ? ` · SL ${nivel(p.stopLoss)}` : ' · sem SL'}${p.takeProfit ? ` · TP ${nivel(p.takeProfit)}` : ' · sem TP'}
+          ${p.openDate ? ` · aberta em ${fmtData(String(p.openDate).slice(0, 10))}` : ''}</p>
+        <div class="row-actions">
+          <button class="btn-raiox" data-mentor data-nome="${esc(p.nome || '')}">Orientação do Oráculo</button>
+        </div>
+      </div>
+    </details>`).join('');
+}
+
 function renderPosicoes() {
   if (!DATA) return;
+  renderEtoroPortfolio();
   const list = $('pos-list');
   if (!posicoes.length) {
     list.innerHTML = `<div class="pos-vazio">Nenhuma posição registrada.
@@ -1118,6 +1169,11 @@ function contextoMentor() {
       sinalAtual: op?.recomendacao?.acao ?? null,
     };
   });
+  const posEtoro = (etoroPortfolio?.posicoes || []).map((p) => ({
+    ativo: p.nome, direcao: p.isBuy ? 'compra' : 'venda',
+    entrada: p.openRate, alavancagem: 'X' + (p.leverage || 1),
+    stopLoss: p.stopLoss, takeProfit: p.takeProfit, valor: p.amount,
+  }));
   return `CONTEXTO ATUAL (cotações do fechamento de ${DATA.ultimaObservacao}):
 ${JSON.stringify({
     selecao: {
@@ -1130,7 +1186,8 @@ ${JSON.stringify({
     ordensAprovadas: ordens,
     naoOperar: plano.segurados.map((o) => o.nome),
     radarDePicos: radar,
-    minhasPosicoes: pos,
+    posicoesReaisNoEtoro: posEtoro,
+    posicoesManuais: pos,
   })}`;
 }
 
@@ -1230,13 +1287,17 @@ $('chat-send').onclick = enviarChat;
 $('chat-inp').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') enviarChat();
 });
-$('modal-body').addEventListener('click', (e) => {
-  const m = e.target.closest('[data-mentor]');
-  if (m) {
-    abrirMentor(`O que devo fazer com ${m.dataset.nome} agora? ` +
-      'Explique como mentor e diga a ação concreta.');
-  }
-});
+function ligarBotaoMentor(container) {
+  container.addEventListener('click', (e) => {
+    const m = e.target.closest('[data-mentor]');
+    if (m) {
+      abrirMentor(`O que devo fazer com ${m.dataset.nome} agora? ` +
+        'Explique como mentor e diga a ação concreta.');
+    }
+  });
+}
+ligarBotaoMentor($('modal-body'));
+ligarBotaoMentor($('etoro-portfolio'));
 
 // ── PWA ───────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

@@ -667,3 +667,14 @@ details[open] > summary .chev { transform: rotate(90deg); }
   .chat-panel { right: 8px; bottom: 8px; width: calc(100vw - 16px);
     height: min(560px, calc(100vh - 70px)); }
 }
+
+/* portfólio real do eToro (privado) */
+.etoro-head { display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: 8px; margin: 4px 0 12px; }
+.etoro-tag { display: inline-flex; align-items: center; gap: 7px;
+  font: 700 .8rem "Inter", sans-serif; color: var(--accent);
+  border: 1px solid rgba(56,224,162,.4); border-radius: 999px;
+  padding: 5px 13px; }
+.etoro-when { font-size: .74rem; color: var(--dimmer); }
+.pos-row.etoro { border-color: rgba(56,224,162,.22); }
+.pos-row.etoro summary { grid-template-columns: auto 1fr auto 20px; }
