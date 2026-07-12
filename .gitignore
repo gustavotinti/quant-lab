@@ -17,3 +17,5 @@ firebase-debug.log
 # Segredos
 .env
 *.local.json
+public/quantlab.apk
+public/*.apk
