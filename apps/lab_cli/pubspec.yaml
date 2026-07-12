@@ -8,6 +8,8 @@ environment:
   sdk: ^3.11.0
 
 dependencies:
+  googleapis_auth: ^1.6.0
+  http: ^1.2.0
   quant_core: ^0.1.0
   quant_engine: ^0.1.0
   quant_market_data: ^0.1.0

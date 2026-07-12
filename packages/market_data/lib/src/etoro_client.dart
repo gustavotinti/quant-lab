@@ -57,6 +57,10 @@ class EtoroClient {
   /// Portfólio (posições abertas + P&L) do usuário da chave.
   Future<EtoroResponse> portfolio() => _get('/trading/info/portfolio');
 
+  /// Metadados de instrumentos (id → nome). [ids] = lista de instrumentID.
+  Future<EtoroResponse> instruments(Iterable<int> ids) =>
+      _get('/market-data/instruments?instrumentIds=${ids.join(',')}');
+
   static String _uuid() {
     final r = Random();
     String hx(int n) =>

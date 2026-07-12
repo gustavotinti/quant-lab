@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:lab_cli/src/etoro.dart';
+import 'package:lab_cli/src/etoro_sync.dart';
 import 'package:lab_cli/src/format.dart';
 import 'package:lab_cli/src/lab.dart';
 import 'package:lab_cli/src/publish.dart';
@@ -36,6 +37,8 @@ Future<void> main(List<String> args) async {
       await _radar(lab);
     case 'etoro-check':
       await _etoroCheck();
+    case 'etoro-sync':
+      await syncEtoroPortfolio();
     case 'scenarios':
       await _scenarios(lab, rest);
     case 'hypotheses':

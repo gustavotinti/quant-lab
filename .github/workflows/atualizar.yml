@@ -29,6 +29,17 @@ jobs:
           dart run lab_cli:lab update
           dart run lab_cli:lab publish
 
+      - name: Sincronizar portfólio do eToro (privado, Firestore)
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          ETORO_KEY_PUBLICA: ${{ secrets.ETORO_KEY_PUBLICA }}
+          ETORO_KEY_PRIVADA: ${{ secrets.ETORO_KEY_PRIVADA }}
+          ETORO_ENVIRONMENT: ${{ secrets.ETORO_ENVIRONMENT }}
+        run: |
+          echo "$FIREBASE_SA" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          dart run lab_cli:lab etoro-sync
+
       - name: Publicar no Firebase Hosting
         env:
           FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
