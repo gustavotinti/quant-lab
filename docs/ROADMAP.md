@@ -65,12 +65,21 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
 - O arquivo local continua funcionando — Firestore é só mais um
   `SeriesRepository`.
 
-## Fase 4 — App Flutter
+## 🔄 Fase 4 — App Flutter (v1 no ar em 12/07/2026)
 
-- Login Google, dashboard "hoje encontrei N oportunidades", tela de
-  indicadores, detalhe do ativo (sinais + backtest), banco de hipóteses.
-- Flutter **não conhece regra de negócio**: consome os mesmos pacotes
-  Dart e/ou o Firestore preenchido pela Fase 3.
+- ✅ App Android nativo (`apps/mobile`): consome o mesmo `dashboard.json`
+  da nuvem. Telas: seletor de horizonte + perfil de risco, faixa macro,
+  ranking "o que fazer agora" (cards expansíveis), Radar de Picos com
+  medidor, pull-to-refresh; tema dark idêntico ao web. `flutter analyze`
+  limpo, verificado por build web + screenshot.
+- ✅ APK release (44 MB) para download direto no celular:
+  **https://quantlab-lde.web.app/QuantLab-v1.zip** (servido como
+  `QuantLab.apk` via Content-Disposition — Hosting free proíbe `.apk`).
+- ⬜ v2: login Google + portfólio real do eToro (precisa registrar o
+  SHA-1 do app no Firebase) + Oráculo (chave Gemini restrita ao app
+  Android) + ícone de app próprio.
+- Flutter **não conhece regra de negócio**: o motor roda no pipeline; o
+  app é cliente de apresentação (consome o JSON publicado).
 
 ## 🔄 Fase 5 — Simulador de cenários (parcial)
 
