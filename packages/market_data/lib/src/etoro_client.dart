@@ -36,7 +36,13 @@ class EtoroClient {
 
   Future<EtoroResponse> _get(String path) async {
     try {
-      final uri = Uri.https(_host, '/api/v1$path');
+      // separa path de query — senão o `?` é codificado e vira rota inválida
+      final parts = path.split('?');
+      final query = parts.length > 1
+          ? Uri.splitQueryString(parts[1])
+          : const <String, String>{};
+      final uri = Uri.https(
+          _host, '/api/v1${parts[0]}', query.isEmpty ? null : query);
       final r =
           await _client.get(uri, headers: _headers()).timeout(timeout);
       return EtoroResponse(r.statusCode, r.body);
