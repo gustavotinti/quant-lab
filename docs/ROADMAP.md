@@ -135,10 +135,12 @@ Monorepo Dart (pub workspace) com DDD/Clean Architecture:
   posições com status, macro, seleção); persona professor+operador com
   "Ação:" e veredito por posição; atalhos no Raio-X e no Copiloto;
   honestidade de cotação (fechamento diário + conferir preço no eToro).
-- ⬜ Integração com a API pública do eToro (portfólio/posições): requer as
-  chaves do Gustavo (eToro → Settings → API; conta verificada) —
-  substituirá o registro manual do Copiloto e dará preço vivo ao mentor.
-- ⬜ Posições do Copiloto no Firestore (sincronizar entre aparelhos).
+- ✅ Integração eToro (12/07/2026): API pública lê o portfólio real;
+  pipeline sincroniza para `private/portfolio` no Firestore (privado, só
+  o dono lê logado); Copiloto mostra "eToro · conta real" e o Oráculo
+  orienta sobre as posições reais. Só-leitura; execução continua manual.
+- ⬜ P&L/status ao vivo das posições eToro (falta o current rate da API).
+- ⬜ Posições do Copiloto (manuais) no Firestore p/ sincronizar aparelhos.
 - ✅ Retorno esperado + payoff por recomendação (07/07/2026): ranking
   ordena por retorno esperado; stop estimado por estratégia;
   dimensionamento de posição por risco fixo por trade com capital do
