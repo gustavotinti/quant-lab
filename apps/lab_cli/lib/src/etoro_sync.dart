@@ -12,6 +12,17 @@ import 'package:quant_market_data/quant_market_data.dart';
 /// nada — silenciosamente — se algo não estiver configurado, para nunca
 /// derrubar a atualização normal do painel.
 Future<void> syncEtoroPortfolio() async {
+  try {
+    await _syncEtoroPortfolio();
+  } catch (e) {
+    // qualquer imprevisto (rede, JSON inesperado, auth) não pode derrubar
+    // o pipeline — apenas registra e segue.
+    stdout.writeln('eToro: sincronização falhou (${e.runtimeType}) — '
+        'painel segue normal.');
+  }
+}
+
+Future<void> _syncEtoroPortfolio() async {
   final c = EtoroClient();
   if (!c.configurado) {
     stdout.writeln('eToro: chaves ausentes — pulando sincronização.');

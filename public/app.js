@@ -167,6 +167,8 @@ function atualizarTopo() {
 // atualiza sozinho quando sai versão nova (verifica a cada 5 min)
 setInterval(async () => {
   if (!DATA) return;
+  // portfólio real do eToro (P&L acompanha as atualizações do pipeline)
+  carregarPortfolioEtoro();
   try {
     const r = await fetch('/data/dashboard.json', { cache: 'no-cache' });
     const novo = await r.json();
@@ -956,7 +958,7 @@ function renderEtoroPortfolio() {
     <div class="etoro-head">
       <span class="etoro-tag">${icon('shield')} eToro · conta real</span>
       <span class="etoro-when">${pf.posicoes.length} posições · P&L aberto
-        <b class="${totalPl >= 0 ? 'pl-pos' : 'pl-neg'}">R$/US$ ${fmtNum(totalPl, 0)}</b>
+        <b class="${totalPl >= 0 ? 'pl-pos' : 'pl-neg'}">US$ ${fmtNum(totalPl, 0)}</b>
         · sincronizado ${quando}</span>
     </div>` +
     pf.posicoes.map((p) => {

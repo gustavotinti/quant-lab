@@ -30,6 +30,7 @@ jobs:
           dart run lab_cli:lab publish
 
       - name: Sincronizar portfólio do eToro (privado, Firestore)
+        continue-on-error: true  # nunca bloqueia a publicação do painel
         env:
           FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           ETORO_KEY_PUBLICA: ${{ secrets.ETORO_KEY_PUBLICA }}
