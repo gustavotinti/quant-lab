@@ -1,0 +1,24 @@
+name: Diagnóstico eToro
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - run: dart pub get
+
+      - name: Testar chaves eToro (só status, sem posições)
+        env:
+          ETORO_KEY_PUBLICA: ${{ secrets.ETORO_KEY_PUBLICA }}
+          ETORO_KEY_PRIVADA: ${{ secrets.ETORO_KEY_PRIVADA }}
+          ETORO_ENVIRONMENT: ${{ secrets.ETORO_ENVIRONMENT }}
+        run: dart run lab_cli:lab etoro-check

@@ -34,6 +34,8 @@ Future<void> main(List<String> args) async {
       await _recommend(lab, rest);
     case 'radar':
       await _radar(lab);
+    case 'etoro-check':
+      await _etoroCheck();
     case 'scenarios':
       await _scenarios(lab, rest);
     case 'hypotheses':
@@ -62,6 +64,7 @@ Comandos:
   lab recommend [horizonte]        RANKING ACIONÁVEL: o que fazer, com
                                    assertividade % e ticker do eToro
   lab radar                        📡 Radar de Picos (prob. de virada ~21d)
+  lab etoro-check                  Diagnóstico das chaves eToro (status only)
   lab scenarios <id>               Cenários análogos históricos do ativo
   lab hypotheses discover|list     Minera/lista hipóteses defasadas
   lab report                       Gera relatório markdown em reports/
@@ -329,6 +332,71 @@ Future<void> _recommend(Lab lab, List<String> args) async {
   stdout.writeln('\nSinais recalculados a cada `lab update` (ideal: diário). '
       'Validade: até a próxima atualização ou o gatilho de saída.');
   stdout.writeln(disclaimer);
+}
+
+/// Diagnóstico das chaves eToro. Só imprime STATUS e ESTRUTURA — nunca os
+/// valores das posições (privacidade, mesmo em logs do pipeline).
+Future<void> _etoroCheck() async {
+  final c = EtoroClient();
+  stdout.writeln('Ambiente eToro: ${c.ambiente}');
+  if (!c.configurado) {
+    stdout.writeln('ERRO: chaves eToro ausentes no ambiente '
+        '(ETORO_KEY_PUBLICA / ETORO_KEY_PRIVADA).');
+    return;
+  }
+  final ping = await c.ping();
+  stdout.writeln('Autenticação (market-data): HTTP ${ping.status}'
+      '${ping.ok ? ' — OK' : ''}');
+  if (!ping.ok) {
+    stdout.writeln('  detalhe: ${_curto(ping.body)}');
+    stdout.writeln('Se 401: chave inválida/errada. Corrija no cofre.');
+    return;
+  }
+  final port = await c.portfolio();
+  stdout.writeln('Portfólio (/trading/info/portfolio): HTTP ${port.status}');
+  if (port.ok) {
+    stdout.writeln('  PORTFÓLIO ACESSÍVEL. Estrutura (só nomes/contagens, '
+        'sem valores):');
+    try {
+      final j = json.decode(port.body);
+      _descreverEstrutura(j, '   ');
+    } catch (_) {
+      stdout.writeln('   (corpo não-JSON, ${port.body.length} bytes)');
+    }
+    stdout.writeln('\n=> Pronto para ligar a sincronização de posições.');
+  } else if (port.status == 403) {
+    stdout.writeln('  detalhe: ${_curto(port.body)}');
+    stdout.writeln('=> A chave AUTENTICA mas NÃO tem escopo de portfólio. '
+        'Regenere a chave marcando a permissão de posições/trading.');
+  } else {
+    stdout.writeln('  detalhe: ${_curto(port.body)}');
+  }
+}
+
+String _curto(String s) =>
+    s.replaceAll(RegExp(r'\s+'), ' ').trim().substring(0, s.length.clamp(0, 200));
+
+/// Imprime apenas a FORMA do JSON (chaves e tamanhos de listas), nunca os
+/// valores escalares — evita vazar posições no log.
+void _descreverEstrutura(Object? j, String ind, [int prof = 0]) {
+  if (prof > 3) return;
+  if (j is Map) {
+    for (final e in j.entries) {
+      final v = e.value;
+      if (v is Map) {
+        stdout.writeln('$ind${e.key}: {objeto}');
+        _descreverEstrutura(v, '$ind  ', prof + 1);
+      } else if (v is List) {
+        stdout.writeln('$ind${e.key}: [lista com ${v.length} item(ns)]');
+        if (v.isNotEmpty) _descreverEstrutura(v.first, '$ind  ', prof + 1);
+      } else {
+        stdout.writeln('$ind${e.key}: <${v.runtimeType}>');
+      }
+    }
+  } else if (j is List) {
+    stdout.writeln('${ind}lista com ${j.length} item(ns)');
+    if (j.isNotEmpty) _descreverEstrutura(j.first, '$ind  ', prof + 1);
+  }
 }
 
 Future<void> _radar(Lab lab) async {
