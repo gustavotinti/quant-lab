@@ -61,6 +61,10 @@ class EtoroClient {
   Future<EtoroResponse> instruments(Iterable<int> ids) =>
       _get('/market-data/instruments?instrumentIds=${ids.join(',')}');
 
+  /// Cotações atuais (ask/bid) dos instrumentos.
+  Future<EtoroResponse> rates(Iterable<int> ids) =>
+      _get('/market-data/instruments/rates?instrumentIds=${ids.join(',')}');
+
   static String _uuid() {
     final r = Random();
     String hx(int n) =>

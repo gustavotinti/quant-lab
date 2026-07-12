@@ -54,23 +54,48 @@ Future<void> syncEtoroPortfolio() async {
     }
   }
 
+  // cotações atuais (ask/bid) para P&L e status ao vivo
+  final ask = <int, double>{};
+  final bid = <int, double>{};
+  if (ids.isNotEmpty) {
+    final rr = await c.rates(ids);
+    if (rr.ok) {
+      final list =
+          (json.decode(rr.body) as Map<String, Object?>)['rates'] as List?;
+      for (final r in list ?? const []) {
+        final m = r as Map;
+        final id = (m['instrumentID'] as num?)?.toInt();
+        if (id != null) {
+          if (m['ask'] is num) ask[id] = (m['ask'] as num).toDouble();
+          if (m['bid'] is num) bid[id] = (m['bid'] as num).toDouble();
+        }
+      }
+    }
+  }
+
   double? num2(Object? v) => v is num ? v.toDouble() : null;
   final posicoes = <Map<String, Object?>>[
     for (final p in rawPos)
       if (p is Map)
-        {
-          'instrumentID': (p['instrumentID'] as num?)?.toInt(),
-          'nome': nomes[(p['instrumentID'] as num?)?.toInt()] ??
-              'Instrumento ${p['instrumentID']}',
-          'isBuy': p['isBuy'] == true,
-          'openRate': num2(p['openRate']),
-          'stopLoss': num2(p['stopLossRate']),
-          'takeProfit': num2(p['takeProfitRate']),
-          'amount': num2(p['amount']),
-          'leverage': (p['leverage'] as num?)?.toInt() ?? 1,
-          'units': num2(p['units']),
-          'openDate': p['openDateTime']?.toString(),
-        },
+        () {
+          final id = (p['instrumentID'] as num?)?.toInt();
+          final isBuy = p['isBuy'] == true;
+          // long fecha no bid (venda); short fecha no ask (recompra)
+          final atual = id == null ? null : (isBuy ? bid[id] : ask[id]);
+          return {
+            'instrumentID': id,
+            'nome': nomes[id] ?? 'Instrumento ${p['instrumentID']}',
+            'isBuy': isBuy,
+            'openRate': num2(p['openRate']),
+            'currentRate': atual,
+            'stopLoss': num2(p['stopLossRate']),
+            'takeProfit': num2(p['takeProfitRate']),
+            'amount': num2(p['amount']),
+            'leverage': (p['leverage'] as num?)?.toInt() ?? 1,
+            'units': num2(p['units']),
+            'openDate': p['openDateTime']?.toString(),
+          };
+        }(),
   ];
 
   final doc = {

@@ -914,6 +914,30 @@ function statusPos(p, op) {
 
 const nivelFmt = (x) => x == null ? '—' : fmtNum(x, x >= 100 ? 0 : 4);
 
+/// P&L e status de uma posição real do eToro (usa a cotação atual gravada).
+function etoroStatus(p) {
+  const cur = p.currentRate;
+  if (cur == null || !p.openRate) {
+    return { plPct: null, txt: 'sem cotação', cls: 'flat', ic: 'alert' };
+  }
+  const move = cur / p.openRate - 1;
+  const plPct = (p.isBuy ? move : -move) * (p.leverage || 1);
+  const dir = p.isBuy ? 1 : -1;
+  if (p.stopLoss && (dir > 0 ? cur <= p.stopLoss : cur >= p.stopLoss)) {
+    return { plPct, txt: 'STOP ROMPIDO — FECHE', cls: 'down', ic: 'stop' };
+  }
+  if (p.takeProfit && (dir > 0 ? cur >= p.takeProfit : cur <= p.takeProfit)) {
+    return { plPct, txt: 'ALVO ATINGIDO — realize', cls: 'up', ic: 'flag' };
+  }
+  // perto do stop (dentro de 20% do caminho entrada→stop)
+  if (p.stopLoss && p.openRate !== p.stopLoss) {
+    const prog = dir > 0 ? (cur - p.stopLoss) / (p.openRate - p.stopLoss)
+                         : (p.stopLoss - cur) / (p.stopLoss - p.openRate);
+    if (prog < 0.2) return { plPct, txt: 'Perto do stop', cls: 'flat', ic: 'alert' };
+  }
+  return { plPct, txt: 'MANTER', cls: 'up', ic: 'check' };
+}
+
 function renderEtoroPortfolio() {
   const box = $('etoro-portfolio');
   if (!box) return;
@@ -924,27 +948,39 @@ function renderEtoroPortfolio() {
     ? new Date(pf.atualizadoEm).toLocaleString('pt-BR',
         { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
     : '';
+  const totalPl = pf.posicoes.reduce((a, p) => {
+    const s = etoroStatus(p);
+    return a + (s.plPct != null && p.amount ? s.plPct * p.amount : 0);
+  }, 0);
   box.innerHTML = `
     <div class="etoro-head">
       <span class="etoro-tag">${icon('shield')} eToro · conta real</span>
-      <span class="etoro-when">${pf.posicoes.length} posições · sincronizado ${quando}</span>
+      <span class="etoro-when">${pf.posicoes.length} posições · P&L aberto
+        <b class="${totalPl >= 0 ? 'pl-pos' : 'pl-neg'}">R$/US$ ${fmtNum(totalPl, 0)}</b>
+        · sincronizado ${quando}</span>
     </div>` +
-    pf.posicoes.map((p) => `<details class="pos-row etoro">
+    pf.posicoes.map((p) => {
+      const s = etoroStatus(p);
+      const plCls = s.plPct == null ? '' : (s.plPct >= 0 ? 'pl-pos' : 'pl-neg');
+      return `<details class="pos-row etoro">
       <summary>
         <span class="badge ${p.isBuy ? 'compra' : 'venda'}">${p.isBuy ? '▲ LONG' : '▼ SHORT'}</span>
         <span class="row-name">${esc(p.nome || '—')}${p.leverage > 1 ? `<span class="tick">X${p.leverage}</span>` : ''}</span>
-        <span class="pos-kv"><b>${nivel(p.openRate)}</b><span>entrada</span></span>
+        <span class="pos-kv"><b class="${plCls}">${s.plPct == null ? '—' : fmtPct(s.plPct)}</b><span>P&L</span></span>
+        <span class="st-chip ${s.cls}">${icon(s.ic)} ${s.txt}</span>
         <span class="chev">${icon('chevron')}</span>
       </summary>
       <div class="row-body">
-        <p class="det">${p.amount ? `R$/US$ ${fmtNum(p.amount, 0)} investido · ` : ''}alavancagem X${p.leverage || 1}
+        <p class="det">entrada ${nivel(p.openRate)} → atual ${nivel(p.currentRate)}
+          ${p.amount ? ` · ${fmtNum(p.amount, 0)} investido` : ''} · alavancagem X${p.leverage || 1}
           ${p.stopLoss ? ` · SL ${nivel(p.stopLoss)}` : ' · sem SL'}${p.takeProfit ? ` · TP ${nivel(p.takeProfit)}` : ' · sem TP'}
           ${p.openDate ? ` · aberta em ${fmtData(String(p.openDate).slice(0, 10))}` : ''}</p>
         <div class="row-actions">
           <button class="btn-raiox" data-mentor data-nome="${esc(p.nome || '')}">Orientação do Oráculo</button>
         </div>
       </div>
-    </details>`).join('');
+    </details>`;
+    }).join('');
 }
 
 function renderPosicoes() {
@@ -1169,11 +1205,17 @@ function contextoMentor() {
       sinalAtual: op?.recomendacao?.acao ?? null,
     };
   });
-  const posEtoro = (etoroPortfolio?.posicoes || []).map((p) => ({
-    ativo: p.nome, direcao: p.isBuy ? 'compra' : 'venda',
-    entrada: p.openRate, alavancagem: 'X' + (p.leverage || 1),
-    stopLoss: p.stopLoss, takeProfit: p.takeProfit, valor: p.amount,
-  }));
+  const posEtoro = (etoroPortfolio?.posicoes || []).map((p) => {
+    const s = etoroStatus(p);
+    return {
+      ativo: p.nome, direcao: p.isBuy ? 'compra' : 'venda',
+      entrada: p.openRate, atual: p.currentRate,
+      alavancagem: 'X' + (p.leverage || 1),
+      stopLoss: p.stopLoss, takeProfit: p.takeProfit, valor: p.amount,
+      plPct: s.plPct == null ? null : +(s.plPct * 100).toFixed(1),
+      statusPainel: s.txt,
+    };
+  });
   return `CONTEXTO ATUAL (cotações do fechamento de ${DATA.ultimaObservacao}):
 ${JSON.stringify({
     selecao: {
