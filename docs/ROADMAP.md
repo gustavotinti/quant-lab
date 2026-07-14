@@ -1,5 +1,30 @@
 # Roadmap
 
+## ▶ PRÓXIMO PASSO — Motor de Track Record (medir o edge real)
+
+Tudo abaixo está no ar e funcionando (features completas), MAS o sistema
+ainda voa em backtest: não medimos o desempenho das recomendações emitidas
+AO VIVO. Esse é o próximo passo — a fundação da lucratividade comprovada.
+
+1. **Registro diário** no pipeline: gravar as ordens emitidas (por
+   horizonte×perfil×etoro) num log versionado ou Firestore, idempotente por
+   data: `{data, horizonte, perfil, ativoId, direcao, precoEntrada,
+   assertividade, alavancagem}`.
+2. **Scorer** (novo serviço de DOMÍNIO em `quant_engine/track_record.dart`,
+   com testes): p/ cada sinal emitido há N pregões, calcula o retorno
+   realizado com as séries que já baixamos (Yahoo/BCB), marca acerto/erro e
+   retorno na direção (com alavancagem).
+3. **Publicar acumulado** no dashboard.json: hit-rate REAL, retorno médio,
+   curva de capital, por horizonte/perfil; comparar com a assertividade
+   PREVISTA (calibração previsto×realizado).
+4. **UI** "Placar do sistema" (web + app): taxa de acerto real acumulada +
+   curva — honestidade total.
+5. Fecha o ciclo quant: prever → emitir → **MEDIR** → afinar.
+
+Backlog: app v2 (login+portfólio eToro+Oráculo nativos+ícone — precisa SHA-1
+do app no Firebase + chave Gemini restrita ao Android); FRED (chave grátis,
+cadastro do Gustavo); estratégia de carry; mais robustez estatística.
+
 ## ✅ Fase 0 — Motor matemático (concluída em 04/07/2026)
 
 Monorepo Dart (pub workspace) com DDD/Clean Architecture:
