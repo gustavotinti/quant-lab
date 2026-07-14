@@ -175,6 +175,55 @@ void main() {
     });
   });
 
+  group('emissão pelo Radar de Picos', () {
+    test('fundo 81% com 16 análogos → COMPRA com Laplace (69%)', () {
+      // o caso real do Gás Natural: radar diz fundo 81% (n=16) mas as
+      // estratégias clássicas não têm sinal → o radar emite a ordem
+      final e = emissaoDoRadar(
+          tipo: 'fundo', prob: 0.81, n: 16, medianaFwd21: 0.04)!;
+      expect(e.compra, isTrue);
+      // Laplace k=10: (0,81·16 + 5) / 26
+      expect(e.assertividade.valor, closeTo((0.81 * 16 + 5) / 26, 1e-12));
+      expect(e.assertividade.valor, greaterThan(0.65)); // passa até no conservador
+      expect(e.retornoEsperado, closeTo(0.04, 1e-12));
+    });
+
+    test('topo vira VENDA e o retorno esperado inverte o sinal', () {
+      final e = emissaoDoRadar(
+          tipo: 'topo', prob: 0.80, n: 16, medianaFwd21: -0.03)!;
+      expect(e.compra, isFalse);
+      expect(e.retornoEsperado, closeTo(0.03, 1e-12));
+    });
+
+    test('probabilidade alta mas amostra pequena → suavização segura', () {
+      // 75% em n=12 → (9+5)/22 = 63,6% ≥ 55% emite; mas 60% em n=12
+      // → (7,2+5)/22 = 55,45% no limite; 58% em n=12 → 55,4%... e 55%
+      // em n=12 → (6,6+5)/22 = 52,7% < 55% NÃO emite
+      expect(emissaoDoRadar(
+          tipo: 'fundo', prob: 0.55, n: 12, medianaFwd21: 0.02), isNull);
+      expect(emissaoDoRadar(
+          tipo: 'fundo', prob: 0.75, n: 12, medianaFwd21: 0.02), isNotNull);
+    });
+
+    test('mediana desfavorável ou nula segura a ordem (sem magnitude)', () {
+      // 80% dos análogos viraram, mas a mediana é negativa na direção:
+      // virada frequente e rasa não paga o trade
+      expect(emissaoDoRadar(
+          tipo: 'fundo', prob: 0.80, n: 16, medianaFwd21: -0.01), isNull);
+      expect(emissaoDoRadar(
+          tipo: 'topo', prob: 0.80, n: 16, medianaFwd21: 0.01), isNull);
+      expect(emissaoDoRadar(
+          tipo: 'fundo', prob: 0.80, n: 16, medianaFwd21: 0.0), isNull);
+    });
+
+    test('n abaixo do mínimo ou tipo inválido → null', () {
+      expect(emissaoDoRadar(
+          tipo: 'fundo', prob: 0.90, n: 11, medianaFwd21: 0.05), isNull);
+      expect(emissaoDoRadar(
+          tipo: 'lateral', prob: 0.90, n: 16, medianaFwd21: 0.05), isNull);
+    });
+  });
+
   group('PortfolioSizer (política de alocação — fonte única)', () {
     const sizer = PortfolioSizer();
     CandidatoOrdem cand(String id, String cat,
@@ -243,6 +292,84 @@ void main() {
       final vazio = sizer.dimensionar([], PerfilRisco.moderado);
       expect(vazio.ordens, isEmpty);
       expect(vazio.caixaPct, 1);
+    });
+
+    group('penalidade de correlação (diversificação real)', () {
+      test('duas compras com corr=1 → a segunda vale metade', () {
+        // moderado, stop 5% → peso base 20% cada; a 2ª (pior retorno
+        // esperado) divide por (1+1) → 10%
+        final c = sizer.dimensionar(
+          [cand('a', 'x', ret: 0.20), cand('b', 'y', ret: 0.10)],
+          PerfilRisco.moderado,
+          correlacoes: {'a': {'b': 1.0}},
+        );
+        final pesos = {for (final o in c.ordens) o.id: o.peso};
+        expect(pesos['a'], closeTo(0.20, 1e-9));
+        expect(pesos['b'], closeTo(0.10, 1e-9));
+      });
+
+      test('compra + venda em ativos correlacionados se hedgeiam — sem corte',
+          () {
+        final c = sizer.dimensionar(
+          [
+            cand('a', 'x', ret: 0.20),
+            const CandidatoOrdem(
+                id: 'b',
+                categoria: 'y',
+                assertividade: 0.60,
+                stopEstimado: 0.05,
+                alavancagemRecomendada: 1,
+                retornoEsperado: 0.10,
+                compra: false),
+          ],
+          PerfilRisco.moderado,
+          correlacoes: {'a': {'b': 0.9}},
+        );
+        final pesos = {for (final o in c.ordens) o.id: o.peso};
+        expect(pesos['a'], closeTo(0.20, 1e-9));
+        expect(pesos['b'], closeTo(0.20, 1e-9),
+            reason: 'long A + short B correlacionados = hedge, não risco');
+      });
+
+      test('correlação acumula: a terceira compra paga pelas duas primeiras',
+          () {
+        final c = sizer.dimensionar(
+          [
+            cand('a', 'x', ret: 0.30),
+            cand('b', 'y', ret: 0.20),
+            cand('c', 'z', ret: 0.10),
+          ],
+          PerfilRisco.moderado,
+          correlacoes: {
+            'a': {'b': 1.0, 'c': 1.0},
+            'b': {'c': 1.0},
+          },
+        );
+        final pesos = {for (final o in c.ordens) o.id: o.peso};
+        expect(pesos['a'], closeTo(0.20, 1e-9));
+        expect(pesos['b'], closeTo(0.10, 1e-9)); // /(1+1)
+        expect(pesos['c'], closeTo(0.20 / 3, 1e-9)); // /(1+2)
+      });
+
+      test('sem mapa de correlações → comportamento idêntico ao anterior', () {
+        final c = sizer.dimensionar(
+            [cand('a', 'x', stop: 0.05), cand('b', 'y', stop: 0.02)],
+            PerfilRisco.moderado);
+        final pesos = {for (final o in c.ordens) o.id: o.peso};
+        expect(pesos['a'], closeTo(0.20, 1e-9));
+        expect(pesos['b'], closeTo(0.25, 1e-9));
+      });
+
+      test('correlação negativa entre duas compras não penaliza', () {
+        final c = sizer.dimensionar(
+          [cand('a', 'x', ret: 0.20), cand('b', 'y', ret: 0.10)],
+          PerfilRisco.moderado,
+          correlacoes: {'a': {'b': -0.8}},
+        );
+        final pesos = {for (final o in c.ordens) o.id: o.peso};
+        expect(pesos['b'], closeTo(0.20, 1e-9),
+            reason: 'ativos que se movem em direções opostas diversificam');
+      });
     });
   });
 

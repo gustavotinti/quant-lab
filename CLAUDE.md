@@ -90,6 +90,27 @@ oportunidades por horizonte (curto/médio/longo) com sugestão de alavancagem.
   XRP-USD SOL-USD ADA-USD EURUSD=X GBPUSD=X JPY=X DX-Y.NYB ^TNX
   (User-Agent obrigatório) — total 40 indicadores, priorizando eToro
 
+## Motor de Track Record + Radar-emissor + correlação (14/07/2026)
+- **Track record** (`engine/track_record.dart`, domínio puro + testes):
+  cada `lab publish` grava as ordens emitidas do dia no Firestore
+  (`track_record/{yyyy-MM-dd}`, idempotente; via lib/src/
+  track_record_store.dart + firestore_rest.dart, SA do pipeline), lê o log
+  completo e o `TrackRecordScorer` mede o retorno REALIZADO de cada sinal
+  (fechado quando a janela se cumpre — curto 3m, médio/longo 12m, radar
+  1m; aberto = mark-to-market). Publica `placar` no dashboard.json:
+  hit-rate real, retorno médio, equity, calibração previsto×realizado.
+  UI: seção "Placar do sistema" (renderPlacar em app.js). Sem cofre local
+  o publish degrada em silêncio (placar só com os sinais do dia).
+- **Radar como emissor** (`emissaoDoRadar` em engine/recommendation.dart):
+  no CURTO, quando as estratégias clássicas ficam de fora mas o radar tem
+  prob empírica de virada que passa no corte 55% com Laplace k=10 (ex.:
+  81%×16 análogos → 69%) E mediana favorável, a ordem nasce do radar —
+  janela 1m, SEMPRE X1, `recomendacao.origem='radar'` (tag na UI).
+- **Penalidade de correlação** no PortfolioSizer (o que as grandes
+  gestoras fazem): pesos divididos por (1 + Σ correlações posicionais
+  positivas com ordens já aceitas); long+short correlacionados =
+  hedge (sem corte). Correlações de ~90 pregões calculadas no publish.
+
 ## Git / Automação
 - origin: https://github.com/gustavotinti/quant-lab (privado, branch master)
 - Sem gh CLI — GitHub via API REST com token do `git credential fill`

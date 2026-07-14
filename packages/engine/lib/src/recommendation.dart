@@ -45,6 +45,51 @@ Assertividade? assertividadeCombinada({
 /// favor. Abaixo do corte, o sistema tem a humildade de ficar de fora.
 enum Acao { comprar, vender, ficarDeFora, observar }
 
+/// Ordem emitida a partir do Radar de Picos — usada quando as estratégias
+/// clássicas NÃO têm sinal, mas o estado técnico esticado tem probabilidade
+/// empírica de virada que passa no MESMO corte de assertividade do sistema.
+///
+/// Honestidade preservada: a probabilidade do radar já é empírica (fração
+/// dos episódios históricos idênticos em que a virada veio); aqui ela só
+/// ganha a mesma suavização de Laplace do resto do sistema (amostra de 16
+/// nunca vira "81% de certeza") e precisa de mediana favorável (virada com
+/// magnitude, não só contagem). Sem backtest fora da amostra → alavancagem
+/// SEMPRE X1.
+class EmissaoRadar {
+  const EmissaoRadar({
+    required this.compra,
+    required this.assertividade,
+    required this.retornoEsperado,
+  });
+
+  /// true = fundo detectado → COMPRA; false = topo → VENDA (short).
+  final bool compra;
+  final Assertividade assertividade;
+
+  /// Mediana do retorno dos análogos NA DIREÇÃO apontada (~21 pregões).
+  final double retornoEsperado;
+}
+
+EmissaoRadar? emissaoDoRadar({
+  required String tipo,
+  required double prob,
+  required int n,
+  required double medianaFwd21,
+  double corte = 0.55,
+  int nMin = 12,
+}) {
+  if (tipo != 'topo' && tipo != 'fundo') return null;
+  if (n < nMin || prob.isNaN || medianaFwd21.isNaN) return null;
+  final compra = tipo == 'fundo';
+  // retorno na direção: num topo (venda), análogos caindo = retorno positivo
+  final retDir = compra ? medianaFwd21 : -medianaFwd21;
+  if (retDir <= 0) return null; // virada sem magnitude não paga o trade
+  final ass = assertividadeCombinada(winRate: prob, nTrades: n);
+  if (ass == null || ass.valor < corte) return null;
+  return EmissaoRadar(
+      compra: compra, assertividade: ass, retornoEsperado: retDir);
+}
+
 Acao decidirAcao({
   required bool compra,
   required bool venda,

@@ -1,29 +1,36 @@
 # Roadmap
 
-## ▶ PRÓXIMO PASSO — Motor de Track Record (medir o edge real)
+## ✅ Motor de Track Record + Radar-emissor + correlação (14/07/2026)
 
-Tudo abaixo está no ar e funcionando (features completas), MAS o sistema
-ainda voa em backtest: não medimos o desempenho das recomendações emitidas
-AO VIVO. Esse é o próximo passo — a fundação da lucratividade comprovada.
+- **Track record NO AR**: cada publish do pipeline registra as ordens do
+  dia no Firestore (`track_record/{yyyy-MM-dd}`, idempotente por data), o
+  `TrackRecordScorer` (domínio puro, testado) mede o retorno REALIZADO
+  quando cada janela se cumpre (curto 3m; médio/longo 12m; radar 1m) e o
+  dashboard ganhou o "Placar do sistema": hit-rate real, retorno médio,
+  curva de capital e calibração previsto×realizado. Ciclo quant fechado:
+  prever → emitir → MEDIR → afinar.
+- **Radar de Picos virou EMISSOR** no curto prazo: quando as estratégias
+  clássicas não têm sinal mas a probabilidade empírica de virada passa no
+  corte de 55% com Laplace k=10 E a mediana dos análogos é favorável →
+  ordem (janela 1m, SEMPRE X1, tag "radar" na UI). Era a lacuna do
+  "fundo 81% mas AGUARDAR" apontada no Gás Natural.
+- **Penalidade de correlação** no PortfolioSizer (construção de carteira
+  das grandes gestoras — diversificação real, não nominal): posições
+  correlacionadas na mesma direção dividem o peso por (1 + Σ corr⁺);
+  long+short correlacionados = hedge, sem corte.
 
-1. **Registro diário** no pipeline: gravar as ordens emitidas (por
-   horizonte×perfil×etoro) num log versionado ou Firestore, idempotente por
-   data: `{data, horizonte, perfil, ativoId, direcao, precoEntrada,
-   assertividade, alavancagem}`.
-2. **Scorer** (novo serviço de DOMÍNIO em `quant_engine/track_record.dart`,
-   com testes): p/ cada sinal emitido há N pregões, calcula o retorno
-   realizado com as séries que já baixamos (Yahoo/BCB), marca acerto/erro e
-   retorno na direção (com alavancagem).
-3. **Publicar acumulado** no dashboard.json: hit-rate REAL, retorno médio,
-   curva de capital, por horizonte/perfil; comparar com a assertividade
-   PREVISTA (calibração previsto×realizado).
-4. **UI** "Placar do sistema" (web + app): taxa de acerto real acumulada +
-   curva — honestidade total.
-5. Fecha o ciclo quant: prever → emitir → **MEDIR** → afinar.
+## ▶ PRÓXIMO PASSO — mais edge mensurável (em ordem de valor)
 
-Backlog: app v2 (login+portfólio eToro+Oráculo nativos+ícone — precisa SHA-1
-do app no Firebase + chave Gemini restrita ao Android); FRED (chave grátis,
-cadastro do Gustavo); estratégia de carry; mais robustez estatística.
+1. **Sazonalidade** (commodities/índices): retorno médio por mês do ano
+   com teste de significância — gás natural, milho e soja têm ciclos
+   físicos reais (estoque/inverno/safra). Vira evidência no
+   OpportunityEngine (dados nível B, 100% mensuráveis).
+2. **Momentum cross-sectional** (força relativa): ranquear os ~40 ativos
+   entre si (12-1), long os do topo / short os do fundo — o fator clássico
+   das gestoras quant, ortogonal ao momentum time-series que já temos.
+3. **Carry** (juro real cross-asset): moedas/índices com carry positivo.
+4. App v2 (login+portfólio eToro+Oráculo nativos+ícone — SHA-1 no Firebase
+   + chave Gemini Android); FRED (chave grátis, cadastro do Gustavo).
 
 ## ✅ Fase 0 — Motor matemático (concluída em 04/07/2026)
 

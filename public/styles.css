@@ -321,6 +321,61 @@ details.evid li { font-size: .8rem; color: var(--dim); padding: 3px 0;
   border-top: 1px dashed var(--border); padding-top: 10px; }
 
 /* radar de picos */
+/* tag de ordem emitida pelo Radar de Picos */
+.tag-radar {
+  font: 700 .6rem var(--mono); text-transform: uppercase;
+  color: var(--amber); border: 1px solid rgba(255,180,84,.45);
+  border-radius: 6px; padding: 2px 6px; margin-left: 8px;
+  letter-spacing: .04em; vertical-align: 1px;
+}
+
+/* ── placar do sistema (Motor de Track Record) ──────────────────────── */
+.placar-sec { margin: 6px 0 30px; }
+.placar-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+@media (max-width: 720px) { .placar-grid { grid-template-columns: 1fr; } }
+.placar-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px 16px;
+}
+.pc-top { display: flex; justify-content: space-between; align-items: baseline;
+  gap: 8px; }
+.pc-lbl { font-weight: 700; font-size: .92rem; }
+.pc-n { font: 600 .72rem var(--mono); color: var(--dimmer); }
+.pc-hit { font: 800 2rem var(--mono); color: var(--dim);
+  display: flex; align-items: baseline; gap: 8px; margin: 8px 0 2px; }
+.pc-hit small { font: 500 .72rem var(--mono); color: var(--dimmer); }
+.pc-hit.good { color: var(--accent); } .pc-hit.bad { color: var(--red); }
+.pc-spark { min-height: 4px; }
+.pc-spark .spark { height: 36px; margin-top: 6px; }
+.pc-kvs { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px;
+  font-size: .78rem; color: var(--dim); }
+.pc-kvs b { color: var(--text); font-family: var(--mono); }
+.pc-open { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--border);
+  font: 600 .74rem var(--mono); color: var(--amber); }
+.placar-calib { background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px 16px; margin-top: 12px; }
+.pcal-h { font-weight: 700; font-size: .86rem; margin-bottom: 10px; }
+.pcal-rows { display: grid; gap: 8px; }
+.pcal-row { display: grid;
+  grid-template-columns: 62px 1fr minmax(120px, auto); gap: 12px;
+  align-items: center; }
+.pcal-band { font: 700 .76rem var(--mono); color: var(--dim); }
+.pcal-bar { position: relative; height: 18px; border-radius: 999px;
+  background: rgba(120,160,210,.1); overflow: hidden; }
+.pcal-bar i { position: absolute; left: 0; top: 0; height: 100%;
+  border-radius: 999px; }
+.pcal-bar i.prev { background: rgba(79,156,255,.28); }
+.pcal-bar i.real { background: linear-gradient(90deg, #1d6b4f, var(--accent));
+  opacity: .9; height: 100%; }
+.pcal-val { font: 500 .74rem var(--mono); color: var(--dim); text-align: right; }
+.pcal-val b { color: var(--text); }
+.placar-foot, .placar-empty { font-size: .8rem; color: var(--dimmer);
+  margin-top: 12px; line-height: 1.5; }
+.placar-empty { background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px 18px; margin: 0; }
+
 .radar-sec { margin: 6px 0 30px; }
 .radar-row {
   display: grid; grid-template-columns: auto 1fr minmax(180px, 300px) auto;

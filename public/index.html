@@ -76,6 +76,13 @@
 
     <div id="ranking" class="ranking"></div>
 
+    <section class="placar-sec">
+      <h2 class="sec-title"><svg class="ic ic-t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h12M6 4h12v3a6 6 0 0 1-12 0z"/><path d="M9 15h6M8 20h8M10 15v5M14 15v5"/><path d="M18 5h2a2 2 0 0 1 0 4h-2M6 5H4a2 2 0 0 0 0 4h2"/></svg>
+        Placar do sistema
+        <span class="h2-sub">o desempenho REAL das recomendações emitidas ao vivo — registradas no dia, sem hindsight, e medidas quando a janela se cumpre</span></h2>
+      <div id="placar"></div>
+    </section>
+
     <section class="radar-sec">
       <h2 class="sec-title"><svg class="ic ic-t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6a6 6 0 1 0 6 6"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><path d="M12 12l7-7"/></svg>
         Radar de Picos
@@ -142,6 +149,13 @@
           n ao lado. Só vira ordem acima do corte do perfil.</li>
         <li><b>Radar de Picos</b>: quando o gráfico está esticado, a % diz
           quantas vezes veio virada em ~21 pregões nos episódios idênticos.</li>
+        <li><b>Ordens com a tag "radar"</b>: nascem do Radar de Picos quando
+          as estratégias clássicas não têm sinal mas a probabilidade
+          empírica de virada passa no corte (com suavização — amostra
+          pequena nunca vira certeza). Janela ~1 mês e sempre X1.</li>
+        <li><b>Placar do sistema</b>: taxa de acerto REAL das ordens já
+          emitidas ao vivo, medida quando cada janela se cumpre — e a
+          comparação entre o previsto e o realizado.</li>
         <li><b>Posição e alavancagem</b>: risco fixo por trade; a margem já
           vem dividida pela alavancagem recomendada (X2 só com evidência).</li>
         <li><b>Toque numa linha</b> para os detalhes; "Raio-X" abre o

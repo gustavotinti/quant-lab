@@ -6,6 +6,7 @@ import 'package:lab_cli/src/etoro_sync.dart';
 import 'package:lab_cli/src/format.dart';
 import 'package:lab_cli/src/lab.dart';
 import 'package:lab_cli/src/publish.dart';
+import 'package:lab_cli/src/track_record_store.dart';
 import 'package:quant_core/quant_core.dart';
 import 'package:quant_engine/quant_engine.dart';
 import 'package:quant_market_data/quant_market_data.dart';
@@ -712,8 +713,20 @@ Future<void> _publish(Lab lab) async {
   final sep = Platform.pathSeparator;
   final dataDir = Directory('${lab.root.path}${sep}public${sep}data');
   await dataDir.create(recursive: true);
-  final json = const JsonEncoder.withIndent(' ')
-      .convert(dashboardJson(lab, ctx, hs));
+
+  final data = dashboardJson(lab, ctx, hs);
+  // Motor de Track Record: registra os sinais de hoje (Firestore, idempotente
+  // por data), lê o log completo e mede o desempenho REAL das recomendações.
+  // Degrada em silêncio sem cofre (rodando local).
+  try {
+    final log = await const TrackRecordStore().registrarEObterLog(data);
+    final placar = const TrackRecordScorer().consolidar(log, ctx.series);
+    data['placar'] = placarJson(placar);
+  } catch (e) {
+    stdout.writeln('Track record: pulado (${e.runtimeType}).');
+  }
+
+  final json = const JsonEncoder.withIndent(' ').convert(data);
   await File('${dataDir.path}${sep}dashboard.json').writeAsString(json);
   stdout.writeln('public/data/dashboard.json gerado.');
 

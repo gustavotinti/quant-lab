@@ -16,7 +16,10 @@ String _iso(DateTime d) => d.toIso8601String().substring(0, 10);
 /// Oportunidades + carteiras dimensionadas pelo DOMÍNIO (PortfolioSizer,
 /// fonte única da política de alocação). Os clientes (web/app) apenas
 /// multiplicam peso × capital e exibem — zero regra de negócio neles.
-Map<String, Object?> _horizonteOpsECarteiras(List<Map<String, Object?>> ops) {
+Map<String, Object?> _horizonteOpsECarteiras(
+  List<Map<String, Object?>> ops,
+  Map<String, Map<String, double>> correlacoes,
+) {
   const sizer = PortfolioSizer();
 
   CandidatoOrdem? cand(Map<String, Object?> o) {
@@ -31,6 +34,7 @@ Map<String, Object?> _horizonteOpsECarteiras(List<Map<String, Object?>> ops) {
       alavancagemRecomendada:
           (rec['alavancagemRecomendada'] as num?)?.toInt() ?? 1,
       retornoEsperado: (rec['retornoEsperado'] as num?)?.toDouble() ?? -9,
+      compra: acao == 'comprar',
     );
   }
 
@@ -54,7 +58,7 @@ Map<String, Object?> _horizonteOpsECarteiras(List<Map<String, Object?>> ops) {
 
   Map<String, Object?> uma(List<CandidatoOrdem> cands, PerfilRisco p,
       {required bool soEtoro}) {
-    final cart = sizer.dimensionar(cands, p);
+    final cart = sizer.dimensionar(cands, p, correlacoes: correlacoes);
     final emitidas = {for (final o in cart.ordens) o.id};
     return {
       'cortePct': (p.corteAssertividade * 100).round(),
@@ -88,6 +92,55 @@ Map<String, Object?> _horizonteOpsECarteiras(List<Map<String, Object?>> ops) {
           'todos': uma(todosCands, p, soEtoro: false),
         },
     },
+  };
+}
+
+/// Placar do sistema (Motor de Track Record) → JSON público. Mede o
+/// desempenho REAL das recomendações emitidas ao vivo; sem PII, vai direto no
+/// dashboard.json para web/app só exibirem.
+Map<String, Object?> placarJson(Placar p) {
+  const labels = {
+    'curto': 'Curto prazo',
+    'medio': 'Médio prazo',
+    'longo': 'Longo prazo',
+  };
+  String? iso(DateTime? d) => d == null ? null : _iso(d);
+  return {
+    'desde': iso(p.desde),
+    'totalSinais': p.totalSinais,
+    'totalFechados': p.totalFechados,
+    'porHorizonte': {
+      for (final e in p.porHorizonte.entries)
+        e.key: () {
+          final h = e.value;
+          // equity pode crescer com o tempo; o sparkline usa a cauda.
+          final eq = h.equity.length > 120
+              ? h.equity.sublist(h.equity.length - 120)
+              : h.equity;
+          return {
+            'label': labels[e.key] ?? e.key,
+            'nFechados': h.nFechados,
+            'nAbertos': h.nAbertos,
+            'hitRate': _n(h.hitRate),
+            'retornoMedio': _n(h.retornoMedioDirecional),
+            'assertividadePrevista': _n(h.assertividadePrevistaMedia),
+            'retornoAcum': _n(h.retornoAcum),
+            'retornoAcumAlav': _n(h.retornoAcumAlav),
+            'equity': [for (final v in eq) _n(v)],
+            'plAberto': _n(h.plAbertoMedio),
+          };
+        }(),
+    },
+    'calibracao': [
+      for (final f in p.calibracao)
+        {
+          'de': _n(f.de),
+          'ate': _n(f.ate),
+          'n': f.n,
+          'real': _n(f.hitRateReal),
+          'previsto': _n(f.previstoMedio),
+        },
+    ],
   };
 }
 
@@ -191,24 +244,52 @@ Map<String, Object?> dashboardJson(
       fav = venda ? 1 - stx.pctPositivo : stx.pctPositivo;
       nA = stx.n;
     }
-    final ass = (compra || venda)
+    var ass = (compra || venda)
         ? assertividadeCombinada(
             winRate: wr, nTrades: nT, favoravel: fav, nAnalogos: nA)
         : null;
-    final acao =
+    var acao =
         decidirAcao(compra: compra, venda: venda, assertividade: ass);
 
+    // 📡 RADAR COMO EMISSOR (só no curto — a janela dele é ~21 pregões):
+    // quando as estratégias clássicas ficam de fora mas o estado técnico
+    // esticado tem probabilidade empírica de virada que passa no MESMO
+    // corte (com Laplace), a ordem nasce do radar. Sem backtest OOS →
+    // alavancagem SEMPRE X1; a assertividade carrega o n dos análogos.
+    EmissaoRadar? emiRadar;
+    if (h == Horizon.curto &&
+        (acao == Acao.ficarDeFora || acao == Acao.observar)) {
+      final r = radares[o.indicator.id];
+      if (r != null) {
+        emiRadar = emissaoDoRadar(
+            tipo: r.tipo,
+            prob: r.prob,
+            n: r.n,
+            medianaFwd21: r.medianaFwd21);
+      }
+    }
+    if (emiRadar != null) {
+      acao = emiRadar.compra ? Acao.comprar : Acao.vender;
+      ass = emiRadar.assertividade;
+    }
+    final compraEf = emiRadar?.compra ?? compra;
+    final vendaEf = emiRadar == null ? venda : !emiRadar.compra;
+
     // Retorno esperado NA DIREÇÃO: mediana dos cenários análogos na janela
-    // do horizonte (o que liga o sinal a dinheiro, não só a acerto).
+    // do horizonte (o que liga o sinal a dinheiro, não só a acerto). Para
+    // ordens do radar, a mediana dos 21 pregões seguintes dos análogos.
     double? retornoEsperado;
-    if ((compra || venda) && stx != null && !stx.mediana.isNaN) {
+    if (emiRadar != null) {
+      retornoEsperado = emiRadar.retornoEsperado;
+    } else if ((compra || venda) && stx != null && !stx.mediana.isNaN) {
       retornoEsperado = venda ? -stx.mediana : stx.mediana;
     }
 
     // Distância estimada até a invalidação do sinal (stop técnico):
-    // tendência/momentum → distância à SMA-200; reversão → 1σ de 60 pregões.
+    // tendência/momentum → distância à SMA-200; reversão e ordens do
+    // radar → 1σ de 60 pregões.
     double? stopEstimado;
-    if (compra || venda) {
+    if (compraEf || vendaEf) {
       final serieAtivo = ctx.series[o.indicator.id];
       double? sigma60;
       if (serieAtivo != null && serieAtivo.length >= 60 &&
@@ -217,7 +298,8 @@ Map<String, Object?> dashboardJson(
         if (sd != null) sigma60 = sd / s.lastPrice.abs();
       }
       final kind = bt?.kind;
-      if ((kind == StrategyKind.tendencia || kind == StrategyKind.momentum) &&
+      if (emiRadar == null &&
+          (kind == StrategyKind.tendencia || kind == StrategyKind.momentum) &&
           s.distSma200 != null) {
         stopEstimado = s.distSma200!.abs();
       } else {
@@ -226,11 +308,15 @@ Map<String, Object?> dashboardJson(
       stopEstimado = stopEstimado?.clamp(0.02, 0.25) ?? 0.05;
     }
     final et = etoroPorIndicador[o.indicator.id];
-    final g = _gatilho(bt?.kind, compra);
+    final g = emiRadar != null
+        ? 'sinal do radar: virada esperada em ~21 pregões; sair na virada, '
+            'no stop ou se ela não vier em ~1 mês'
+        : _gatilho(bt?.kind, compraEf);
     final alvo = et?.ticker ?? o.indicator.nome;
+    final radarTag = emiRadar == null ? '' : ' [origem: Radar de Picos]';
     final texto = switch (acao) {
-      Acao.comprar => 'COMPRAR $alvo — $g',
-      Acao.vender => 'VENDER (short) $alvo — $g',
+      Acao.comprar => 'COMPRAR $alvo — $g$radarTag',
+      Acao.vender => 'VENDER (short) $alvo — $g$radarTag',
       Acao.observar =>
         'OBSERVAR ${o.indicator.nome} — sem base histórica suficiente '
             'para medir assertividade',
@@ -248,8 +334,8 @@ Map<String, Object?> dashboardJson(
     // quando o edge (meio-Kelly) é forte, a robustez confirma e a vol é
     // contida (liquidação em X2 exige ~50% adverso >> qualquer stop nosso).
     var alavancagemRecomendada = 1;
-    if ((compra || venda) && bt != null && o.alavancagem != null &&
-        ass != null) {
+    if (emiRadar == null && (compra || venda) && bt != null &&
+        o.alavancagem != null && ass != null) {
       final kelly = o.alavancagem!.kellyMeio;
       final vol = s.vol1yAnn ?? 1.0;
       final robusto = bt.sobreviveuForaDaAmostra &&
@@ -265,16 +351,18 @@ Map<String, Object?> dashboardJson(
       alavancagemRecomendada = muitoRobusto ? 5 : (robusto ? 2 : 1);
     }
 
-    final dirSign2 = compra ? 1 : -1;
+    final dirSign2 = compraEf ? 1 : -1;
     return {
       'recomendacao': {
         'acao': acao.name,
         'texto': texto,
         'gatilho': g,
+        'origem': emiRadar != null ? 'radar' : null,
         'assertividade': _n(ass?.valor),
         'base': ass?.base,
         'retornoEsperado': _n(retornoEsperado),
-        'janelaRetorno': h == Horizon.curto ? '3m' : '12m',
+        'janelaRetorno':
+            emiRadar != null ? '1m' : (h == Horizon.curto ? '3m' : '12m'),
         'stopEstimado': _n(stopEstimado),
         'expectanciaTrade': bt == null || !(compra || venda)
             ? null
@@ -292,8 +380,12 @@ Map<String, Object?> dashboardJson(
       'nome': o.indicator.nome,
       'categoria': o.indicator.category.label,
       'unidade': o.indicator.unidade,
-      'direcao': o.direcao.name,
-      'score': o.score,
+      'direcao': emiRadar != null
+          ? (emiRadar.compra ? 'compra' : 'venda')
+          : o.direcao.name,
+      'score': emiRadar != null
+          ? (radares[o.indicator.id]!.prob * 100).roundToDouble()
+          : o.score,
       'preco': _n(s.lastPrice),
       'dataPreco': _iso(s.lastDate),
       'alavancagem': o.alavancagem == null
@@ -342,6 +434,24 @@ Map<String, Object?> dashboardJson(
     };
   }
 
+  // Correlação dos retornos (~90 pregões alinhados por data) entre os
+  // ativos negociáveis — insumo da penalidade de diversificação do
+  // PortfolioSizer (duas posições que se movem juntas ≈ uma posição só).
+  final idsNeg = [
+    for (final id in ctx.sinais.keys)
+      if ((ctx.series[id]?.length ?? 0) >= 60) id,
+  ];
+  final correlacoes = <String, Map<String, double>>{};
+  for (var i = 0; i < idsNeg.length; i++) {
+    final a = ctx.series[idsNeg[i]]!.tail(95);
+    for (var j = i + 1; j < idsNeg.length; j++) {
+      final al = a.alignWith(ctx.series[idsNeg[j]]!.tail(95));
+      if (al.length < 40) continue;
+      final c = st.pearson(st.simpleReturns(al.a), st.simpleReturns(al.b));
+      if (!c.isNaN) (correlacoes[idsNeg[i]] ??= {})[idsNeg[j]] = c;
+    }
+  }
+
   final m = ctx.macro;
   String nome(String id) => indicadorPorId(id)?.nome ?? id;
   DateTime? ultima;
@@ -375,7 +485,8 @@ Map<String, Object?> dashboardJson(
           'label': h.label,
           'janela': h.janela,
           ..._horizonteOpsECarteiras(
-              [for (final o in lab.oportunidades(ctx, h)) oportunidadeJson(o, h)]),
+              [for (final o in lab.oportunidades(ctx, h)) oportunidadeJson(o, h)],
+              correlacoes),
         },
     },
     // radar de picos ranqueado por probabilidade de virada

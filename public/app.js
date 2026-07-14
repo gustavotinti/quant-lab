@@ -24,7 +24,7 @@ const els = {
   userChip: $('user-chip'), userPhoto: $('user-photo'), userName: $('user-name'),
   logout: $('btn-logout'), dash: $('dash'), hero: $('hero'),
   macro: $('macro-strip'), resumo: $('resumo'), ranking: $('ranking'),
-  cards: $('cards'), hipoteses: $('hipoteses'),
+  placar: $('placar'), cards: $('cards'), hipoteses: $('hipoteses'),
   tabs: $('tabs'), filters: $('filters'), updated: $('updated-at'),
   toast: $('toast'),
 };
@@ -145,6 +145,7 @@ async function loadData() {
   atualizarTopo();
   renderMacro();
   render();
+  renderPlacar();
   renderRadar();
   renderHipoteses();
   preencherFormAtivos();
@@ -176,6 +177,7 @@ setInterval(async () => {
       DATA = novo;
       renderMacro();
       render();
+      renderPlacar();
       renderRadar();
       renderHipoteses();
       renderPosicoes();
@@ -397,7 +399,7 @@ function renderRanking() {
         <summary>
           <span class="rank-pos">${i + 1}</span>
           <span class="badge ${o.direcao}">${r.acao === 'comprar' ? '▲ COMPRAR' : '▼ VENDER'}</span>
-          <span class="row-name">${esc(o.nome)}${tk ? `<span class="tick">${esc(tk)}</span>` : ''}</span>
+          <span class="row-name">${esc(o.nome)}${tk ? `<span class="tick">${esc(tk)}</span>` : ''}${r.origem === 'radar' ? '<span class="tag-radar" title="Ordem emitida pelo Radar de Picos: estado técnico esticado + probabilidade empírica de virada nos episódios históricos idênticos. Janela ~1 mês, sempre X1.">radar</span>' : ''}</span>
           <span class="row-ass"><b>${fmtPct(r.assertividade, 0, false)}</b><small>assertividade</small></span>
           <span class="chev">${icon('chevron')}</span>
         </summary>
@@ -477,6 +479,87 @@ els.filters.addEventListener('click', (e) => {
     .forEach((x) => x.classList.toggle('active', x === c));
   render();
 });
+
+// ── placar do sistema (Motor de Track Record) ─────────────────────────
+// Só EXIBE o que o domínio mediu: desempenho real das ordens emitidas ao
+// vivo, separando fechados (resultado real) de abertos (mark-to-market).
+function sparkArr(v0) {
+  const v = (v0 || []).filter((x) => x != null);
+  if (v.length < 3) return '';
+  const min = Math.min(...v), max = Math.max(...v), span = max - min || 1;
+  const W = 180, H = 36, P = 3;
+  const pts = v.map((x, i) =>
+    `${(P + i * (W - 2 * P) / (v.length - 1)).toFixed(1)},${(P + (H - 2 * P) * (1 - (x - min) / span)).toFixed(1)}`);
+  const line = 'M' + pts.join('L');
+  const up = v[v.length - 1] >= v[0];
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <path class="area ${up ? 'aup' : 'adn'}" d="${line}L${W - P},${H}L${P},${H}Z"/>
+    <path class="line ${up ? 'up' : 'dn'}" d="${line}"/></svg>`;
+}
+
+function renderPlacar() {
+  const el = els.placar;
+  if (!el) return;
+  const p = DATA.placar;
+  if (!p || !p.totalSinais) {
+    el.innerHTML = `<div class="placar-empty">O laboratório começou a
+      registrar as recomendações emitidas ao vivo. A taxa de acerto REAL
+      aparece conforme cada janela se cumpre (curto 3m; médio/longo 12m) —
+      sem antecipar resultado.</div>`;
+    return;
+  }
+  const H = p.porHorizonte || {};
+  const cards = ['curto', 'medio', 'longo'].filter((k) => H[k]).map((k) => {
+    const h = H[k];
+    const fech = h.nFechados > 0;
+    const hit = fech ? fmtPct(h.hitRate, 0, false) : '—';
+    const hitCls = fech ? (h.hitRate >= 0.5 ? 'good' : 'bad') : '';
+    const prev = h.assertividadePrevista != null
+      ? fmtPct(h.assertividadePrevista, 0, false) : '—';
+    return `<div class="placar-card">
+      <div class="pc-top"><span class="pc-lbl">${esc(h.label)}</span>
+        <span class="pc-n">${h.nFechados} fechado${h.nFechados === 1 ? '' : 's'}</span></div>
+      <div class="pc-hit ${hitCls}">${hit}<small>acerto real</small></div>
+      <div class="pc-spark">${fech ? sparkArr(h.equity) : ''}</div>
+      <div class="pc-kvs">
+        <span>retorno médio <b>${fech ? fmtPct(h.retornoMedio) : '—'}</b></span>
+        <span>previsto <b>${prev}</b></span>
+      </div>
+      ${h.nAbertos ? `<div class="pc-open">${h.nAbertos} em aberto${
+        h.plAberto != null ? ` · P&L médio ${fmtPct(h.plAberto)}` : ''}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  let calib = '';
+  if (p.calibracao && p.calibracao.length) {
+    calib = `<div class="placar-calib">
+      <div class="pcal-h">Previsto × realizado
+        <span class="h2-sub">a assertividade que prometemos bate com o que
+        aconteceu?</span></div>
+      <div class="pcal-rows">${p.calibracao.map((f) => {
+        const de = Math.round(f.de * 100);
+        const ate = Math.min(100, Math.round(f.ate * 100));
+        return `<div class="pcal-row">
+          <span class="pcal-band">${de}–${ate}%</span>
+          <span class="pcal-bar" title="barra clara = previsto · barra viva = realizado">
+            <i class="prev" style="width:${Math.round(f.previsto * 100)}%"></i>
+            <i class="real" style="width:${Math.round(f.real * 100)}%"></i></span>
+          <span class="pcal-val">real <b>${fmtPct(f.real, 0, false)}</b> · n=${f.n}</span>
+        </div>`;
+      }).join('')}</div></div>`;
+  }
+
+  const desde = p.desde ? ` desde ${fmtData(p.desde)}` : '';
+  const foot = p.totalFechados === 0
+    ? `<div class="placar-foot">Ainda medindo: <b>${p.totalSinais}</b> sinais
+       em aberto${desde}. As taxas de acerto reais aparecem quando cada janela
+       se cumpre — o laboratório não antecipa resultado.</div>`
+    : `<div class="placar-foot"><b>${p.totalFechados}</b> de ${p.totalSinais}
+       sinais já fecharam a janela${desde}. Fechados = resultado real (entram
+       no acerto); abertos = marcados a mercado.</div>`;
+
+  el.innerHTML = `<div class="placar-grid">${cards}</div>${calib}${foot}`;
+}
 
 // ── hipóteses ─────────────────────────────────────────────────────────
 function renderHipoteses() {

@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:googleapis_auth/auth_io.dart';
 import 'package:quant_market_data/quant_market_data.dart';
+
+import 'firestore_rest.dart';
 
 /// Lê o portfólio real do eToro e grava num documento PRIVADO do Firestore
 /// (`private/portfolio`), que só o dono lê logado (ver firestore.rules).
@@ -116,55 +117,20 @@ Future<void> _syncEtoroPortfolio() async {
     'posicoes': posicoes,
   };
 
-  await _gravarFirestore(saPath, doc);
+  final fs = await FirestoreRest.abrir(saPath: saPath);
+  if (fs == null) {
+    stdout.writeln('eToro: Firestore indisponível — pulando gravação.');
+    return;
+  }
+  try {
+    final status = await fs.patch('private/portfolio', doc);
+    if (status >= 300) {
+      stdout.writeln('eToro: Firestore write HTTP $status.');
+      return;
+    }
+  } finally {
+    fs.close();
+  }
   stdout.writeln('eToro: ${posicoes.length} posições sincronizadas '
       '(privado, Firestore).');
 }
-
-/// Grava [doc] em `private/portfolio` via REST do Firestore, autenticando
-/// com a service account.
-Future<void> _gravarFirestore(
-    String saPath, Map<String, Object?> doc) async {
-  final creds = ServiceAccountCredentials.fromJson(
-      json.decode(File(saPath).readAsStringSync()));
-  final client = await clientViaServiceAccount(
-      creds, const ['https://www.googleapis.com/auth/datastore']);
-  try {
-    const project = 'quantlab-lde';
-    final uri = Uri.parse(
-        'https://firestore.googleapis.com/v1/projects/$project/databases/'
-        '(default)/documents/private/portfolio');
-    final res = await client.patch(uri,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'fields': _toFields(doc)}));
-    if (res.statusCode >= 300) {
-      stdout.writeln('Firestore write HTTP ${res.statusCode}: '
-          '${res.body.replaceAll(RegExp(r"\s+"), " ").substring(0, res.body.length.clamp(0, 200))}');
-    }
-  } finally {
-    client.close();
-  }
-}
-
-/// Converte um valor Dart no formato tipado de documento do Firestore REST.
-Object _toValue(Object? v) {
-  if (v == null) return {'nullValue': null};
-  if (v is bool) return {'booleanValue': v};
-  if (v is int) return {'integerValue': v.toString()};
-  if (v is double) return {'doubleValue': v};
-  if (v is String) return {'stringValue': v};
-  if (v is List) {
-    return {
-      'arrayValue': {'values': [for (final e in v) _toValue(e)]}
-    };
-  }
-  if (v is Map) {
-    return {
-      'mapValue': {'fields': _toFields(v.cast<String, Object?>())}
-    };
-  }
-  return {'stringValue': v.toString()};
-}
-
-Map<String, Object?> _toFields(Map<String, Object?> m) =>
-    {for (final e in m.entries) e.key: _toValue(e.value)};

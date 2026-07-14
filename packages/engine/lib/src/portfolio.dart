@@ -60,6 +60,7 @@ class CandidatoOrdem {
     required this.stopEstimado,
     required this.alavancagemRecomendada,
     required this.retornoEsperado,
+    this.compra = true,
   });
 
   final String id;
@@ -68,6 +69,10 @@ class CandidatoOrdem {
   final double stopEstimado;
   final int alavancagemRecomendada;
   final double retornoEsperado;
+
+  /// Direção da ordem — usada pela penalidade de correlação (uma compra e
+  /// uma venda em ativos correlacionados se HEDGEIAM; duas compras não).
+  final bool compra;
 }
 
 /// Ordem já dimensionada. [peso] é a fração de EXPOSIÇÃO do capital; o valor
@@ -86,13 +91,20 @@ class Carteira {
 }
 
 /// Política de dimensionamento de carteira — ÚNICA fonte da verdade das
-/// regras de alocação (risco fixo por trade → teto do perfil → teto por
-/// classe de ativo → caixa). Domínio puro: sem I/O, sem capital, sem
-/// conhecer JSON, HTTP, Flutter ou eToro.
+/// regras de alocação (risco fixo por trade → penalidade de correlação →
+/// teto do perfil → teto por classe de ativo → caixa). Domínio puro: sem
+/// I/O, sem capital, sem conhecer JSON, HTTP, Flutter ou eToro.
 class PortfolioSizer {
   const PortfolioSizer();
 
-  Carteira dimensionar(List<CandidatoOrdem> candidatos, PerfilRisco p) {
+  /// [correlacoes] (opcional): correlação dos retornos entre pares de ativos
+  /// (`correlacoes[a][b]`), usada na penalidade de diversificação. Sem o
+  /// mapa, o comportamento é idêntico ao anterior.
+  Carteira dimensionar(
+    List<CandidatoOrdem> candidatos,
+    PerfilRisco p, {
+    Map<String, Map<String, double>> correlacoes = const {},
+  }) {
     final aprovados = candidatos
         .where((c) => c.assertividade >= p.corteAssertividade)
         .toList()
@@ -105,6 +117,24 @@ class PortfolioSizer {
         _min(p.riscoPorTrade / (c.stopEstimado <= 0 ? 0.05 : c.stopEstimado),
             p.maxPesoAtivo),
     ];
+
+    // 1b. penalidade de correlação (diversificação real, não nominal):
+    // para o risco da carteira, duas posições que se movem JUNTAS são quase
+    // uma posição só. Processando na ordem de prioridade (melhor retorno
+    // esperado primeiro), cada ordem é reduzida pela soma das correlações
+    // POSICIONAIS positivas com as já aceitas: peso /= (1 + Σ corr⁺).
+    // Compra+venda em ativos correlacionados se hedgeiam → sem penalidade.
+    for (var i = 1; i < aprovados.length; i++) {
+      var soma = 0.0;
+      for (var j = 0; j < i; j++) {
+        final corr = _corr(correlacoes, aprovados[i].id, aprovados[j].id);
+        if (corr == null) continue;
+        final posicional =
+            aprovados[i].compra == aprovados[j].compra ? corr : -corr;
+        if (posicional > 0) soma += posicional;
+      }
+      if (soma > 0) pesos[i] /= 1 + soma;
+    }
 
     // 2. teto global investido do perfil (renormaliza)
     final soma = pesos.fold<double>(0, (a, b) => a + b);
@@ -136,4 +166,9 @@ class PortfolioSizer {
 
   static double _min(double a, double b) => a < b ? a : b;
   static int _minInt(int a, int b) => a < b ? a : b;
+
+  /// Correlação a↔b no mapa (procura nos dois sentidos); null = desconhecida.
+  static double? _corr(
+          Map<String, Map<String, double>> m, String a, String b) =>
+      m[a]?[b] ?? m[b]?[a];
 }

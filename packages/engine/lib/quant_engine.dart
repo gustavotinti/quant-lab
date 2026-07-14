@@ -16,3 +16,4 @@ export 'src/portfolio.dart';
 export 'src/radar.dart';
 export 'src/recommendation.dart';
 export 'src/scenarios.dart';
+export 'src/track_record.dart';
