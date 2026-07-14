@@ -85,18 +85,26 @@ Future<void> _syncEtoroRates() async {
     // cotações (ask/bid) de todos os IDs conhecidos, em lotes
     final ids = cache.values.toSet().toList();
     final ask = <int, double>{}, bid = <int, double>{};
+    final debug = Platform.environment['ETORO_DEBUG'] == '1';
     for (var i = 0; i < ids.length; i += 60) {
       final lote = ids.sublist(i, (i + 60).clamp(0, ids.length));
       final rr = await c.rates(lote);
+      if (debug && i == 0) {
+        stdout.writeln('DEBUG rates HTTP ${rr.status} body[0..900]: '
+            '${rr.body.substring(0, rr.body.length.clamp(0, 900))}');
+      }
       if (!rr.ok) continue;
-      final list =
-          (json.decode(rr.body) as Map<String, Object?>)['rates'] as List?;
+      final decoded = json.decode(rr.body);
+      final list = decoded is Map
+          ? (decoded['rates'] ?? decoded['Rates']) as List?
+          : decoded as List?;
       for (final r in list ?? const []) {
         final m = r as Map;
-        final id = (m['instrumentID'] as num?)?.toInt();
+        final id = (m['instrumentID'] ?? m['instrumentId']) as num?;
         if (id == null) continue;
-        if (m['ask'] is num) ask[id] = (m['ask'] as num).toDouble();
-        if (m['bid'] is num) bid[id] = (m['bid'] as num).toDouble();
+        final iid = id.toInt();
+        if (m['ask'] is num) ask[iid] = (m['ask'] as num).toDouble();
+        if (m['bid'] is num) bid[iid] = (m['bid'] as num).toDouble();
       }
     }
 
