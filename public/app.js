@@ -6,7 +6,7 @@ import {
   getRedirectResult, onAuthStateChanged, signOut,
 } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js';
 import {
-  getFirestore, doc, getDoc,
+  getFirestore, doc, getDoc, onSnapshot,
 } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js';
 
 const app = initializeApp({
@@ -113,8 +113,37 @@ onAuthStateChanged(auth, (user) => {
     els.userName.textContent = (user.displayName || user.email || '').split(' ')[0];
     loadData();
     carregarPortfolioEtoro();
+    escutarRatesEtoro();
   }
 });
+
+// ── cotações eToro AO VIVO (listener em tempo real) ───────────────────
+// O pipeline grava private/rates; o painel do dono ouve o documento e
+// atualiza preço + entrada/stop/alvo NA HORA que uma cotação nova chega —
+// sem recarregar. Fallback: fechamento do dia (o.preco) quando não há live.
+let LIVE_RATES = null, LIVE_RATES_AT = null, _ratesUnsub = null;
+function escutarRatesEtoro() {
+  if (_ratesUnsub) return; // já escutando
+  try {
+    _ratesUnsub = onSnapshot(doc(db, 'private', 'rates'), (snap) => {
+      const d = snap.exists() ? snap.data() : null;
+      LIVE_RATES = d?.rates || null;
+      LIVE_RATES_AT = d?.atualizadoEm || null;
+      if (DATA) { renderRanking(); renderRadar(); }
+    }, () => { /* sem permissão/offline: segue no fechamento */ });
+  } catch (_) { /* SDK indisponível: segue no fechamento */ }
+}
+// preço de referência: eToro ao vivo se houver, senão o fechamento do dia
+function precoLive(id) {
+  const r = LIVE_RATES && LIVE_RATES[id];
+  if (!r) return null;
+  return r.preco ?? r.ask ?? r.bid ?? null;
+}
+function idadeLive() {
+  if (!LIVE_RATES_AT) return '';
+  const min = Math.round((Date.now() - new Date(LIVE_RATES_AT)) / 60000);
+  return min < 1 ? 'agora' : min < 60 ? `há ${min}min` : `há ${Math.round(min / 60)}h`;
+}
 
 // ── portfólio real do eToro (privado, lido do Firestore) ──────────────
 let etoroPortfolio = null; // { atualizadoEm, posicoes:[...] }
@@ -380,9 +409,22 @@ function renderRanking() {
       const valor = l.valor;
       const riscoRs = valor != null ? valor * (r.stopEstimado || 0.05) : null;
       const nivel = (x) => x == null ? '' : fmtNum(x, x >= 100 ? 0 : 2);
-      const sl = l.stopPreco != null && l.alvoPreco != null
-        ? ` · SL ~<b>${nivel(l.stopPreco)}</b> · alvo ~<b>${nivel(l.alvoPreco)}</b>`
+      // preço AO VIVO do eToro se houver — recalcula stop/alvo no preço de
+      // agora, não no fechamento de ontem (fallback: fechamento)
+      const pv = precoLive(o.id);
+      const compra = r.acao === 'comprar';
+      const stopFrac = r.stopEstimado || 0.05;
+      const precoRef = pv != null ? pv : o.preco;
+      const stopP = precoRef != null ? precoRef * (compra ? 1 - stopFrac : 1 + stopFrac) : l.stopPreco;
+      const alvoP = precoRef != null && r.retornoEsperado != null
+        ? precoRef * (compra ? 1 + r.retornoEsperado : 1 - r.retornoEsperado)
+        : l.alvoPreco;
+      const sl = stopP != null && alvoP != null
+        ? ` · SL ~<b>${nivel(stopP)}</b> · alvo ~<b>${nivel(alvoP)}</b>`
         : '';
+      const precoChip = precoRef == null ? '' : (pv != null
+        ? `<span class="live-px" title="cotação do eToro, atualizada em tempo real (${idadeLive()})"><i class="live-dot"></i>${nivel(precoRef)} <small>eToro ${idadeLive()}</small></span>`
+        : `<span class="live-px stale" title="fechamento do dia — cotação ao vivo indisponível">${nivel(precoRef)} <small>fechamento</small></span>`);
       const sizing = (valor != null
         ? (l.lev > 1
             ? `Invista <b>R$ ${fmtNum(l.margem, 0)}</b> com alavancagem
@@ -404,6 +446,7 @@ function renderRanking() {
           <span class="chev">${icon('chevron')}</span>
         </summary>
         <div class="row-body">
+          ${precoChip ? `<div class="row-live-line">Preço de referência: ${precoChip}</div>` : ''}
           <div class="kv-grid kv-mini">
             ${kv('Retorno esp. (' + r.janelaRetorno + ')', fmtPct(r.retornoEsperado))}
             ${kv('Base histórica', 'n=' + r.base)}

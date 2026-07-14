@@ -54,6 +54,11 @@ class EtoroClient {
   /// Chamada barata de dados de mercado — serve para checar autenticação.
   Future<EtoroResponse> ping() => _get('/market-data/search?query=AAPL');
 
+  /// Busca instrumentos por texto (ticker/nome) — usada para resolver o
+  /// instrumentID a partir do ticker do eToro.
+  Future<EtoroResponse> search(String query) =>
+      _get('/market-data/search?query=${Uri.encodeQueryComponent(query)}');
+
   /// Portfólio (posições abertas + P&L) do usuário da chave.
   Future<EtoroResponse> portfolio() => _get('/trading/info/portfolio');
 

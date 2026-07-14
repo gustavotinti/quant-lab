@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:lab_cli/src/etoro.dart';
+import 'package:lab_cli/src/etoro_rates.dart';
 import 'package:lab_cli/src/etoro_sync.dart';
 import 'package:lab_cli/src/format.dart';
 import 'package:lab_cli/src/lab.dart';
@@ -40,6 +41,8 @@ Future<void> main(List<String> args) async {
       await _etoroCheck();
     case 'etoro-sync':
       await syncEtoroPortfolio();
+    case 'rates':
+      await syncEtoroRates();
     case 'scenarios':
       await _scenarios(lab, rest);
     case 'hypotheses':
@@ -69,6 +72,7 @@ Comandos:
                                    assertividade % e ticker do eToro
   lab radar                        📡 Radar de Picos (prob. de virada ~21d)
   lab etoro-check                  Diagnóstico das chaves eToro (status only)
+  lab rates                        Cotações eToro ao vivo → Firestore (painel)
   lab scenarios <id>               Cenários análogos históricos do ativo
   lab hypotheses discover|list     Minera/lista hipóteses defasadas
   lab report                       Gera relatório markdown em reports/

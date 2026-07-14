@@ -46,6 +46,9 @@ jobs:
           echo "$FIREBASE_SA" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
           dart run lab_cli:lab etoro-sync
+          # cotações ao vivo de TODOS os ativos negociáveis (painel do dono
+          # lê num listener em tempo real e recalcula entrada/stop/alvo)
+          dart run lab_cli:lab rates
 
       - name: Publicar no Firebase Hosting
         env:

@@ -321,6 +321,22 @@ details.evid li { font-size: .8rem; color: var(--dim); padding: 3px 0;
   border-top: 1px dashed var(--border); padding-top: 10px; }
 
 /* radar de picos */
+/* preço de referência ao vivo (eToro) no ranking */
+.row-live-line { font-size: .8rem; color: var(--dim); margin: 2px 0 10px; }
+.live-px { font: 700 .84rem var(--mono); color: var(--text);
+  display: inline-flex; align-items: center; gap: 6px; }
+.live-px small { font: 500 .68rem var(--mono); color: var(--accent);
+  text-transform: uppercase; letter-spacing: .03em; }
+.live-px.stale small { color: var(--dimmer); }
+.live-dot { width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 0 rgba(56,224,162,.6);
+  animation: livepulse 1.8s infinite; }
+@keyframes livepulse {
+  0% { box-shadow: 0 0 0 0 rgba(56,224,162,.55); }
+  70% { box-shadow: 0 0 0 7px rgba(56,224,162,0); }
+  100% { box-shadow: 0 0 0 0 rgba(56,224,162,0); }
+}
+
 /* tag de ordem emitida pelo Radar de Picos */
 .tag-radar {
   font: 700 .6rem var(--mono); text-transform: uppercase;
