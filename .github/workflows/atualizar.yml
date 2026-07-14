@@ -25,7 +25,13 @@ jobs:
         run: dart pub get
 
       - name: Atualizar séries e gerar painel
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
+          # o publish também grava o track record no Firestore (snapshot
+          # diário das ordens emitidas) — precisa do cofre da SA
+          echo "$FIREBASE_SA" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
           dart run lab_cli:lab update
           dart run lab_cli:lab publish
 
