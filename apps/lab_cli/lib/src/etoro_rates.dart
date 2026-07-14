@@ -48,30 +48,33 @@ Future<void> _syncEtoroRates() async {
     // de campos + símbolos — dados públicos de mercado, sem PII) para acertar
     // o parser de ticker→instrumentID.
     if (Platform.environment['ETORO_DEBUG'] == '1') {
-      const t = 'SPX500';
-      final r = await c.search(t);
-      stdout.writeln('DEBUG search("$t") HTTP ${r.status}');
-      try {
-        final j = json.decode(r.body) as Map<String, Object?>;
-        final items = (j['items'] as List?) ?? const [];
-        stdout.writeln('DEBUG items.length=${items.length}');
-        // acha o item cujo algum campo string == SPX500 e imprime-o inteiro
-        for (final it in items) {
-          if (it is! Map) continue;
-          final bate = it.values
-              .any((v) => v is String && v.toUpperCase() == t);
-          if (bate) {
-            stdout.writeln('DEBUG match keys: ${it.keys.toList()}');
+      for (final t in ['SPX500', 'BTC']) {
+        final r = await c.search(t);
+        stdout.writeln('DEBUG search("$t") HTTP ${r.status}');
+        try {
+          final j = json.decode(r.body) as Map<String, Object?>;
+          stdout.writeln('DEBUG top keys: ${j.keys.toList()}');
+          final items = (j['items'] as List?) ?? const [];
+          stdout.writeln('DEBUG items.length=${items.length}');
+          final re = RegExp('instrument|symbol|ticker|name', caseSensitive: false);
+          var mostrados = 0;
+          for (final it in items) {
+            if (it is! Map) continue;
+            final campos = <String>[];
             it.forEach((k, v) {
-              if (v is num || v is String || v is bool) {
-                stdout.writeln('DEBUG   $k = $v');
+              if ((v is String || v is num) &&
+                  re.hasMatch(k.toString())) {
+                campos.add('$k=$v');
               }
             });
-            break;
+            if (campos.isNotEmpty && mostrados < 4) {
+              stdout.writeln('DEBUG item: ${campos.join(' | ')}');
+              mostrados++;
+            }
           }
+        } catch (e) {
+          stdout.writeln('DEBUG parse falhou: $e');
         }
-      } catch (e) {
-        stdout.writeln('DEBUG parse falhou: $e');
       }
     }
 
