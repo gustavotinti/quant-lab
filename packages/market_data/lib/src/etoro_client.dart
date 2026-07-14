@@ -59,6 +59,11 @@ class EtoroClient {
   Future<EtoroResponse> search(String query) =>
       _get('/market-data/search?query=${Uri.encodeQueryComponent(query)}');
 
+  /// Catálogo paginado de instrumentos (o `query` da busca é ignorado; ela
+  /// devolve o catálogo inteiro). Usado para montar o mapa symbolFull→id.
+  Future<EtoroResponse> catalog({int page = 1, int pageSize = 1000}) =>
+      _get('/market-data/search?page=$page&pageSize=$pageSize');
+
   /// Portfólio (posições abertas + P&L) do usuário da chave.
   Future<EtoroResponse> portfolio() => _get('/trading/info/portfolio');
 

@@ -48,33 +48,34 @@ Future<void> _syncEtoroRates() async {
     // de campos + símbolos — dados públicos de mercado, sem PII) para acertar
     // o parser de ticker→instrumentID.
     if (Platform.environment['ETORO_DEBUG'] == '1') {
-      for (final t in ['SPX500', 'BTC']) {
-        final r = await c.search(t);
-        stdout.writeln('DEBUG search("$t") HTTP ${r.status}');
-        try {
-          final j = json.decode(r.body) as Map<String, Object?>;
-          stdout.writeln('DEBUG top keys: ${j.keys.toList()}');
-          final items = (j['items'] as List?) ?? const [];
-          stdout.writeln('DEBUG items.length=${items.length}');
-          final re = RegExp('instrument|symbol|ticker|name', caseSensitive: false);
-          var mostrados = 0;
-          for (final it in items) {
-            if (it is! Map) continue;
-            final campos = <String>[];
-            it.forEach((k, v) {
-              if ((v is String || v is num) &&
-                  re.hasMatch(k.toString())) {
-                campos.add('$k=$v');
-              }
-            });
-            if (campos.isNotEmpty && mostrados < 4) {
-              stdout.writeln('DEBUG item: ${campos.join(' | ')}');
-              mostrados++;
-            }
-          }
-        } catch (e) {
-          stdout.writeln('DEBUG parse falhou: $e');
+      final r = await c.catalog(page: 1, pageSize: 2000);
+      stdout.writeln('DEBUG catalog HTTP ${r.status}');
+      try {
+        final j = json.decode(r.body) as Map<String, Object?>;
+        stdout.writeln('DEBUG page=${j['page']} pageSize=${j['pageSize']} '
+            'totalItems=${j['totalItems']}');
+        final items = (j['items'] as List?) ?? const [];
+        stdout.writeln('DEBUG items nesta página=${items.length}');
+        final mapa = <String, int>{};
+        for (final it in items) {
+          if (it is! Map) continue;
+          final sym = it['internalSymbolFull']?.toString().toUpperCase();
+          final id = (it['instrumentId'] as num?)?.toInt();
+          if (sym != null && id != null) mapa[sym] = id;
         }
+        final meus = <String>{
+          for (final e in etoroPorIndicador.entries)
+            if (e.value.ticker != null) e.value.ticker!.toUpperCase(),
+        };
+        final achei = meus.where(mapa.containsKey).toList();
+        final faltou = meus.where((t) => !mapa.containsKey(t)).toList();
+        stdout.writeln('DEBUG match nesta página: ${achei.length}/${meus.length}');
+        stdout.writeln('DEBUG exemplos: '
+            '${[for (final t in achei.take(6)) '$t=${mapa[t]}'].join(', ')}');
+        stdout.writeln('DEBUG faltaram (podem estar em outras páginas): '
+            '${faltou.take(20).join(', ')}');
+      } catch (e) {
+        stdout.writeln('DEBUG parse falhou: $e');
       }
     }
 
