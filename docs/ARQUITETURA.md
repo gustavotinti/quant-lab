@@ -65,6 +65,18 @@ infraestrutura conhece o domínio; o domínio não conhece ninguém.
   se a tendência tem poder preditivo no ativo, não simular uma corretora.
   Custos entram quando houver simulação de carteira (Fase 7).
 
+## Dimensionamento de carteira: fonte única no domínio
+
+A política de alocação (corte de assertividade por perfil, risco fixo por
+trade, teto por ativo, teto global, teto por classe, caixa e limite de
+alavancagem) vive **apenas** em `quant_engine/PortfolioSizer`
+(`PerfilRisco` é o Value Object da política). O pipeline publica as
+carteiras prontas no `dashboard.json` (`horizontes.*.carteiras.{perfil}.
+{etoro|todos}` → pesos, alavancagem, caixa, segurados) e os clientes
+(painel web e app Flutter) **apenas exibem** — multiplicam peso × capital
+e formatam. Antes essa regra estava triplicada em `publish.dart`,
+`app.js` e `data.dart`; a duplicação foi eliminada em 13/07/2026.
+
 ## Regras para novos indicadores
 
 Todo candidato responde ao teste: *"se eu desligar a internet por um mês,

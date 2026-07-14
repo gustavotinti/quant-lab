@@ -271,13 +271,9 @@ function renderResumo() {
 }
 
 // ── ranking acionável + dimensionamento de posição ───────────────────
-// Risco fixo por trade (padrão profissional): peso = riscoPorTrade / stop,
-// limitado por posição e pelo teto investido do perfil; o resto é caixa.
-const perfis = {
-  conservador: { corte: 0.65, risco: 0.005, maxPeso: 0.15, teto: 0.40, levMax: 1 },
-  moderado: { corte: 0.55, risco: 0.01, maxPeso: 0.25, teto: 0.70, levMax: 2 },
-  agressivo: { corte: 0.55, risco: 0.02, maxPeso: 0.35, teto: 1.00, levMax: 5 },
-};
+// A política de alocação (cortes, risco por trade, tetos, alavancagem)
+// vive no DOMÍNIO (quant_engine/PortfolioSizer) e chega pronta no JSON
+// como `carteiras` — este cliente não conhece a regra.
 let capital = +(localStorage.getItem('ql_capital') || 0);
 let soEtoro = true; // uso pessoal: só o que dá para executar na conta
 let riscoSel = 'moderado'; // perfil GLOBAL: sizing, ranking e Oráculo
@@ -319,53 +315,29 @@ capInput.addEventListener('input', () => {
   if (DATA) { renderRanking(); sincronizarOraculo(); }
 });
 
-/// Sizing compartilhado entre o ranking e o Consultor IA.
-/// Além do teto do perfil, nenhuma CLASSE de ativo (ações, cripto...)
-/// pode passar de metade do investido — diversificação obrigatória.
+/// A carteira vem PRONTA do domínio (PortfolioSizer, no pipeline) — aqui
+/// só se converte peso→R$ e níveis de preço para exibição. Nenhuma regra
+/// de alocação vive no cliente (DDD: fonte única no quant_engine).
 function calcularOrdens(hKey) {
-  const p = perfis[riscoSel];
-  const ops = DATA.horizontes[hKey].oportunidades;
-  const aprovadas = ops.filter((o) =>
-    ['comprar', 'vender'].includes(o.recomendacao?.acao) &&
-    (o.recomendacao.assertividade || 0) >= p.corte);
-  const ordens = aprovadas
-    .filter((o) => !soEtoro || o.etoro?.ticker)
-    .sort((a, b) => (b.recomendacao.retornoEsperado ?? -9) -
-        (a.recomendacao.retornoEsperado ?? -9));
-  const foraEtoro = soEtoro
-    ? aprovadas.filter((o) => !o.etoro?.ticker) : [];
-  const segurados = ops.filter((o) => o.direcao !== 'neutro' &&
-    (o.recomendacao?.acao === 'ficarDeFora' ||
-     (['comprar', 'vender'].includes(o.recomendacao?.acao) &&
-      (o.recomendacao.assertividade || 0) < p.corte)));
+  const h = DATA.horizontes[hKey];
+  const cart = h.carteiras?.[riscoSel]?.[soEtoro ? 'etoro' : 'todos'];
+  const porId = {};
+  for (const o of h.oportunidades) porId[o.id] = o;
+  if (!cart) {
+    return { linhas: [], caixaPct: 1, segurados: [], foraEtoro: [], cortePct: 55 };
+  }
 
-  // risco fixo por trade → teto global → teto por classe de ativo
-  let pesos = ordens.map((o) =>
-    Math.min(p.risco / (o.recomendacao.stopEstimado || 0.05), p.maxPeso));
-  const soma = pesos.reduce((a, b) => a + b, 0);
-  if (soma > p.teto) pesos = pesos.map((w) => w * p.teto / soma);
-  const catCap = p.teto / 2;
-  const porCat = {};
-  ordens.forEach((o, i) => {
-    porCat[o.categoria] = (porCat[o.categoria] || 0) + pesos[i];
-  });
-  ordens.forEach((o, i) => {
-    if (porCat[o.categoria] > catCap) {
-      pesos[i] *= catCap / porCat[o.categoria];
-    }
-  });
-
-  const linhas = ordens.map((o, i) => {
+  const linhas = (cart.ordens || []).map((w) => {
+    const o = porId[w.id];
+    if (!o) return null;
     const r = o.recomendacao;
     const stop = r.stopEstimado || 0.05;
     const compra = r.acao === 'comprar';
-    // alavancagem preditiva do laboratório, limitada pelo perfil.
-    // peso = EXPOSIÇÃO; margem = o que se digita no eToro (exposição ÷ X).
-    const lev = Math.min(r.alavancagemRecomendada || 1, p.levMax);
-    const exposicao = capital > 0 ? capital * pesos[i] : null;
+    const lev = w.alavancagem || 1;
+    const exposicao = capital > 0 ? capital * w.peso : null;
     return {
       o,
-      peso: pesos[i],
+      peso: w.peso,
       lev,
       valor: exposicao,
       margem: exposicao == null ? null : exposicao / lev,
@@ -375,19 +347,19 @@ function calcularOrdens(hKey) {
         ? o.preco * (compra ? 1 + r.retornoEsperado : 1 - r.retornoEsperado)
         : null,
     };
-  });
-  const investido = pesos.reduce((a, b) => a + b, 0);
+  }).filter(Boolean);
+
   return {
     linhas,
-    caixaPct: Math.max(0, 1 - investido),
-    segurados,
-    foraEtoro,
+    caixaPct: cart.caixaPct ?? 1,
+    segurados: (cart.segurados || []).map((id) => porId[id]).filter(Boolean),
+    foraEtoro: (cart.foraEtoro || []).map((id) => porId[id]).filter(Boolean),
+    cortePct: cart.cortePct ?? 55,
   };
 }
 
 function renderRanking() {
-  const p = perfis[riscoSel];
-  const { linhas, caixaPct, segurados, foraEtoro } =
+  const { linhas, caixaPct, segurados, foraEtoro, cortePct } =
     calcularOrdens(horizonte);
   const ordens = linhas.map((l) => l.o);
 
@@ -395,7 +367,7 @@ function renderRanking() {
     ${DATA.horizontes[horizonte].label.toLowerCase()} · perfil ${riscoSel}</h2>`;
   if (!ordens.length) {
     html += `<div class="rank-empty">Nenhuma ordem passa no corte de
-      assertividade do perfil ${riscoSel} (${Math.round(p.corte * 100)}%)
+      assertividade do perfil ${riscoSel} (${cortePct}%)
       neste horizonte — o laboratório prefere ficar de fora a chutar.</div>`;
   } else {
     html += linhas.map((l, i) => {
@@ -459,7 +431,7 @@ function renderRanking() {
   }
   if (segurados.length) {
     html += `<div class="rank-fora">Sinal presente mas abaixo do corte de
-      ${Math.round(p.corte * 100)}% do perfil: ${segurados.map((o) => esc(o.nome)).join(', ')} — ficar de fora.</div>`;
+      ${cortePct}% do perfil: ${segurados.map((o) => esc(o.nome)).join(', ')} — ficar de fora.</div>`;
   }
   els.ranking.innerHTML = html;
 }

@@ -37,26 +37,26 @@ class Dashboard {
   }
 }
 
-/// Perfis de risco (espelham o painel web): corte de assertividade e teto.
+/// Perfis de risco — apenas rótulo + chave; a política (cortes, tetos,
+/// risco por trade) vive no DOMÍNIO (quant_engine/PortfolioSizer) e chega
+/// pronta no JSON como `carteiras`.
 class Perfil {
-  const Perfil(this.nome, this.corte, this.risco, this.maxPeso, this.teto);
+  const Perfil(this.nome, this.chave);
   final String nome;
-  final double corte;
-  final double risco;
-  final double maxPeso;
-  final double teto;
+  final String chave;
 
-  static const conservador = Perfil('Conservador', 0.65, 0.005, 0.15, 0.40);
-  static const moderado = Perfil('Moderado', 0.55, 0.01, 0.25, 0.70);
-  static const agressivo = Perfil('Agressivo', 0.55, 0.02, 0.35, 1.00);
+  static const conservador = Perfil('Conservador', 'conservador');
+  static const moderado = Perfil('Moderado', 'moderado');
+  static const agressivo = Perfil('Agressivo', 'agressivo');
   static const todos = [conservador, moderado, agressivo];
 }
 
-/// Ordem dimensionada (mesma lógica do web: risco fixo por trade → teto).
+/// Ordem dimensionada pelo domínio (peso e alavancagem vêm da carteira).
 class Ordem {
-  Ordem(this.o, this.peso);
+  Ordem(this.o, this.peso, this.lev);
   final Map<String, dynamic> o;
   final double peso;
+  final int lev;
 
   Map<String, dynamic> get rec =>
       (o['recomendacao'] as Map).cast<String, dynamic>();
@@ -68,41 +68,31 @@ class Ordem {
   String get janela => rec['janelaRetorno'] as String? ?? '';
   int get base => (rec['base'] as num?)?.toInt() ?? 0;
   int get score => (o['score'] as num?)?.toInt() ?? 0;
-  int get lev => (rec['alavancagemRecomendada'] as num?)?.toInt() ?? 1;
   String get gatilho => rec['gatilho'] as String? ?? '';
 }
 
-/// Ranking acionável para um horizonte + perfil (só ativos com eToro).
+/// Lê a carteira PRONTA do JSON (variante eToro) — zero regra no app.
 ({List<Ordem> ordens, double caixaPct}) ranking(
     Dashboard d, String horizonte, Perfil p) {
-  final ops = d.oportunidades(horizonte);
-  final aprovadas = ops.where((o) {
-    final rec = (o['recomendacao'] as Map?)?.cast<String, dynamic>();
-    final acao = rec?['acao'];
-    final ass = (rec?['assertividade'] as num?)?.toDouble() ?? 0;
-    return (acao == 'comprar' || acao == 'vender') &&
-        ass >= p.corte &&
-        (o['etoro'] as Map?)?['ticker'] != null;
-  }).toList()
-    ..sort((a, b) {
-      final ra = ((a['recomendacao'] as Map)['retornoEsperado'] as num?) ?? -9;
-      final rb = ((b['recomendacao'] as Map)['retornoEsperado'] as num?) ?? -9;
-      return rb.compareTo(ra);
-    });
+  final h = (d.raw['horizontes'] as Map?)?[horizonte] as Map?;
+  final cart =
+      ((h?['carteiras'] as Map?)?[p.chave] as Map?)?['etoro'] as Map?;
+  if (cart == null) return (ordens: <Ordem>[], caixaPct: 1.0);
 
-  var pesos = aprovadas.map((o) {
-    final stop =
-        ((o['recomendacao'] as Map)['stopEstimado'] as num?)?.toDouble() ??
-            0.05;
-    final w = p.risco / stop;
-    return w < p.maxPeso ? w : p.maxPeso;
-  }).toList();
-  final soma = pesos.fold<double>(0, (a, b) => a + b);
-  if (soma > p.teto) pesos = pesos.map((w) => w * p.teto / soma).toList();
-
-  final ordens = [
-    for (var i = 0; i < aprovadas.length; i++) Ordem(aprovadas[i], pesos[i]),
+  final porId = <String, Map<String, dynamic>>{
+    for (final o in d.oportunidades(horizonte)) o['id'] as String: o,
+  };
+  final ordens = <Ordem>[
+    for (final w in (cart['ordens'] as List?) ?? const [])
+      if (porId[(w as Map)['id']] != null)
+        Ordem(
+          porId[w['id']]!,
+          (w['peso'] as num?)?.toDouble() ?? 0,
+          (w['alavancagem'] as num?)?.toInt() ?? 1,
+        ),
   ];
-  final investido = pesos.fold<double>(0, (a, b) => a + b);
-  return (ordens: ordens, caixaPct: (1 - investido).clamp(0, 1).toDouble());
+  return (
+    ordens: ordens,
+    caixaPct: ((cart['caixaPct'] as num?)?.toDouble() ?? 1).clamp(0, 1),
+  );
 }

@@ -175,6 +175,77 @@ void main() {
     });
   });
 
+  group('PortfolioSizer (política de alocação — fonte única)', () {
+    const sizer = PortfolioSizer();
+    CandidatoOrdem cand(String id, String cat,
+            {double ass = 0.60,
+            double stop = 0.05,
+            int lev = 1,
+            double ret = 0.10}) =>
+        CandidatoOrdem(
+            id: id,
+            categoria: cat,
+            assertividade: ass,
+            stopEstimado: stop,
+            alavancagemRecomendada: lev,
+            retornoEsperado: ret);
+
+    test('risco fixo por trade: peso = risco/stop, limitado por ativo', () {
+      // moderado: 1% de risco; stop 5% → peso 20%; stop 2% → 50%→cap 25%
+      final c = sizer.dimensionar(
+          [cand('a', 'x', stop: 0.05), cand('b', 'y', stop: 0.02)],
+          PerfilRisco.moderado);
+      final pesos = {for (final o in c.ordens) o.id: o.peso};
+      expect(pesos['a'], closeTo(0.20, 1e-9));
+      expect(pesos['b'], closeTo(0.25, 1e-9)); // maxPesoAtivo
+      expect(c.caixaPct, closeTo(0.55, 1e-9));
+    });
+
+    test('corte de assertividade do perfil filtra candidatos', () {
+      final c = sizer.dimensionar(
+          [cand('fraco', 'x', ass: 0.60), cand('forte', 'x', ass: 0.70)],
+          PerfilRisco.conservador); // corte 0,65
+      expect(c.ordens.map((o) => o.id), ['forte']);
+    });
+
+    test('teto global renormaliza e teto por classe limita concentração',
+        () {
+      // 4 ordens de 25% (cap por ativo) = 100% > teto 70% → renormaliza
+      // p/ 17,5% cada; classe 'acoes' com 3 delas = 52,5% > 35% (teto/2)
+      // → escala as 3 para somarem 35%
+      final c = sizer.dimensionar([
+        cand('a1', 'acoes', stop: 0.01),
+        cand('a2', 'acoes', stop: 0.01),
+        cand('a3', 'acoes', stop: 0.01),
+        cand('c1', 'cripto', stop: 0.01),
+      ], PerfilRisco.moderado);
+      final pesos = {for (final o in c.ordens) o.id: o.peso};
+      final acoes = pesos['a1']! + pesos['a2']! + pesos['a3']!;
+      expect(acoes, closeTo(0.35, 1e-9));
+      expect(pesos['c1'], closeTo(0.175, 1e-9));
+      expect(c.caixaPct, closeTo(1 - 0.35 - 0.175, 1e-9));
+    });
+
+    test('alavancagem recomendada é limitada pelo perfil', () {
+      final c = sizer.dimensionar(
+          [cand('a', 'x', lev: 5)], PerfilRisco.moderado); // máx X2
+      expect(c.ordens.single.alavancagem, 2);
+      final c2 =
+          sizer.dimensionar([cand('a', 'x', lev: 5)], PerfilRisco.agressivo);
+      expect(c2.ordens.single.alavancagem, 5);
+    });
+
+    test('ordena por retorno esperado; vazio → 100% caixa', () {
+      final c = sizer.dimensionar(
+          [cand('menor', 'x', ret: 0.05), cand('maior', 'x', ret: 0.20)],
+          PerfilRisco.moderado);
+      expect(c.ordens.first.id, 'maior');
+      final vazio = sizer.dimensionar([], PerfilRisco.moderado);
+      expect(vazio.ordens, isEmpty);
+      expect(vazio.caixaPct, 1);
+    });
+  });
+
   group('radar de picos', () {
     // Onda senoidal: nos topos da onda, o radar deve apontar 'topo' com
     // probabilidade alta de virada (todos os análogos caíram depois).

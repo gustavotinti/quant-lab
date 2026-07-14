@@ -13,6 +13,84 @@ Object? _n(double? v) =>
 
 String _iso(DateTime d) => d.toIso8601String().substring(0, 10);
 
+/// Oportunidades + carteiras dimensionadas pelo DOMÍNIO (PortfolioSizer,
+/// fonte única da política de alocação). Os clientes (web/app) apenas
+/// multiplicam peso × capital e exibem — zero regra de negócio neles.
+Map<String, Object?> _horizonteOpsECarteiras(List<Map<String, Object?>> ops) {
+  const sizer = PortfolioSizer();
+
+  CandidatoOrdem? cand(Map<String, Object?> o) {
+    final rec = (o['recomendacao'] as Map).cast<String, Object?>();
+    final acao = rec['acao'];
+    if (acao != 'comprar' && acao != 'vender') return null;
+    return CandidatoOrdem(
+      id: o['id'] as String,
+      categoria: o['categoria'] as String? ?? '',
+      assertividade: (rec['assertividade'] as num?)?.toDouble() ?? 0,
+      stopEstimado: (rec['stopEstimado'] as num?)?.toDouble() ?? 0.05,
+      alavancagemRecomendada:
+          (rec['alavancagemRecomendada'] as num?)?.toInt() ?? 1,
+      retornoEsperado: (rec['retornoEsperado'] as num?)?.toDouble() ?? -9,
+    );
+  }
+
+  final todosCands = <CandidatoOrdem>[
+    for (final o in ops)
+      if (cand(o) case final c?) c,
+  ];
+  final etoroIds = <Object?>{
+    for (final o in ops)
+      if ((o['etoro'] as Map?)?['ticker'] != null) o['id'],
+  };
+  final etoroCands =
+      [for (final c in todosCands) if (etoroIds.contains(c.id)) c];
+  // sinal presente mas segurado na origem (abaixo do corte base de 55%)
+  final seguradosBase = <String>[
+    for (final o in ops)
+      if ((o['recomendacao'] as Map)['acao'] == 'ficarDeFora' &&
+          o['direcao'] != 'neutro')
+        o['id'] as String,
+  ];
+
+  Map<String, Object?> uma(List<CandidatoOrdem> cands, PerfilRisco p,
+      {required bool soEtoro}) {
+    final cart = sizer.dimensionar(cands, p);
+    final emitidas = {for (final o in cart.ordens) o.id};
+    return {
+      'cortePct': (p.corteAssertividade * 100).round(),
+      'caixaPct': _n(cart.caixaPct),
+      'ordens': [
+        for (final o in cart.ordens)
+          {'id': o.id, 'peso': _n(o.peso), 'alavancagem': o.alavancagem},
+      ],
+      'segurados': [
+        ...seguradosBase,
+        for (final c in cands)
+          if (!emitidas.contains(c.id)) c.id,
+      ],
+      'foraEtoro': soEtoro
+          ? [
+              for (final c in todosCands)
+                if (!etoroIds.contains(c.id) &&
+                    c.assertividade >= p.corteAssertividade)
+                  c.id,
+            ]
+          : const <String>[],
+    };
+  }
+
+  return {
+    'oportunidades': ops,
+    'carteiras': {
+      for (final p in PerfilRisco.todos)
+        p.nome: {
+          'etoro': uma(etoroCands, p, soEtoro: true),
+          'todos': uma(todosCands, p, soEtoro: false),
+        },
+    },
+  };
+}
+
 /// Gatilho de saída/manutenção da posição — o "quando" da recomendação.
 String _gatilho(StrategyKind? kind, bool compra) => switch (kind) {
       StrategyKind.tendencia => compra
@@ -296,9 +374,8 @@ Map<String, Object?> dashboardJson(
         h.name: {
           'label': h.label,
           'janela': h.janela,
-          'oportunidades': [
-            for (final o in lab.oportunidades(ctx, h)) oportunidadeJson(o, h),
-          ],
+          ..._horizonteOpsECarteiras(
+              [for (final o in lab.oportunidades(ctx, h)) oportunidadeJson(o, h)]),
         },
     },
     // radar de picos ranqueado por probabilidade de virada
