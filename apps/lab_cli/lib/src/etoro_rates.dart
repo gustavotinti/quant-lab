@@ -42,51 +42,32 @@ Future<void> _syncEtoroRates() async {
         if (e.value.ticker != null) e.value.ticker!,
     };
     final cache = await _lerCacheIds(fs);
+    // ticker do eToro é comparado em MAIÚSCULAS com internalSymbolFull
     final faltantes = tickers.where((t) => !cache.containsKey(t)).toList();
 
-    // DIAGNÓSTICO temporário: imprime o FORMATO da resposta da busca (nomes
-    // de campos + símbolos — dados públicos de mercado, sem PII) para acertar
-    // o parser de ticker→instrumentID.
-    if (Platform.environment['ETORO_DEBUG'] == '1') {
-      final r = await c.catalog(page: 1, pageSize: 2000);
-      stdout.writeln('DEBUG catalog HTTP ${r.status}');
-      try {
-        final j = json.decode(r.body) as Map<String, Object?>;
-        stdout.writeln('DEBUG page=${j['page']} pageSize=${j['pageSize']} '
-            'totalItems=${j['totalItems']}');
-        final items = (j['items'] as List?) ?? const [];
-        stdout.writeln('DEBUG items nesta página=${items.length}');
-        final mapa = <String, int>{};
+    // resolve ticker→instrumentID paginando o CATÁLOGO (a busca por texto é
+    // ignorada pela API; ela devolve o catálogo inteiro ordenado). ~7 páginas
+    // de 2000 cobrem os ~12k instrumentos. Só roda quando falta algo; o
+    // resultado fica cacheado em private/etoro_ids.
+    var resolvidos = 0;
+    if (faltantes.isNotEmpty) {
+      final pendentes = {for (final t in faltantes) t.toUpperCase(): t};
+      for (var page = 1; page <= 8 && pendentes.isNotEmpty; page++) {
+        final r = await c.catalog(page: page, pageSize: 2000);
+        if (!r.ok) break;
+        final items = (json.decode(r.body)
+            as Map<String, Object?>)['items'] as List?;
+        if (items == null || items.isEmpty) break;
         for (final it in items) {
           if (it is! Map) continue;
           final sym = it['internalSymbolFull']?.toString().toUpperCase();
           final id = (it['instrumentId'] as num?)?.toInt();
-          if (sym != null && id != null) mapa[sym] = id;
+          if (sym != null && id != null && pendentes.containsKey(sym)) {
+            cache[pendentes.remove(sym)!] = id;
+            resolvidos++;
+          }
         }
-        final meus = <String>{
-          for (final e in etoroPorIndicador.entries)
-            if (e.value.ticker != null) e.value.ticker!.toUpperCase(),
-        };
-        final achei = meus.where(mapa.containsKey).toList();
-        final faltou = meus.where((t) => !mapa.containsKey(t)).toList();
-        stdout.writeln('DEBUG match nesta página: ${achei.length}/${meus.length}');
-        stdout.writeln('DEBUG exemplos: '
-            '${[for (final t in achei.take(6)) '$t=${mapa[t]}'].join(', ')}');
-        stdout.writeln('DEBUG faltaram (podem estar em outras páginas): '
-            '${faltou.take(20).join(', ')}');
-      } catch (e) {
-        stdout.writeln('DEBUG parse falhou: $e');
-      }
-    }
-
-    // resolve só um lote por execução (evita martelar a busca); o cache
-    // completa em poucas rodadas e depois é só cotação.
-    var resolvidos = 0;
-    for (final t in faltantes.take(18)) {
-      final id = await _resolverId(c, t);
-      if (id != null) {
-        cache[t] = id;
-        resolvidos++;
+        if (items.length < 2000) break; // última página
       }
     }
     if (resolvidos > 0) {
@@ -166,42 +147,3 @@ Future<Map<String, int>> _lerCacheIds(FirestoreRest fs) async {
   return {};
 }
 
-/// Resolve um ticker do eToro (ex.: 'NATGAS') no seu instrumentID via a
-/// busca da API. Só aceita correspondência EXATA de símbolo — nada de chute.
-Future<int?> _resolverId(EtoroClient c, String ticker) async {
-  final r = await c.search(ticker);
-  if (!r.ok) return null;
-  Object? j;
-  try {
-    j = json.decode(r.body);
-  } catch (_) {
-    return null;
-  }
-  final candidatos = <Map<Object?, Object?>>[];
-  void varrer(Object? x) {
-    if (x is Map) {
-      if (x['instrumentID'] is num || x['instrumentId'] is num) {
-        candidatos.add(x);
-      }
-      x.values.forEach(varrer);
-    } else if (x is List) {
-      x.forEach(varrer);
-    }
-  }
-
-  varrer(j);
-  final alvo = ticker.toUpperCase();
-  for (final m in candidatos) {
-    final simbolos = [
-      m['symbolFull'],
-      m['symbol'],
-      m['ticker'],
-      m['instrumentDisplayName'],
-    ].whereType<String>().map((s) => s.toUpperCase());
-    if (simbolos.contains(alvo)) {
-      final id = (m['instrumentID'] ?? m['instrumentId']) as num?;
-      if (id != null) return id.toInt();
-    }
-  }
-  return null;
-}

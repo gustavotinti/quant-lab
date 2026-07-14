@@ -54,14 +54,10 @@ class EtoroClient {
   /// Chamada barata de dados de mercado — serve para checar autenticação.
   Future<EtoroResponse> ping() => _get('/market-data/search?query=AAPL');
 
-  /// Busca instrumentos por texto (ticker/nome) — usada para resolver o
-  /// instrumentID a partir do ticker do eToro.
-  Future<EtoroResponse> search(String query) =>
-      _get('/market-data/search?query=${Uri.encodeQueryComponent(query)}');
-
-  /// Catálogo paginado de instrumentos (o `query` da busca é ignorado; ela
-  /// devolve o catálogo inteiro). Usado para montar o mapa symbolFull→id.
-  Future<EtoroResponse> catalog({int page = 1, int pageSize = 1000}) =>
+  /// Catálogo paginado de instrumentos. A busca por texto (`query`) é
+  /// ignorada pela API — ela devolve o catálogo inteiro, ordenado; então
+  /// paginamos para montar o mapa `internalSymbolFull` → `instrumentId`.
+  Future<EtoroResponse> catalog({int page = 1, int pageSize = 2000}) =>
       _get('/market-data/search?page=$page&pageSize=$pageSize');
 
   /// Portfólio (posições abertas + P&L) do usuário da chave.
