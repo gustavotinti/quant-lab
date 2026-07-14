@@ -47,13 +47,32 @@ Future<void> _syncEtoroRates() async {
     // DIAGNÓSTICO temporário: imprime o FORMATO da resposta da busca (nomes
     // de campos + símbolos — dados públicos de mercado, sem PII) para acertar
     // o parser de ticker→instrumentID.
-    if (Platform.environment['ETORO_DEBUG'] == '1' && faltantes.isNotEmpty) {
-      final t = faltantes.first;
+    if (Platform.environment['ETORO_DEBUG'] == '1') {
+      const t = 'SPX500';
       final r = await c.search(t);
       stdout.writeln('DEBUG search("$t") HTTP ${r.status}');
-      final corpo = r.body;
-      stdout.writeln('DEBUG body[0..800]: '
-          '${corpo.substring(0, corpo.length.clamp(0, 800))}');
+      try {
+        final j = json.decode(r.body) as Map<String, Object?>;
+        final items = (j['items'] as List?) ?? const [];
+        stdout.writeln('DEBUG items.length=${items.length}');
+        // acha o item cujo algum campo string == SPX500 e imprime-o inteiro
+        for (final it in items) {
+          if (it is! Map) continue;
+          final bate = it.values
+              .any((v) => v is String && v.toUpperCase() == t);
+          if (bate) {
+            stdout.writeln('DEBUG match keys: ${it.keys.toList()}');
+            it.forEach((k, v) {
+              if (v is num || v is String || v is bool) {
+                stdout.writeln('DEBUG   $k = $v');
+              }
+            });
+            break;
+          }
+        }
+      } catch (e) {
+        stdout.writeln('DEBUG parse falhou: $e');
+      }
     }
 
     // resolve só um lote por execução (evita martelar a busca); o cache
