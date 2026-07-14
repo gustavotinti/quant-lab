@@ -44,6 +44,18 @@ Future<void> _syncEtoroRates() async {
     final cache = await _lerCacheIds(fs);
     final faltantes = tickers.where((t) => !cache.containsKey(t)).toList();
 
+    // DIAGNÓSTICO temporário: imprime o FORMATO da resposta da busca (nomes
+    // de campos + símbolos — dados públicos de mercado, sem PII) para acertar
+    // o parser de ticker→instrumentID.
+    if (Platform.environment['ETORO_DEBUG'] == '1' && faltantes.isNotEmpty) {
+      final t = faltantes.first;
+      final r = await c.search(t);
+      stdout.writeln('DEBUG search("$t") HTTP ${r.status}');
+      final corpo = r.body;
+      stdout.writeln('DEBUG body[0..800]: '
+          '${corpo.substring(0, corpo.length.clamp(0, 800))}');
+    }
+
     // resolve só um lote por execução (evita martelar a busca); o cache
     // completa em poucas rodadas e depois é só cotação.
     var resolvidos = 0;
