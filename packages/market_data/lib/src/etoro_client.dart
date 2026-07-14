@@ -36,13 +36,11 @@ class EtoroClient {
 
   Future<EtoroResponse> _get(String path) async {
     try {
-      // separa path de query — senão o `?` é codificado e vira rota inválida
-      final parts = path.split('?');
-      final query = parts.length > 1
-          ? Uri.splitQueryString(parts[1])
-          : const <String, String>{};
-      final uri = Uri.https(
-          _host, '/api/v1${parts[0]}', query.isEmpty ? null : query);
+      // Uri.parse da URL absoluta preserva o `?` E as vírgulas do
+      // instrumentIds — Uri.https recodificava a vírgula (%2C) e a lista de
+      // ids virava "um inteiro inválido" (HTTP 400). Os valores das nossas
+      // queries são só números/vírgulas (sem chars que precisem de escape).
+      final uri = Uri.parse('https://$_host/api/v1$path');
       final r =
           await _client.get(uri, headers: _headers()).timeout(timeout);
       return EtoroResponse(r.statusCode, r.body);
