@@ -19,17 +19,27 @@
   correlacionadas na mesma direção dividem o peso por (1 + Σ corr⁺);
   long+short correlacionados = hedge, sem corte.
 
+## ✅ Sazonalidade + preço ao vivo (14/07/2026, segunda leva)
+
+- **Sazonalidade de calendário** (engine/seasonality.dart): retorno médio
+  do PRÓXIMO mês com t-teste (meanTTest no quant_stats), validação 70/30,
+  magnitude ≥0,8% e n≥10 anos → evidência do curto prazo no
+  OpportunityEngine. Estreia real: soja agosto -2,7% em 20 anos (p=0,049)
+  — ciclo de safra detectado; o resto do catálogo foi corretamente segurado.
+- **Preço ao vivo no painel**: `lab rates` grava cotações eToro de todos os
+  negociáveis em private/rates (34 ativos; resolve ticker→id paginando o
+  catálogo — o `query` da busca é ignorado pela API; vírgulas de
+  instrumentIds não podem ser %2C-codificadas). Front: listener em tempo
+  real + CoinGecko 60s para as 10 criptos; stop/alvo recalculados no preço
+  de agora com selo da fonte.
+
 ## ▶ PRÓXIMO PASSO — mais edge mensurável (em ordem de valor)
 
-1. **Sazonalidade** (commodities/índices): retorno médio por mês do ano
-   com teste de significância — gás natural, milho e soja têm ciclos
-   físicos reais (estoque/inverno/safra). Vira evidência no
-   OpportunityEngine (dados nível B, 100% mensuráveis).
-2. **Momentum cross-sectional** (força relativa): ranquear os ~40 ativos
+1. **Momentum cross-sectional** (força relativa): ranquear os ~40 ativos
    entre si (12-1), long os do topo / short os do fundo — o fator clássico
    das gestoras quant, ortogonal ao momentum time-series que já temos.
-3. **Carry** (juro real cross-asset): moedas/índices com carry positivo.
-4. App v2 (login+portfólio eToro+Oráculo nativos+ícone — SHA-1 no Firebase
+2. **Carry** (juro real cross-asset): moedas/índices com carry positivo.
+3. App v2 (login+portfólio eToro+Oráculo nativos+ícone — SHA-1 no Firebase
    + chave Gemini Android); FRED (chave grátis, cadastro do Gustavo).
 
 ## ✅ Fase 0 — Motor matemático (concluída em 04/07/2026)
