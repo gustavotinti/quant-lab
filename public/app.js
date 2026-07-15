@@ -114,6 +114,7 @@ onAuthStateChanged(auth, (user) => {
     loadData();
     carregarPortfolioEtoro();
     escutarRatesEtoro();
+    pollCripto();
   }
 });
 
@@ -133,11 +134,50 @@ function escutarRatesEtoro() {
     }, () => { /* sem permissão/offline: segue no fechamento */ });
   } catch (_) { /* SDK indisponível: segue no fechamento */ }
 }
-// preço de referência: eToro ao vivo se houver, senão o fechamento do dia
+// ── cripto AO VIVO de verdade (CoinGecko, 60s, grátis) ────────────────
+// Cripto negocia 24/7 e é a maioria das ordens do radar; o eToro do
+// pipeline refresca a cada ~2h. O navegador busca as 10 criptos numa
+// única chamada por minuto (só com a aba visível) — sem chave, sem custo.
+const CG_IDS = {
+  bitcoin: 'bitcoin', ethereum: 'ethereum', xrp: 'ripple',
+  solana: 'solana', cardano: 'cardano', litecoin: 'litecoin',
+  bitcoincash: 'bitcoin-cash', chainlink: 'chainlink',
+  dogecoin: 'dogecoin', polkadot: 'polkadot',
+};
+let CG_RATES = null, CG_AT = 0;
+async function pollCripto() {
+  try {
+    const ids = [...new Set(Object.values(CG_IDS))].join(',');
+    const r = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+    if (!r.ok) return;
+    const j = await r.json();
+    const out = {};
+    for (const [ourId, cg] of Object.entries(CG_IDS)) {
+      const px = j[cg]?.usd;
+      if (px != null) out[ourId] = px;
+    }
+    if (Object.keys(out).length) {
+      CG_RATES = out;
+      CG_AT = Date.now();
+      if (DATA) renderRanking();
+    }
+  } catch (_) { /* offline/limite: segue no eToro/fechamento */ }
+}
+setInterval(() => {
+  if (DATA && document.visibilityState === 'visible') pollCripto();
+}, 60000);
+
+// preço de referência ao vivo: cripto 60s > eToro (pipeline) > null
+// (o chamador cai no fechamento do dia quando null)
 function precoLive(id) {
+  if (CG_RATES && CG_RATES[id] != null && Date.now() - CG_AT < 5 * 60000) {
+    return { px: CG_RATES[id], rotulo: 'cripto ao vivo' };
+  }
   const r = LIVE_RATES && LIVE_RATES[id];
-  if (!r) return null;
-  return r.preco ?? r.ask ?? r.bid ?? null;
+  const px = r ? (r.preco ?? r.ask ?? r.bid ?? null) : null;
+  if (px != null) return { px, rotulo: `eToro ${idadeLive()}` };
+  return null;
 }
 function idadeLive() {
   if (!LIVE_RATES_AT) return '';
@@ -409,12 +449,12 @@ function renderRanking() {
       const valor = l.valor;
       const riscoRs = valor != null ? valor * (r.stopEstimado || 0.05) : null;
       const nivel = (x) => x == null ? '' : fmtNum(x, x >= 100 ? 0 : 2);
-      // preço AO VIVO do eToro se houver — recalcula stop/alvo no preço de
-      // agora, não no fechamento de ontem (fallback: fechamento)
-      const pv = precoLive(o.id);
+      // preço AO VIVO (cripto 60s > eToro > fechamento) — recalcula
+      // stop/alvo no preço de agora, não no fechamento de ontem
+      const live = precoLive(o.id);
       const compra = r.acao === 'comprar';
       const stopFrac = r.stopEstimado || 0.05;
-      const precoRef = pv != null ? pv : o.preco;
+      const precoRef = live != null ? live.px : o.preco;
       const stopP = precoRef != null ? precoRef * (compra ? 1 - stopFrac : 1 + stopFrac) : l.stopPreco;
       const alvoP = precoRef != null && r.retornoEsperado != null
         ? precoRef * (compra ? 1 + r.retornoEsperado : 1 - r.retornoEsperado)
@@ -422,8 +462,8 @@ function renderRanking() {
       const sl = stopP != null && alvoP != null
         ? ` · SL ~<b>${nivel(stopP)}</b> · alvo ~<b>${nivel(alvoP)}</b>`
         : '';
-      const precoChip = precoRef == null ? '' : (pv != null
-        ? `<span class="live-px" title="cotação do eToro, atualizada em tempo real (${idadeLive()})"><i class="live-dot"></i>${nivel(precoRef)} <small>eToro ${idadeLive()}</small></span>`
+      const precoChip = precoRef == null ? '' : (live != null
+        ? `<span class="live-px" title="cotação ao vivo — stop e alvo recalculados neste preço"><i class="live-dot"></i>${nivel(precoRef)} <small>${esc(live.rotulo)}</small></span>`
         : `<span class="live-px stale" title="fechamento do dia — cotação ao vivo indisponível">${nivel(precoRef)} <small>fechamento</small></span>`);
       const sizing = (valor != null
         ? (l.lev > 1

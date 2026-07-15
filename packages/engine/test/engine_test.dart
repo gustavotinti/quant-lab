@@ -175,6 +175,75 @@ void main() {
     });
   });
 
+  group('sazonalidade de calendário', () {
+    // 24 anos diários: dezembro sobe ~5% (drift diário), resto ~flat.
+    TimeSeries comDezembro() {
+      final obs = <Observation>[];
+      var nivel = 100.0;
+      final rng = math.Random(7);
+      for (var d = DateTime(2000, 1, 3);
+          d.isBefore(DateTime(2024, 1, 1));
+          d = d.add(const Duration(days: 1))) {
+        if (d.weekday >= 6) continue; // só pregões
+        final drift = d.month == 12 ? 0.0023 : 0.0;
+        nivel *= 1 + drift + (rng.nextDouble() - 0.5) * 0.002;
+        obs.add(Observation(d, nivel));
+      }
+      return TimeSeries('sazonal', obs);
+    }
+
+    test('dezembro plantado é detectado, significativo e confirmado', () {
+      final saz = sazonalidadeDoMes(comDezembro(), 12)!;
+      expect(saz.n, greaterThanOrEqualTo(20));
+      expect(saz.media, greaterThan(0.02));
+      expect(saz.pValor, lessThan(0.05));
+      expect(saz.confirmadaForaDaAmostra, isTrue);
+      expect(saz.relevante, isTrue);
+      expect(saz.nomeMes, 'dezembro');
+    });
+
+    test('mês sem efeito plantado não vira evidência', () {
+      final saz = sazonalidadeDoMes(comDezembro(), 5);
+      // maio é só ruído: ou nem mede, ou não é relevante
+      expect(saz?.relevante ?? false, isFalse);
+    });
+
+    test('série curta → null (sem chute)', () {
+      final curta = _serieDiaria('curta', (i) => 100.0 + i, 400);
+      expect(sazonalidadeDoMes(curta, 12), isNull);
+    });
+
+    test('mesSazonalAlvo: próximo mês, com virada de ano', () {
+      expect(mesSazonalAlvo(DateTime(2026, 7, 15)), 8);
+      expect(mesSazonalAlvo(DateTime(2026, 12, 3)), 1);
+    });
+
+    test('entra como evidência do curto prazo no OpportunityEngine', () {
+      final serie = comDezembro();
+      Indicator ind(String id) => Indicator(
+            id: id,
+            nome: id,
+            unidade: 'pontos',
+            frequency: Frequency.daily,
+            category: Category.commodities,
+            source: DataSource(provider: 'x', code: id, tier: SourceTier.b),
+            negociavel: true,
+          );
+      final saz = sazonalidadeDoMes(serie, 12)!;
+      final ops = const OpportunityEngine().avaliar(
+        ativos: [ind('sazonal')],
+        sinais: {'sazonal': AssetSignals.fromDaily(serie)},
+        backtests: {'sazonal': BacktestPack.fromDaily(serie)},
+        macro: null,
+        horizon: Horizon.curto,
+        sazonalidades: {'sazonal': saz},
+      );
+      expect(
+          ops.single.evidencias.any((e) => e.texto.contains('Sazonalidade')),
+          isTrue);
+    });
+  });
+
   group('emissão pelo Radar de Picos', () {
     test('fundo 81% com 16 análogos → COMPRA com Laplace (69%)', () {
       // o caso real do Gás Natural: radar diz fundo 81% (n=16) mas as

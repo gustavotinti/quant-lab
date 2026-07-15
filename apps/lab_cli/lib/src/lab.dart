@@ -13,6 +13,7 @@ class LabContext {
     required this.backtests,
     required this.cenarios,
     required this.macro,
+    required this.sazonalidades,
   });
 
   final Map<String, TimeSeries> series;
@@ -20,6 +21,9 @@ class LabContext {
   final Map<String, BacktestPack> backtests;
   final Map<String, ScenarioReport> cenarios;
   final MacroRegime? macro;
+
+  /// Sazonalidade do PRÓXIMO mês do calendário, por ativo (quando medível).
+  final Map<String, SazonalidadeMes> sazonalidades;
 }
 
 /// Fachada da aplicação (camada Application no DDD): liga infraestrutura
@@ -55,6 +59,8 @@ class Lab {
     final sinais = <String, AssetSignals>{};
     final backtests = <String, BacktestPack>{};
     final cenarios = <String, ScenarioReport>{};
+    final sazonalidades = <String, SazonalidadeMes>{};
+    final mesAlvo = mesSazonalAlvo(DateTime.now());
     for (final ind in catalogoInicial.where((i) => i.negociavel)) {
       final s = series[ind.id];
       if (s == null || s.length < 60) continue;
@@ -62,6 +68,8 @@ class Lab {
       backtests[ind.id] = BacktestPack.fromDaily(s);
       final cen = analogousScenarios(s);
       if (cen != null) cenarios[ind.id] = cen;
+      final saz = sazonalidadeDoMes(s, mesAlvo);
+      if (saz != null) sazonalidades[ind.id] = saz;
     }
 
     MacroRegime? macro;
@@ -82,7 +90,8 @@ class Lab {
         sinais: sinais,
         backtests: backtests,
         cenarios: cenarios,
-        macro: macro);
+        macro: macro,
+        sazonalidades: sazonalidades);
   }
 
   List<Oportunidade> oportunidades(LabContext ctx, Horizon h) =>
@@ -93,6 +102,7 @@ class Lab {
         macro: ctx.macro,
         horizon: h,
         cenarios: ctx.cenarios,
+        sazonalidades: ctx.sazonalidades,
       );
 
   List<Hypothesis> descobrirHipoteses(LabContext ctx) {

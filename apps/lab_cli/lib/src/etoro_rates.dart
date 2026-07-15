@@ -125,9 +125,11 @@ Future<void> _syncEtoroRates() async {
       'atualizadoEm': DateTime.now().toUtc().toIso8601String(),
       'rates': ratesByOurId,
     });
+    final semId = tickers.where((t) => !cache.containsKey(t)).toList();
     stdout.writeln('Cotações eToro: ${ratesByOurId.length} preços ao vivo '
         'gravados (HTTP $status; +$resolvidos IDs resolvidos, '
-        '${cache.length}/${tickers.length} no cache).');
+        '${cache.length}/${tickers.length} no cache'
+        '${semId.isEmpty ? '' : '; sem ID: ${semId.join(', ')}'}).');
   } finally {
     fs.close();
   }

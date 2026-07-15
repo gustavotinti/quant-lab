@@ -24,6 +24,22 @@ void main() {
       expect(quantile(xs, 0.5), closeTo(2.5, 1e-12));
       expect(quantile(xs, 0.25), closeTo(1.75, 1e-12));
     });
+
+    test('t-teste de média: valores conhecidos', () {
+      // xs = [1,2,3,4,5]: média 3, sd 1.5811, n=5 → t = 3/(1.5811/√5) ≈ 4.2426
+      final r = meanTTest([1.0, 2.0, 3.0, 4.0, 5.0]);
+      expect(r.t, closeTo(4.2426, 1e-4));
+      expect(r.pValue, lessThan(0.05)); // df=4 → p ≈ 0.0132
+      expect(r.pValue, greaterThan(0.001));
+
+      // média zero simétrica → t = 0, p = 1
+      final z = meanTTest([-2.0, -1.0, 1.0, 2.0]);
+      expect(z.t, closeTo(0, 1e-12));
+      expect(z.pValue, closeTo(1, 1e-9));
+
+      // amostra pequena demais → NaN (sem chute)
+      expect(meanTTest([1.0, 2.0, 3.0]).t.isNaN, isTrue);
+    });
   });
 
   group('retornos', () {

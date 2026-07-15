@@ -7,6 +7,7 @@ import 'backtest.dart';
 import 'leverage.dart';
 import 'macro_regime.dart';
 import 'scenarios.dart';
+import 'seasonality.dart';
 
 /// Uma evidência objetiva que contribuiu para a nota da oportunidade.
 /// [contribuicao] em [-1, 1]: positivo empurra para COMPRA, negativo para VENDA.
@@ -57,6 +58,7 @@ class OpportunityEngine {
     required MacroRegime? macro,
     required Horizon horizon,
     Map<String, ScenarioReport>? cenarios,
+    Map<String, SazonalidadeMes>? sazonalidades,
   }) {
     final out = <Oportunidade>[];
     for (final ind in ativos.where((a) => a.negociavel)) {
@@ -65,7 +67,7 @@ class OpportunityEngine {
       // o edge e o freio de robustez vêm da estratégia compatível com o
       // horizonte (reversão p/ curto, momentum p/ médio, tendência p/ longo)
       out.add(_avaliarAtivo(ind, s, backtests[ind.id]?.porHorizonte(horizon),
-          macro, horizon, cenarios?[ind.id]));
+          macro, horizon, cenarios?[ind.id], sazonalidades?[ind.id]));
     }
     out.sort((a, b) => b.score.compareTo(a.score));
     return out;
@@ -78,6 +80,7 @@ class OpportunityEngine {
     MacroRegime? macro,
     Horizon horizon,
     ScenarioReport? cen,
+    SazonalidadeMes? saz,
   ) {
     final ev = <Evidencia>[];
     void add(String texto, double c) => ev.add(Evidencia(texto, c));
@@ -103,6 +106,19 @@ class OpportunityEngine {
           add(
               'Preço ${_pct(s.distSma200!.abs())} '
               '${s.distSma200! >= 0 ? "acima" : "abaixo"} da SMA-200', c);
+          raw += c;
+        }
+        // Sazonalidade de calendário (ciclos físicos: estoque, safra,
+        // fluxo de fim de ano) — só entra quando passou no t-teste E se
+        // confirmou fora da amostra (ver seasonality.dart).
+        if (saz != null && saz.relevante) {
+          final c = _tanh(saz.media / 0.03) * 0.30;
+          add(
+              'Sazonalidade: ${saz.nomeMes} rendeu em média '
+              '${_pct(saz.media)} em ${saz.n} anos '
+              '(p=${saz.pValor.toStringAsFixed(3)}, confirmada fora da '
+              'amostra)',
+              c);
           raw += c;
         }
 
