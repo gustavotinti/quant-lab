@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 
+import 'auth.dart';
 import 'data.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-void main() => runApp(const QuantLabApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await initFirebase();
+  } catch (_) {/* sem Google Services: app segue só-leitura */}
+  runApp(const QuantLabApp());
+}
 
 class QuantLabApp extends StatelessWidget {
   const QuantLabApp({super.key});
@@ -26,6 +33,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Dashboard? _d;
   Object? _erro;
+  Map<String, dynamic>? _portfolio;
+  bool _logando = false;
   String _horizonte = 'curto';
   Perfil _perfil = Perfil.moderado;
 
@@ -41,7 +50,17 @@ class _HomePageState extends State<HomePage> {
     _carregar();
   }
 
+  Future<void> _entrar() async {
+    setState(() => _logando = true);
+    try {
+      await entrarComGoogle();
+      _portfolio = await lerPortfolioEtoro();
+    } catch (_) {/* cancelado/offline */}
+    if (mounted) setState(() => _logando = false);
+  }
+
   Future<void> _carregar() async {
+    if (usuario != null) _portfolio = await lerPortfolioEtoro();
     try {
       final d = await Dashboard.carregar();
       if (mounted) {
@@ -125,6 +144,30 @@ class _HomePageState extends State<HomePage> {
           ...d.radarPicos
               .take(12)
               .map((r) => RadarRow(r: (r as Map).cast<String, dynamic>())),
+        const SizedBox(height: 24),
+        SecTitle(
+            usuario == null
+                ? 'Copiloto — sua conta eToro'
+                : 'Copiloto — eToro · conta real',
+            sub: usuario == null
+                ? 'entre com o Google para ver suas posições reais'
+                : (usuario!.email ?? '')),
+        const SizedBox(height: 8),
+        if (usuario == null)
+          FilledButton.icon(
+            onPressed: _logando ? null : _entrar,
+            icon: const Icon(Icons.login, size: 18),
+            label: Text(_logando ? 'Entrando…' : 'Entrar com Google'),
+          )
+        else if (_portfolio == null)
+          const VazioBox(
+              'Sem acesso ao portfólio nesta conta (o Copiloto é privado '
+              'do dono do laboratório).')
+        else
+          PortfolioBox(portfolio: _portfolio!, onSair: () async {
+            await sair();
+            if (mounted) setState(() => _portfolio = null);
+          }),
         const SizedBox(height: 24),
         const SecTitle('Placar do sistema',
             sub: 'acerto REAL das ordens emitidas ao vivo — sem hindsight'),

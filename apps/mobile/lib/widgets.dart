@@ -499,3 +499,82 @@ class PlacarBox extends StatelessWidget {
     );
   }
 }
+
+/// Portfólio REAL do eToro (Firestore private/portfolio — só o dono lê).
+class PortfolioBox extends StatelessWidget {
+  const PortfolioBox(
+      {super.key, required this.portfolio, required this.onSair});
+  final Map<String, dynamic> portfolio;
+  final VoidCallback onSair;
+
+  @override
+  Widget build(BuildContext context) {
+    final pos = (portfolio['posicoes'] as List?) ?? const [];
+    final rows = <Widget>[];
+    for (final raw in pos) {
+      final m = (raw as Map).cast<String, dynamic>();
+      final isBuy = m['isBuy'] == true;
+      final open = (m['openRate'] as num?)?.toDouble();
+      final cur = (m['currentRate'] as num?)?.toDouble();
+      final lev = (m['leverage'] as num?)?.toInt() ?? 1;
+      double? pl;
+      if (open != null && cur != null && open != 0) {
+        final varr = isBuy ? cur / open - 1 : 1 - cur / open;
+        pl = varr * lev;
+      }
+      rows.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(children: [
+          Text(isBuy ? '▲' : '▼',
+              style: TextStyle(
+                  fontSize: 13,
+                  color: isBuy
+                      ? const Color(0xFF38E0A2)
+                      : const Color(0xFFFF5D73))),
+          const SizedBox(width: 8),
+          Expanded(
+              child: Text('${m['nome'] ?? '—'} · X$lev',
+                  style: const TextStyle(fontSize: 13))),
+          Text(
+              pl == null
+                  ? '—'
+                  : '${pl >= 0 ? '+' : ''}${(pl * 100).toStringAsFixed(1)}%',
+              style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  color: pl == null
+                      ? const Color(0xFF8AA0B8)
+                      : (pl >= 0
+                          ? const Color(0xFF38E0A2)
+                          : const Color(0xFFFF5D73)))),
+        ]),
+      ));
+    }
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0x33405A78)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (rows.isEmpty)
+            const Text('Nenhuma posição aberta no eToro.',
+                style: TextStyle(fontSize: 12.5, color: Color(0xFF8AA0B8)))
+          else
+            ...rows,
+          const SizedBox(height: 6),
+          Row(children: [
+            Expanded(
+                child: Text(
+                    'P&L com alavancagem · cotações do pipeline (~2h)',
+                    style: const TextStyle(
+                        fontSize: 10.5, color: Color(0xFF5C7189)))),
+            TextButton(onPressed: onSair, child: const Text('sair')),
+          ]),
+        ],
+      ),
+    );
+  }
+}
