@@ -61,11 +61,19 @@
   secret `FRED_API_KEY` no repo quant-lab (Settings → Secrets and
   variables → Actions). Na primeira run seguinte tudo liga sozinho.
 
+## ✅ FRED ativo + macro EUA (16/07/2026)
+
+- FRED_API_KEY configurada (59/59 séries). Carry MEDIDO e corretamente
+  rejeitado nos 2 pares (EURUSD p=0,44; dólar/real: seguir o diferencial
+  perdeu -0,44%/mês em 318 meses) — re-mede a cada 2h.
+- MacroRegime: juro real EUA (Fed−CPI) e curva 2s10s; evidências ativadas
+  (juro real EUA -0,09% NEGATIVO → pró ouro/prata/cripto; curva +0,37pp
+  normal). 2 tiles novos na faixa macro.
+
 ## ▶ PRÓXIMO PASSO
 
 1. App v2 (login+portfólio eToro+Oráculo nativos+ícone — SHA-1 no Firebase
    + chave Gemini Android).
-2. Com FRED ativo: juro real EUA (Fed−CPI) no regime macro; curva 2s10s.
 
 ## ✅ Fase 0 — Motor matemático (concluída em 04/07/2026)
 
