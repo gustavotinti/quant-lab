@@ -175,6 +175,93 @@ void main() {
     });
   });
 
+  group('momentum cross-sectional (força relativa)', () {
+    // Universo de 9 ativos ao longo de ~12 anos: 'lider' sobe firme,
+    // 'perdedor' cai firme, os outros 7 andam de lado com ruído. Momentum
+    // persistente assim faz o tercil forte bater o fraco mês após mês.
+    Map<String, TimeSeries> universo({bool comEdge = true}) {
+      final rng = math.Random(11);
+      final out = <String, TimeSeries>{};
+      TimeSeries gerar(String id, double driftDia) {
+        final obs = <Observation>[];
+        var nivel = 100.0;
+        for (var d = DateTime(2012, 1, 2);
+            d.isBefore(DateTime(2024, 1, 1));
+            d = d.add(const Duration(days: 1))) {
+          if (d.weekday >= 6) continue;
+          nivel *= 1 + driftDia + (rng.nextDouble() - 0.5) * 0.004;
+          obs.add(Observation(d, nivel));
+        }
+        return TimeSeries(id, obs);
+      }
+
+      if (comEdge) {
+        out['lider'] = gerar('lider', 0.0009);
+        out['perdedor'] = gerar('perdedor', -0.0009);
+      } else {
+        out['lider'] = gerar('lider', 0.0);
+        out['perdedor'] = gerar('perdedor', 0.0);
+      }
+      for (var i = 0; i < 7; i++) {
+        out['n$i'] = gerar('n$i', 0.0);
+      }
+      return out;
+    }
+
+    test('edge plantado: fator validado, líder no topo, perdedor no fundo',
+        () {
+      final r = crossSectionalMomentum(universo())!;
+      expect(r.nMeses, greaterThanOrEqualTo(36));
+      expect(r.spreadMedioMensal, greaterThan(0));
+      expect(r.spreadTreino, greaterThan(0));
+      expect(r.spreadTeste, greaterThan(0));
+      expect(r.pValor, lessThan(0.05));
+      expect(r.validado, isTrue);
+      expect(r.porAtivo['lider']!.percentil, greaterThanOrEqualTo(0.8));
+      expect(r.porAtivo['perdedor']!.percentil, lessThanOrEqualTo(0.2));
+    });
+
+    test('universo de ruído puro: fator NÃO é validado (sem fé cega)', () {
+      final r = crossSectionalMomentum(universo(comEdge: false));
+      expect(r?.validado ?? false, isFalse);
+    });
+
+    test('poucos ativos ou histórico curto → null', () {
+      expect(crossSectionalMomentum({}), isNull);
+      final curto = {
+        for (var i = 0; i < 9; i++)
+          'c$i': _serieDiaria('c$i', (j) => 100.0 + j, 200),
+      };
+      expect(crossSectionalMomentum(curto), isNull);
+    });
+
+    test('entra como evidência do médio prazo no OpportunityEngine', () {
+      final u = universo();
+      final r = crossSectionalMomentum(u)!;
+      Indicator ind(String id) => Indicator(
+            id: id,
+            nome: id,
+            unidade: 'pontos',
+            frequency: Frequency.daily,
+            category: Category.acoes,
+            source: DataSource(provider: 'x', code: id, tier: SourceTier.b),
+            negociavel: true,
+          );
+      final ops = const OpportunityEngine().avaliar(
+        ativos: [ind('lider')],
+        sinais: {'lider': AssetSignals.fromDaily(u['lider']!)},
+        backtests: {'lider': BacktestPack.fromDaily(u['lider']!)},
+        macro: null,
+        horizon: Horizon.medio,
+        forcaRelativa: r,
+      );
+      expect(
+          ops.single.evidencias
+              .any((e) => e.texto.contains('Força relativa')),
+          isTrue);
+    });
+  });
+
   group('sazonalidade de calendário', () {
     // 24 anos diários: dezembro sobe ~5% (drift diário), resto ~flat.
     TimeSeries comDezembro() {

@@ -8,6 +8,7 @@ library;
 
 export 'src/asset_signals.dart';
 export 'src/backtest.dart';
+export 'src/cross_sectional.dart';
 export 'src/hypothesis.dart';
 export 'src/leverage.dart';
 export 'src/macro_regime.dart';

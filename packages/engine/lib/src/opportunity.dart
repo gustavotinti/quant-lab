@@ -4,6 +4,7 @@ import 'package:quant_core/quant_core.dart';
 
 import 'asset_signals.dart';
 import 'backtest.dart';
+import 'cross_sectional.dart';
 import 'leverage.dart';
 import 'macro_regime.dart';
 import 'scenarios.dart';
@@ -59,6 +60,7 @@ class OpportunityEngine {
     required Horizon horizon,
     Map<String, ScenarioReport>? cenarios,
     Map<String, SazonalidadeMes>? sazonalidades,
+    CrossSectionalReport? forcaRelativa,
   }) {
     final out = <Oportunidade>[];
     for (final ind in ativos.where((a) => a.negociavel)) {
@@ -67,7 +69,8 @@ class OpportunityEngine {
       // o edge e o freio de robustez vêm da estratégia compatível com o
       // horizonte (reversão p/ curto, momentum p/ médio, tendência p/ longo)
       out.add(_avaliarAtivo(ind, s, backtests[ind.id]?.porHorizonte(horizon),
-          macro, horizon, cenarios?[ind.id], sazonalidades?[ind.id]));
+          macro, horizon, cenarios?[ind.id], sazonalidades?[ind.id],
+          forcaRelativa));
     }
     out.sort((a, b) => b.score.compareTo(a.score));
     return out;
@@ -81,6 +84,7 @@ class OpportunityEngine {
     Horizon horizon,
     ScenarioReport? cen,
     SazonalidadeMes? saz,
+    CrossSectionalReport? fr,
   ) {
     final ev = <Evidencia>[];
     void add(String texto, double c) => ev.add(Evidencia(texto, c));
@@ -138,6 +142,27 @@ class OpportunityEngine {
         if (s.zScore60d != null) {
           final c = -_tanh(s.zScore60d! / 2) * 0.10;
           raw += c;
+        }
+        // Força relativa (momentum cross-sectional): só entra quando o
+        // fator foi re-validado no NOSSO universo (spread significativo
+        // dentro E fora da amostra) e o ativo está num extremo do ranking.
+        if (fr != null && fr.validado) {
+          final f = fr.porAtivo[ind.id];
+          if (f != null && (f.percentil >= 0.8 || f.percentil <= 0.2)) {
+            final c = (f.percentil - 0.5) * 2 * 0.30;
+            final forte = f.percentil >= 0.8;
+            final pos = forte
+                ? fr.nAtivosHoje - (f.percentil * (fr.nAtivosHoje - 1)).round()
+                : (f.percentil * (fr.nAtivosHoje - 1)).round() + 1;
+            add(
+                'Força relativa: ${pos}º mais ${forte ? "forte" : "fraco"} '
+                'de ${fr.nAtivosHoje} ativos (momentum 12-1 ajustado por '
+                'vol) — fator validado no universo: spread '
+                '${_pct(fr.spreadMedioMensal)}/mês em ${fr.nMeses} meses '
+                '(p=${fr.pValor.toStringAsFixed(3)})',
+                c);
+            raw += c;
+          }
         }
         final m = _macroAjuste(ind.id, macro);
         if (m != null) {

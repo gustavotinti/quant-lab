@@ -14,6 +14,7 @@ class LabContext {
     required this.cenarios,
     required this.macro,
     required this.sazonalidades,
+    required this.forcaRelativa,
   });
 
   final Map<String, TimeSeries> series;
@@ -24,6 +25,9 @@ class LabContext {
 
   /// Sazonalidade do PRÓXIMO mês do calendário, por ativo (quando medível).
   final Map<String, SazonalidadeMes> sazonalidades;
+
+  /// Momentum cross-sectional (força relativa) re-validado no universo.
+  final CrossSectionalReport? forcaRelativa;
 }
 
 /// Fachada da aplicação (camada Application no DDD): liga infraestrutura
@@ -85,13 +89,20 @@ class Lab {
       );
     }
 
+    // força relativa: só os negociáveis com série (mesmo universo do painel)
+    final forcaRelativa = crossSectionalMomentum({
+      for (final ind in catalogoInicial.where((i) => i.negociavel))
+        if (series[ind.id] != null) ind.id: series[ind.id]!,
+    });
+
     return LabContext(
         series: series,
         sinais: sinais,
         backtests: backtests,
         cenarios: cenarios,
         macro: macro,
-        sazonalidades: sazonalidades);
+        sazonalidades: sazonalidades,
+        forcaRelativa: forcaRelativa);
   }
 
   List<Oportunidade> oportunidades(LabContext ctx, Horizon h) =>
@@ -103,6 +114,7 @@ class Lab {
         horizon: h,
         cenarios: ctx.cenarios,
         sazonalidades: ctx.sazonalidades,
+        forcaRelativa: ctx.forcaRelativa,
       );
 
   List<Hypothesis> descobrirHipoteses(LabContext ctx) {

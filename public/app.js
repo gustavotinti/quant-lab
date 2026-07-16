@@ -891,7 +891,32 @@ passo EXATAMENTE com estes valores): ${JSON.stringify(ordens)}
 NÃO OPERAR (sinal fraco ou segurado): ${plano.segurados.map((o) => o.nome).join(', ') || 'nenhum'}.
 ALERTAS DO RADAR DE PICOS (leitura técnica; probabilidade empírica de
 virada em ~21 pregões): ${alertasRadar.join(' | ') || 'nenhum'}.
+PLACAR REAL DO SISTEMA (desempenho medido das ordens já emitidas ao
+vivo — cite quando for relevante para calibrar expectativa e NUNCA
+prometa mais do que ele mostra): ${placarResumo()}
 Monte o plano de execução agora.`;
+}
+
+/// Resumo do Placar do sistema (track record REAL) para os contextos da IA:
+/// o Oráculo aconselha sabendo a taxa de acerto MEDIDA, não só a prevista.
+function placarResumo() {
+  const p = DATA?.placar;
+  if (!p || !p.totalSinais) return 'ainda sem sinais registrados';
+  if (!p.totalFechados) {
+    return `tracking iniciado em ${fmtData(p.desde)}: ${p.totalSinais} ` +
+      'sinais registrados, nenhum fechou a janela ainda (sem taxa real ' +
+      'por enquanto — não prometa acerto além da assertividade prevista)';
+  }
+  const partes = [];
+  for (const [k, h] of Object.entries(p.porHorizonte || {})) {
+    if (!h.nFechados) continue;
+    partes.push(`${k}: acerto real ${Math.round((h.hitRate || 0) * 100)}% ` +
+      `em ${h.nFechados} fechados (previsto era ` +
+      `${Math.round((h.assertividadePrevista || 0) * 100)}%), retorno médio ` +
+      `${((h.retornoMedio || 0) * 100).toFixed(1)}%`);
+  }
+  return `desde ${fmtData(p.desde)}, ${p.totalFechados} de ${p.totalSinais} ` +
+    `sinais fechados. ${partes.join(' · ')}`;
 }
 
 function mdParaHtml(md) {
@@ -1370,6 +1395,7 @@ ${JSON.stringify({
     radarDePicos: radar,
     posicoesReaisNoEtoro: posEtoro,
     posicoesManuais: pos,
+    placarRealDoSistema: placarResumo(),
   })}`;
 }
 

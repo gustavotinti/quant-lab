@@ -33,13 +33,24 @@
   real + CoinGecko 60s para as 10 criptos; stop/alvo recalculados no preço
   de agora com selo da fonte.
 
+## ✅ Momentum cross-sectional + Oráculo com placar (15/07/2026)
+
+- **Força relativa** (engine/cross_sectional.dart): ranking 12-1 ajustado
+  por vol entre os ~43 ativos, com o fator RE-VALIDADO no nosso universo
+  (backtest mensal do spread tercil forte−fraco, t-teste, 70/30 e piso de
+  relevância econômica 0,3%/mês). Resultado HONESTO da estreia: spread
+  +0,39%/mês em 227 meses mas p=0,46 → fator medido e NÃO validado num
+  universo de só 43 ativos — nenhuma evidência emitida. Re-mede a cada
+  publish; liga sozinho se firmar. Evidência (quando ativa) entra no
+  MÉDIO prazo.
+- **Oráculo conhece o placar real**: plano de execução e mentor recebem o
+  track record medido (acerto real × previsto por horizonte) — a IA
+  calibra expectativa pelo realizado e é instruída a nunca prometer mais.
+
 ## ▶ PRÓXIMO PASSO — mais edge mensurável (em ordem de valor)
 
-1. **Momentum cross-sectional** (força relativa): ranquear os ~40 ativos
-   entre si (12-1), long os do topo / short os do fundo — o fator clássico
-   das gestoras quant, ortogonal ao momentum time-series que já temos.
-2. **Carry** (juro real cross-asset): moedas/índices com carry positivo.
-3. App v2 (login+portfólio eToro+Oráculo nativos+ícone — SHA-1 no Firebase
+1. **Carry** (juro real cross-asset): moedas/índices com carry positivo.
+2. App v2 (login+portfólio eToro+Oráculo nativos+ícone — SHA-1 no Firebase
    + chave Gemini Android); FRED (chave grátis, cadastro do Gustavo).
 
 ## ✅ Fase 0 — Motor matemático (concluída em 04/07/2026)
