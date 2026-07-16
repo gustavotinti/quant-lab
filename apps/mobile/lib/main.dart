@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'auth.dart';
 import 'data.dart';
+import 'oraculo.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -133,6 +134,14 @@ class _HomePageState extends State<HomePage> {
               (e) => OrdemCard(pos: e.key + 1, ordem: e.value)),
         if (r.ordens.isNotEmpty)
           CaixaBox(caixaPct: r.caixaPct, macro: d.macro),
+        if (oraculoDisponivel && r.ordens.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => _abrirOraculo(d),
+            icon: const Icon(Icons.auto_awesome, size: 17),
+            label: const Text('Oráculo — plano de execução'),
+          ),
+        ],
         const SizedBox(height: 24),
         const SecTitle('Radar de Picos',
             sub:
@@ -176,6 +185,32 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 20),
         const Disclaimer(),
       ],
+    );
+  }
+
+  Future<void> _abrirOraculo(Dashboard d) async {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => FutureBuilder<String>(
+        future: gerarPlano(d, _horizonte, _perfil),
+        builder: (ctx, snap) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+          child: snap.connectionState != ConnectionState.done
+              ? const SizedBox(
+                  height: 120,
+                  child: Center(child: CircularProgressIndicator()))
+              : SingleChildScrollView(
+                  child: SelectableText(
+                      snap.hasError
+                          ? 'Não consegui falar com o Oráculo: '
+                              '${snap.error}'
+                          : (snap.data ?? ''),
+                      style: const TextStyle(fontSize: 13.5, height: 1.5)),
+                ),
+        ),
+      ),
     );
   }
 
