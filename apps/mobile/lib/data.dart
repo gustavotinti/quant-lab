@@ -13,6 +13,7 @@ class Dashboard {
   String? get ultimaObservacao => raw['ultimaObservacao'] as String?;
   String? get geradoEm => raw['geradoEm'] as String?;
   Map<String, dynamic>? get macro => raw['macro'] as Map<String, dynamic>?;
+  Map<String, dynamic>? get placar => raw['placar'] as Map<String, dynamic>?;
   List<dynamic> get radarPicos => (raw['radarPicos'] as List?) ?? const [];
 
   List<Map<String, dynamic>> oportunidades(String horizonte) {

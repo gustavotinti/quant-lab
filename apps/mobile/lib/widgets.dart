@@ -424,3 +424,78 @@ class Disclaimer extends StatelessWidget {
         ),
       );
 }
+
+/// Placar do sistema — o acerto REAL das ordens emitidas ao vivo, medido
+/// quando cada janela se cumpre (mesmos dados do painel web).
+class PlacarBox extends StatelessWidget {
+  const PlacarBox({super.key, required this.placar});
+  final Map<String, dynamic> placar;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = (placar['totalSinais'] as num?)?.toInt() ?? 0;
+    final fechados = (placar['totalFechados'] as num?)?.toInt() ?? 0;
+    final porH =
+        (placar['porHorizonte'] as Map?)?.cast<String, dynamic>() ?? {};
+    if (total == 0) {
+      return const VazioBox('O tracking das recomendações começou — a taxa '
+          'de acerto real aparece quando cada janela se cumprir.');
+    }
+    String pct(num? v) => v == null ? '—' : '${(v * 100).round()}%';
+    final linhas = <Widget>[];
+    for (final k in const ['curto', 'medio', 'longo']) {
+      final h = (porH[k] as Map?)?.cast<String, dynamic>();
+      if (h == null) continue;
+      final nF = (h['nFechados'] as num?)?.toInt() ?? 0;
+      final nA = (h['nAbertos'] as num?)?.toInt() ?? 0;
+      final hit = h['hitRate'] as num?;
+      linhas.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(children: [
+          SizedBox(
+              width: 64,
+              child: Text(h['label'] as String? ?? k,
+                  style: const TextStyle(
+                      fontSize: 12, color: Color(0xFF8AA0B8)))),
+          Text(nF > 0 ? pct(hit) : '—',
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: nF == 0
+                      ? const Color(0xFF8AA0B8)
+                      : ((hit ?? 0) >= 0.5
+                          ? const Color(0xFF38E0A2)
+                          : const Color(0xFFFF5D73)))),
+          const SizedBox(width: 6),
+          Expanded(
+              child: Text(
+                  nF > 0
+                      ? 'acerto real em $nF fechados · $nA em aberto'
+                      : '$nA em aberto — medindo',
+                  style: const TextStyle(
+                      fontSize: 11.5, color: Color(0xFF5C7189)))),
+        ]),
+      ));
+    }
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xB812361B).withAlpha(40),
+        border: Border.all(color: const Color(0x33405A78)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...linhas,
+          const SizedBox(height: 4),
+          Text(
+              '$fechados de $total sinais já fecharam a janela. Fechados = '
+              'resultado real; abertos = marcados a mercado.',
+              style:
+                  const TextStyle(fontSize: 11, color: Color(0xFF5C7189))),
+        ],
+      ),
+    );
+  }
+}

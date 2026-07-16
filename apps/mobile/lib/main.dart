@@ -125,6 +125,11 @@ class _HomePageState extends State<HomePage> {
           ...d.radarPicos
               .take(12)
               .map((r) => RadarRow(r: (r as Map).cast<String, dynamic>())),
+        const SizedBox(height: 24),
+        const SecTitle('Placar do sistema',
+            sub: 'acerto REAL das ordens emitidas ao vivo — sem hindsight'),
+        const SizedBox(height: 8),
+        if (d.placar != null) PlacarBox(placar: d.placar!),
         const SizedBox(height: 20),
         const Disclaimer(),
       ],
