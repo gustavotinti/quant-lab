@@ -47,11 +47,25 @@
   track record medido (acerto real × previsto por horizonte) — a IA
   calibra expectativa pelo realizado e é instruída a nunca prometer mais.
 
-## ▶ PRÓXIMO PASSO — mais edge mensurável (em ordem de valor)
+## ✅ FRED + Carry cambial (15/07/2026 — dormante até a chave)
 
-1. **Carry** (juro real cross-asset): moedas/índices com carry positivo.
-2. App v2 (login+portfólio eToro+Oráculo nativos+ícone — SHA-1 no Firebase
-   + chave Gemini Android); FRED (chave grátis, cadastro do Gustavo).
+- **FredProvider** (market_data): FEDFUNDS, CPIAUCSL (CPI EUA), DGS2 e
+  ECBDFR (taxa de depósito do BCE) — nível A. Sem FRED_API_KEY os 4
+  reportam erro claro no update e o resto segue normal.
+- **Carry cambial** (engine/carry.dart, testado): diferencial de juros do
+  par re-validado com backtest mensal "seguir o lado do carry" (t-teste +
+  70/30 + diferencial atual ≥0,5% a.a.) → evidência no MÉDIO e LONGO.
+  Pares ligados: EURUSD (BCE−Fed) e dólar/real (Fed−Selic).
+- **⚠ AÇÃO DO GUSTAVO (2 min, grátis)**: criar a chave em
+  https://fred.stlouisfed.org (My Account → API Keys) e salvar como
+  secret `FRED_API_KEY` no repo quant-lab (Settings → Secrets and
+  variables → Actions). Na primeira run seguinte tudo liga sozinho.
+
+## ▶ PRÓXIMO PASSO
+
+1. App v2 (login+portfólio eToro+Oráculo nativos+ícone — SHA-1 no Firebase
+   + chave Gemini Android).
+2. Com FRED ativo: juro real EUA (Fed−CPI) no regime macro; curva 2s10s.
 
 ## ✅ Fase 0 — Motor matemático (concluída em 04/07/2026)
 

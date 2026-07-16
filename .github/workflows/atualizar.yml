@@ -27,6 +27,9 @@ jobs:
       - name: Atualizar séries e gerar painel
         env:
           FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # chave gratuita do FRED (fred.stlouisfed.org) — liga os juros
+          # EUA/BCE e o fator de carry; sem ela esses 4 indicadores pulam
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
           # o publish também grava o track record no Firestore (snapshot
           # diário das ordens emitidas) — precisa do cofre da SA

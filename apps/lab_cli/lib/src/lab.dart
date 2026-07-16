@@ -15,6 +15,7 @@ class LabContext {
     required this.macro,
     required this.sazonalidades,
     required this.forcaRelativa,
+    required this.carries,
   });
 
   final Map<String, TimeSeries> series;
@@ -28,6 +29,9 @@ class LabContext {
 
   /// Momentum cross-sectional (força relativa) re-validado no universo.
   final CrossSectionalReport? forcaRelativa;
+
+  /// Carry cambial re-validado por par (vazio sem as séries de juros FRED).
+  final Map<String, CarryPar> carries;
 }
 
 /// Fachada da aplicação (camada Application no DDD): liga infraestrutura
@@ -47,7 +51,7 @@ class Lab {
 
   Future<List<UpdateOutcome>> update() {
     final updater = DataUpdater(
-      providers: [BcbSgsProvider(), YahooProvider()],
+      providers: [BcbSgsProvider(), YahooProvider(), FredProvider()],
       store: store,
     );
     return updater.update(catalogoInicial);
@@ -95,6 +99,23 @@ class Lab {
         if (series[ind.id] != null) ind.id: series[ind.id]!,
     });
 
+    // carry cambial: pares com AMBAS as taxas disponíveis (as séries FRED
+    // só existem depois que o usuário configurar a FRED_API_KEY — sem elas
+    // o mapa fica vazio e nada acontece, como todo fator daqui).
+    final carries = <String, CarryPar>{};
+    void carrySe(String ativoId, String taxaBaseId, String taxaCotadaId) {
+      final par = series[ativoId];
+      final b = series[taxaBaseId];
+      final c = series[taxaCotadaId];
+      if (par == null || b == null || c == null) return;
+      final r = carryFx(
+          ativoId: ativoId, par: par, taxaBase: b, taxaCotada: c);
+      if (r != null) carries[ativoId] = r;
+    }
+
+    carrySe('eurusd', 'ecb_deposito', 'fed_funds');
+    carrySe('dolar_ptax', 'fed_funds', 'selic_meta');
+
     return LabContext(
         series: series,
         sinais: sinais,
@@ -102,7 +123,8 @@ class Lab {
         cenarios: cenarios,
         macro: macro,
         sazonalidades: sazonalidades,
-        forcaRelativa: forcaRelativa);
+        forcaRelativa: forcaRelativa,
+        carries: carries);
   }
 
   List<Oportunidade> oportunidades(LabContext ctx, Horizon h) =>
@@ -115,6 +137,7 @@ class Lab {
         cenarios: ctx.cenarios,
         sazonalidades: ctx.sazonalidades,
         forcaRelativa: ctx.forcaRelativa,
+        carries: ctx.carries,
       );
 
   List<Hypothesis> descobrirHipoteses(LabContext ctx) {

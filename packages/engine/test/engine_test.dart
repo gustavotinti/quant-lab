@@ -175,6 +175,74 @@ void main() {
     });
   });
 
+  group('carry cambial', () {
+    // 15 anos mensais: taxa-base 5% a.a., cotada 2% a.a. (dif +3%) e o par
+    // deriva a favor do carry ~0,3%/mês com ruído leve.
+    TimeSeries taxa(String id, double aa) => TimeSeries(id, [
+          for (var m = 0; m < 180; m++)
+            Observation(DateTime(2010 + m ~/ 12, m % 12 + 1, 28), aa),
+        ]);
+    TimeSeries parComCarry({double drift = 0.003, int seed = 3}) {
+      final rng = math.Random(seed);
+      final obs = <Observation>[];
+      var nivel = 1.0;
+      for (var m = 0; m < 180; m++) {
+        nivel *= 1 + drift + (rng.nextDouble() - 0.5) * 0.004;
+        obs.add(Observation(DateTime(2010 + m ~/ 12, m % 12 + 1, 28), nivel));
+      }
+      return TimeSeries('par', obs);
+    }
+
+    test('carry plantado: validado, direção compra, diferencial certo', () {
+      final r = carryFx(
+        ativoId: 'par',
+        par: parComCarry(),
+        taxaBase: taxa('b', 5),
+        taxaCotada: taxa('c', 2),
+      )!;
+      expect(r.difJurosAa, closeTo(0.03, 1e-12));
+      expect(r.nMeses, greaterThanOrEqualTo(36));
+      expect(r.retornoMedioMensal, greaterThan(0));
+      expect(r.pValor, lessThan(0.05));
+      expect(r.validado, isTrue);
+      expect(r.compra, isTrue);
+    });
+
+    test('par que anda CONTRA o diferencial → estratégia perde, não valida',
+        () {
+      final r = carryFx(
+        ativoId: 'par',
+        par: parComCarry(drift: -0.003),
+        taxaBase: taxa('b', 5),
+        taxaCotada: taxa('c', 2),
+      )!;
+      expect(r.retornoMedioMensal, lessThan(0));
+      expect(r.validado, isFalse);
+    });
+
+    test('diferencial atual irrelevante (<0,5% a.a.) segura a evidência',
+        () {
+      final r = carryFx(
+        ativoId: 'par',
+        par: parComCarry(),
+        taxaBase: taxa('b', 2.2),
+        taxaCotada: taxa('c', 2.0),
+      );
+      expect(r?.validado ?? false, isFalse);
+    });
+
+    test('histórico curto → null', () {
+      expect(
+          carryFx(
+            ativoId: 'p',
+            par: _serieDiaria('p', (i) => 1.0 + i * 0.001, 200),
+            taxaBase: taxa('b', 5),
+            taxaCotada: taxa('c', 2),
+          ),
+          isNull);
+    });
+  });
+
   group('momentum cross-sectional (força relativa)', () {
     // Universo de 9 ativos ao longo de ~12 anos: 'lider' sobe firme,
     // 'perdedor' cai firme, os outros 7 andam de lado com ruído. Momentum

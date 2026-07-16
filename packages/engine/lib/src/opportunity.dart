@@ -4,6 +4,7 @@ import 'package:quant_core/quant_core.dart';
 
 import 'asset_signals.dart';
 import 'backtest.dart';
+import 'carry.dart';
 import 'cross_sectional.dart';
 import 'leverage.dart';
 import 'macro_regime.dart';
@@ -61,6 +62,7 @@ class OpportunityEngine {
     Map<String, ScenarioReport>? cenarios,
     Map<String, SazonalidadeMes>? sazonalidades,
     CrossSectionalReport? forcaRelativa,
+    Map<String, CarryPar>? carries,
   }) {
     final out = <Oportunidade>[];
     for (final ind in ativos.where((a) => a.negociavel)) {
@@ -70,7 +72,7 @@ class OpportunityEngine {
       // horizonte (reversão p/ curto, momentum p/ médio, tendência p/ longo)
       out.add(_avaliarAtivo(ind, s, backtests[ind.id]?.porHorizonte(horizon),
           macro, horizon, cenarios?[ind.id], sazonalidades?[ind.id],
-          forcaRelativa));
+          forcaRelativa, carries?[ind.id]));
     }
     out.sort((a, b) => b.score.compareTo(a.score));
     return out;
@@ -85,6 +87,7 @@ class OpportunityEngine {
     ScenarioReport? cen,
     SazonalidadeMes? saz,
     CrossSectionalReport? fr,
+    CarryPar? carry,
   ) {
     final ev = <Evidencia>[];
     void add(String texto, double c) => ev.add(Evidencia(texto, c));
@@ -169,6 +172,11 @@ class OpportunityEngine {
           add(m.texto, m.contribuicao);
           raw += m.contribuicao;
         }
+        final cc = _carryEvidencia(carry);
+        if (cc != null) {
+          add(cc.texto, cc.contribuicao);
+          raw += cc.contribuicao;
+        }
 
       case Horizon.longo:
         if (s.cagr3y != null) {
@@ -191,6 +199,11 @@ class OpportunityEngine {
         if (m != null) {
           add(m.texto, m.contribuicao * 0.7);
           raw += m.contribuicao * 0.7;
+        }
+        final cc = _carryEvidencia(carry);
+        if (cc != null) {
+          add(cc.texto, cc.contribuicao);
+          raw += cc.contribuicao;
         }
     }
 
@@ -274,6 +287,20 @@ class OpportunityEngine {
       alavancagem: lev,
       backtest: bt,
     );
+  }
+
+  /// Carry cambial como evidência — só quando o fator foi re-validado no
+  /// próprio par (backtest mensal 70/30 + t-teste) e o diferencial atual é
+  /// relevante. A direção é a do juro maior.
+  Evidencia? _carryEvidencia(CarryPar? c) {
+    if (c == null || !c.validado) return null;
+    final contrib = _tanh(c.difJurosAa / 0.05) * 0.20;
+    return Evidencia(
+        'Carry validado: diferencial de juros de ${_pct(c.difJurosAa)} a.a. '
+        'a favor de ${c.compra ? "comprar" : "vender"} o par; seguir o lado '
+        'do carry rendeu ${_pct(c.retornoMedioMensal)}/mês em ${c.nMeses} '
+        'meses (p=${c.pValor.toStringAsFixed(3)})',
+        contrib);
   }
 
   /// Ajuste macro por classe de ativo: relações econômicas clássicas e

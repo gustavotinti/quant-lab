@@ -8,6 +8,7 @@ import 'package:quant_core/quant_core.dart';
 /// (Yahoo Finance como transporte; a fonte primária é a própria bolsa).
 const _bcb = 'bcb_sgs';
 const _yahoo = 'yahoo';
+const _fred = 'fred';
 
 final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   // ── Política monetária e inflação (nível A) ────────────────────────────
@@ -131,6 +132,42 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
     frequency: Frequency.daily,
     category: Category.juros,
     source: DataSource(provider: _yahoo, code: '^TNX', tier: SourceTier.b),
+  ),
+
+  // ── EUA / internacional via FRED (nível A) ─────────────────────────────
+  // Requer FRED_API_KEY (chave gratuita). Sem a chave, o update reporta o
+  // erro nestes 4 e o resto do laboratório segue normal.
+  const Indicator(
+    id: 'fed_funds',
+    nome: 'Fed Funds (taxa básica EUA)',
+    unidade: '% a.a.',
+    frequency: Frequency.monthly,
+    category: Category.politicaMonetaria,
+    source: DataSource(provider: _fred, code: 'FEDFUNDS', tier: SourceTier.a),
+  ),
+  const Indicator(
+    id: 'us_cpi',
+    nome: 'CPI EUA (índice de preços)',
+    unidade: 'índice',
+    frequency: Frequency.monthly,
+    category: Category.inflacao,
+    source: DataSource(provider: _fred, code: 'CPIAUCSL', tier: SourceTier.a),
+  ),
+  const Indicator(
+    id: 'us2y',
+    nome: 'Treasury 2 anos (yield)',
+    unidade: '% a.a.',
+    frequency: Frequency.daily,
+    category: Category.juros,
+    source: DataSource(provider: _fred, code: 'DGS2', tier: SourceTier.a),
+  ),
+  const Indicator(
+    id: 'ecb_deposito',
+    nome: 'BCE — taxa de depósito (zona do euro)',
+    unidade: '% a.a.',
+    frequency: Frequency.daily,
+    category: Category.politicaMonetaria,
+    source: DataSource(provider: _fred, code: 'ECBDFR', tier: SourceTier.a),
   ),
 
   // ── Índices amplos de ações ────────────────────────────────────────────
