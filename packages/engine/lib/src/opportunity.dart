@@ -332,6 +332,12 @@ class OpportunityEngine {
         }
       case 'ouro':
       case 'prata':
+        if (m.juroRealEuaAa != null && m.juroRealEuaAa! < 0) {
+          return Evidencia(
+              'Juro real americano NEGATIVO (${_pct(m.juroRealEuaAa!)} '
+              'a.a., Fed vs CPI) — historicamente o melhor regime para '
+              'metais sem yield', 0.12);
+        }
         if (m.us10yDirecao == Direcao.caindo) {
           return const Evidencia(
               'Treasury 10a em queda reduz o custo de oportunidade de '
@@ -344,6 +350,13 @@ class OpportunityEngine {
         }
       case 'sp500':
       case 'nasdaq':
+      case 'dowjones':
+        if (m.curva2s10sPp != null && m.curva2s10sPp! < 0) {
+          return Evidencia(
+              'Curva de juros americana INVERTIDA (2s10s '
+              '${m.curva2s10sPp!.toStringAsFixed(2)} pp) — sinal clássico '
+              'de fim de ciclo; cautela com ações americanas', -0.10);
+        }
         if (m.us10yDirecao == Direcao.caindo) {
           return const Evidencia(
               'Treasury 10a em queda — suporte a múltiplos de ações '
@@ -355,6 +368,12 @@ class OpportunityEngine {
               'americanas', -0.10);
         }
       case 'bitcoin':
+        if (m.juroRealEuaAa != null && m.juroRealEuaAa! < 0) {
+          return Evidencia(
+              'Juro real americano negativo (${_pct(m.juroRealEuaAa!)} '
+              'a.a.) — regime de liquidez historicamente favorável a '
+              'cripto', 0.10);
+        }
         if (m.dxyAcimaSma200 == false) {
           return const Evidencia(
               'Dólar global fraco (DXY < SMA-200) — historicamente '

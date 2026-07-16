@@ -270,6 +270,10 @@ function renderMacro() {
     ['Treasury 10a', `${fmtNum(m.us10y)}%`, m.us10yDirecao ? dirTxt[m.us10yDirecao] : null],
     ['Dólar global', m.dxyForte == null ? '—' : (m.dxyForte ? 'forte' : 'fraco'),
       m.dxyForte == null ? null : (m.dxyForte ? ['DXY > SMA-200', 'down'] : ['DXY < SMA-200', 'up'])],
+    ...(m.juroRealEua != null ? [['Juro real EUA', `${fmtPct(m.juroRealEua, 1, false)} a.a.`,
+      m.juroRealEua < 0 ? ['negativo — favorece ouro/cripto', 'up'] : null]] : []),
+    ...(m.curva2s10s != null ? [['Curva 2s10s EUA', `${fmtNum(m.curva2s10s)} pp`,
+      m.curva2s10s < 0 ? ['invertida — fim de ciclo', 'down'] : ['normal', 'up']]] : []),
   ];
   els.macro.innerHTML = items.map(([lbl, val, dir]) => `
     <div class="mstat">

@@ -478,6 +478,8 @@ Map<String, Object?> dashboardJson(
             'us10y': _n(m.us10yAtual),
             'us10yDirecao': m.us10yDirecao?.name,
             'dxyForte': m.dxyAcimaSma200,
+            'juroRealEua': _n(m.juroRealEuaAa),
+            'curva2s10s': _n(m.curva2s10sPp),
           },
     'horizontes': {
       for (final h in Horizon.values)

@@ -21,6 +21,8 @@ class MacroRegime {
     this.us10yAtual,
     this.us10yDirecao,
     this.dxyAcimaSma200,
+    this.juroRealEuaAa,
+    this.curva2s10sPp,
   });
 
   /// Selic meta, em % a.a. (ex.: 14.25).
@@ -41,12 +43,24 @@ class MacroRegime {
   final Direcao? us10yDirecao;
   final bool? dxyAcimaSma200;
 
+  /// Juro real EUA ex-post: (1+FedFunds)/(1+CPI 12m) − 1, fração. Null sem
+  /// as séries do FRED.
+  final double? juroRealEuaAa;
+
+  /// Inclinação da curva americana: Treasury 10a − 2a, em pontos
+  /// percentuais. Negativa = curva invertida (sinal clássico de fim de
+  /// ciclo/recessão à frente). Null sem o us2y.
+  final double? curva2s10sPp;
+
   factory MacroRegime.compute({
     required TimeSeries selic,
     required TimeSeries ipcaMensal,
     TimeSeries? dolar,
     TimeSeries? us10y,
     TimeSeries? dxy,
+    TimeSeries? fedFunds,
+    TimeSeries? usCpi,
+    TimeSeries? us2y,
   }) {
     final selicNow = selic.last.value;
     final selicDir = _direcao(
@@ -88,6 +102,20 @@ class MacroRegime {
       if (m != null && m != 0) dxyAcima = dxy.last.value > m;
     }
 
+    // juro real EUA ex-post: Fed Funds vs CPI 12m (índice → variação anual)
+    double? juroRealEua;
+    if (fedFunds != null && usCpi != null && usCpi.length >= 13) {
+      final cpiVals = usCpi.values;
+      final cpi12 = cpiVals.last / cpiVals[cpiVals.length - 13] - 1;
+      juroRealEua = (1 + fedFunds.last.value / 100) / (1 + cpi12) - 1;
+    }
+
+    // inclinação 2s10s (pp): 10 anos − 2 anos, últimas observações
+    double? curva;
+    if (us10y != null && us2y != null && !us10y.isEmpty && !us2y.isEmpty) {
+      curva = us10y.last.value - us2y.last.value;
+    }
+
     return MacroRegime(
       selicAtual: selicNow,
       selicDirecao: selicDir,
@@ -101,6 +129,8 @@ class MacroRegime {
       us10yDirecao:
           us10y != null ? _direcao(us10y.values, 63, threshold: 0.10) : null,
       dxyAcimaSma200: dxyAcima,
+      juroRealEuaAa: juroRealEua,
+      curva2s10sPp: curva,
     );
   }
 

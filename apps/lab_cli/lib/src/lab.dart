@@ -90,6 +90,9 @@ class Lab {
         dolar: series['dolar_ptax'],
         us10y: series['us10y'],
         dxy: series['dxy'],
+        fedFunds: series['fed_funds'],
+        usCpi: series['us_cpi'],
+        us2y: series['us2y'],
       );
     }
 
