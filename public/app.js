@@ -185,25 +185,7 @@ async function carregarUsuariosAdmin() {
   }
 }
 function montarAdmin() {
-  const sec = $('admin-sec');
-  if (!sec) return;
-  sec.classList.remove('hidden');
-  carregarUsuariosAdmin();
-  $('admin-users').addEventListener('click', async (e) => {
-    const b = e.target.closest('button[data-uid]');
-    if (!b) return;
-    const banir = b.dataset.ban === '1';
-    if (banir && !confirm('Banir este usuário? Ele perderá o acesso ao painel.')) return;
-    b.disabled = true;
-    try {
-      await updateDoc(doc(db, 'users', b.dataset.uid), { banido: banir });
-      toast(banir ? 'Usuário banido.' : 'Usuário reativado.');
-      carregarUsuariosAdmin();
-    } catch (err) {
-      toast('Falhou: ' + String(err?.message || err).slice(0, 100));
-      b.disabled = false;
-    }
-  }, { once: false });
+  $('btn-admin')?.classList.remove('hidden');
 }
 
 // ── cotações eToro AO VIVO (listener em tempo real) ───────────────────

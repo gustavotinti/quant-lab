@@ -22,6 +22,9 @@
 <header class="topbar">
   <div class="brand">Quant<span>Lab</span></div>
   <div class="topbar-right">
+    <a id="btn-admin" class="btn btn-admin hidden" href="/admin.html" title="Admin panel">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg>
+      Admin</a>
     <span id="updated-at" class="updated"></span>
     <button id="btn-login" class="btn btn-google">
       <svg width="15" height="15" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 40.4 44 35 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
@@ -39,6 +42,7 @@
   <!-- HERO (visível para todos) -->
   <section id="hero" class="hero">
     <div class="hero-glow"></div>
+    <canvas id="particles" class="particles" aria-hidden="true"></canvas>
     <h1>O mercado, medido.<br><em>Nunca adivinhado.</em></h1>
     <p class="hero-sub">Ordens <b class="long">LONG</b> e
       <b class="short">SHORT</b> em 3 horizontes, com <b>assertividade
@@ -163,13 +167,6 @@
       </ul>
     </details>
 
-    <section id="admin-sec" class="admin-sec hidden">
-      <h2 class="sec-title"><svg class="ic ic-t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9.5 12l2 2 3.5-4"/></svg>
-        Administração
-        <span class="h2-sub">usuários da plataforma — banir remove o acesso ao painel (visível só para o admin)</span></h2>
-      <div id="admin-users" class="admin-users"></div>
-    </section>
-
     <p class="aviso">Estatística derivada de dados públicos (BCB, bolsas).
     <b>Não é recomendação de investimento.</b> Assertividade histórica não
     garante resultado futuro. Alavancagem pode gerar perdas superiores ao
@@ -219,6 +216,47 @@
   <div class="foot-links">dados: Banco Central do Brasil (SGS), FRED e bolsas via Yahoo Finance · <a href="/relatorio.txt">relatório do dia</a> · <a href="/QuantLab-v1.zip">app Android</a></div>
 </footer>
 
+<script>
+// partículas sutis no hero — leve, pausa fora de foco e respeita reduced-motion
+(() => {
+  const c = document.getElementById('particles');
+  if (!c || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const ctx = c.getContext('2d');
+  let W, H, ps;
+  const N = 42;
+  function init() {
+    W = c.width = c.offsetWidth; H = c.height = c.offsetHeight;
+    ps = Array.from({length: N}, () => ({
+      x: Math.random()*W, y: Math.random()*H,
+      vx: (Math.random()-.5)*.25, vy: (Math.random()-.5)*.25,
+      r: Math.random()*1.6+.4, a: Math.random()*.5+.15,
+      g: Math.random() > .5,
+    }));
+  }
+  function tick() {
+    if (document.hidden) { requestAnimationFrame(tick); return; }
+    ctx.clearRect(0,0,W,H);
+    for (const p of ps) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7);
+      ctx.fillStyle = p.g ? `rgba(56,224,162,${p.a})` : `rgba(79,156,255,${p.a})`;
+      ctx.fill();
+    }
+    for (let i = 0; i < N; i++) for (let j = i+1; j < N; j++) {
+      const a = ps[i], b = ps[j], dx = a.x-b.x, dy = a.y-b.y, d = dx*dx+dy*dy;
+      if (d < 8100) {
+        ctx.strokeStyle = `rgba(120,180,220,${.10*(1-d/8100)})`;
+        ctx.lineWidth = .6;
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  init(); addEventListener('resize', init); tick();
+})();
+</script>
 <script type="module" src="/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#070b12">
+<title>QuantLab — Admin</title>
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><a href="/" style="color:inherit;text-decoration:none">Quant<span>Lab</span></a> <span class="foot-ver">ADMIN</span></div>
+  <div class="topbar-right"><a class="btn" href="/">← Back to dashboard</a></div>
+</header>
+<main>
+  <section class="admin-sec" style="margin-top:28px">
+    <h2 class="sec-title">Platform users
+      <span class="h2-sub">ban removes dashboard access — visible to the admin only</span></h2>
+    <div id="admin-users" class="admin-users"><p class="admin-hint">Checking access…</p></div>
+  </section>
+</main>
+<footer>
+  <div class="foot-brand">Quant<span>Lab</span> <span class="foot-ver">v2.0</span></div>
+  <div class="foot-dev">developed by <b>Gustavo Tinti</b></div>
+</footer>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js';
+import { getFirestore, doc, updateDoc, collection, getDocs, query, orderBy, limit }
+  from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js';
+const app = initializeApp({
+  projectId: 'quantlab-lde',
+  appId: '1:1025412444243:web:e1fcf413f6144e524a96a6',
+  apiKey: 'AIzaSyA1EcBYGb5sdH9KEqfmDFaWQrUQGSyO7fk',
+  authDomain: 'quantlab-lde.firebaseapp.com',
+});
+const db = getFirestore(app);
+const out = document.getElementById('admin-users');
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (iso) => iso ? iso.slice(0,10).split('-').reverse().join('/') : '';
+async function load() {
+  out.innerHTML = '<p class="admin-hint">Loading users…</p>';
+  try {
+    const qs = await getDocs(query(collection(db, 'users'), orderBy('criadoEm','desc'), limit(200)));
+    out.innerHTML = qs.empty ? '<p class="admin-hint">No users registered yet.</p>' : '';
+    qs.forEach((d) => {
+      const u = d.data();
+      const row = document.createElement('div');
+      row.className = 'admin-user' + (u.banido ? ' banido' : '');
+      row.innerHTML = `
+        <img src="${esc(u.foto||'')}" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">
+        <div class="au-info"><b>${esc(u.nome||'(no name)')}</b>
+          <span>${esc(u.email||'')} · since ${fmt(u.criadoEm)}${u.banido ? ' · <i>BANNED</i>' : ''}</span></div>
+        <button class="btn ${u.banido ? '' : 'btn-ban'}" data-uid="${esc(d.id)}" data-ban="${u.banido?'0':'1'}">
+          ${u.banido ? 'Unban' : 'Ban'}</button>`;
+      out.appendChild(row);
+    });
+  } catch (e) {
+    out.innerHTML = `<p class="admin-hint">Access denied or error: ${esc(String(e?.message||e)).slice(0,120)}</p>`;
+  }
+}
+out.addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-uid]');
+  if (!b) return;
+  const ban = b.dataset.ban === '1';
+  if (ban && !confirm('Ban this user? They will lose dashboard access.')) return;
+  b.disabled = true;
+  try { await updateDoc(doc(db,'users',b.dataset.uid), { banido: ban }); load(); }
+  catch (err) { alert('Failed: ' + String(err?.message||err).slice(0,100)); b.disabled = false; }
+});
+onAuthStateChanged(getAuth(app), (user) => {
+  if (!user) { out.innerHTML = '<p class="admin-hint">Sign in on the <a href="/">dashboard</a> first.</p>'; return; }
+  if (user.email !== 'gustavo.a.tinti3@gmail.com') { out.innerHTML = '<p class="admin-hint">This area is restricted to the platform admin.</p>'; return; }
+  load();
+});
+</script>
+</body>
+</html>
