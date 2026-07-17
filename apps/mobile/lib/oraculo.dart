@@ -9,7 +9,7 @@ import 'data.dart';
 /// Android (pacote com.quantlab.quantlab_app + SHA-1) e à API
 /// generativelanguage — a chave do site é restrita por referrer e NÃO
 /// funciona no app. Vazia = botão do Oráculo fica oculto.
-const geminiAndroidKey = '';
+const geminiAndroidKey = 'AIzaSyByQsEliRIyecrB0yKkaiTVTQP86Ng8CQw';
 
 bool get oraculoDisponivel => geminiAndroidKey.isNotEmpty;
 
