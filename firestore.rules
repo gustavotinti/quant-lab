@@ -10,6 +10,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Usuários da plataforma: cada um cria/lê o próprio registro no
+    // primeiro login; só o ADMIN (dono) lista todos e pode banir.
+    function admin() {
+      return request.auth != null
+        && request.auth.token.email == 'gustavo.a.tinti3@gmail.com';
+    }
+    match /users/{uid} {
+      allow read, write: if admin();
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.banido == false;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      // o próprio usuário pode atualizar o perfil, mas NUNCA o banimento
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.banido == resource.data.banido;
+    }
+
     // Todo o resto: fechado (o painel público lê do Hosting, não daqui).
     match /{document=**} {
       allow read, write: if false;

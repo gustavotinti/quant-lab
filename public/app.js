@@ -6,7 +6,8 @@ import {
   getRedirectResult, onAuthStateChanged, signOut,
 } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js';
 import {
-  getFirestore, doc, getDoc, onSnapshot,
+  getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot,
+  collection, getDocs, query, orderBy, limit,
 } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js';
 
 const app = initializeApp({
@@ -111,12 +112,99 @@ onAuthStateChanged(auth, (user) => {
   if (logged) {
     els.userPhoto.src = user.photoURL || '';
     els.userName.textContent = (user.displayName || user.email || '').split(' ')[0];
-    loadData();
-    carregarPortfolioEtoro();
-    escutarRatesEtoro();
-    pollCripto();
+    registrarUsuario(user).then((banido) => {
+      if (banido) return; // registrarUsuario já bloqueou a tela
+      loadData();
+      carregarPortfolioEtoro();
+      escutarRatesEtoro();
+      pollCripto();
+      if (user.email === ADMIN_EMAIL) montarAdmin();
+    });
   }
 });
+
+// ── plataforma multiusuário: registro no 1º login + banimento ─────────
+const ADMIN_EMAIL = 'gustavo.a.tinti3@gmail.com';
+async function registrarUsuario(user) {
+  try {
+    const ref = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        email: user.email || '', nome: user.displayName || '',
+        foto: user.photoURL || '', criadoEm: new Date().toISOString(),
+        ultimoAcesso: new Date().toISOString(), banido: false,
+      });
+      return false;
+    }
+    const d = snap.data();
+    if (d.banido) {
+      els.dash.classList.add('hidden');
+      els.hero.classList.remove('hidden');
+      $('fab-oraculo').classList.add('hidden');
+      toast('Esta conta foi suspensa pela moderação do QuantLab.', 12000);
+      setTimeout(() => signOut(auth), 2500);
+      return true;
+    }
+    updateDoc(ref, { ultimoAcesso: new Date().toISOString() }).catch(() => {});
+    return false;
+  } catch (_) { return false; /* offline: não bloqueia */ }
+}
+
+// ── painel admin (só o dono vê): usuários + banir/desbanir ────────────
+async function carregarUsuariosAdmin() {
+  const out = $('admin-users');
+  if (!out) return;
+  out.innerHTML = '<p class="admin-hint">Carregando usuários…</p>';
+  try {
+    const qs = await getDocs(query(collection(db, 'users'),
+        orderBy('criadoEm', 'desc'), limit(200)));
+    if (qs.empty) {
+      out.innerHTML = '<p class="admin-hint">Nenhum usuário registrado ainda.</p>';
+      return;
+    }
+    out.innerHTML = '';
+    qs.forEach((d) => {
+      const u = d.data();
+      const row = document.createElement('div');
+      row.className = 'admin-user' + (u.banido ? ' banido' : '');
+      row.innerHTML = `
+        <img src="${esc(u.foto || '')}" alt="" referrerpolicy="no-referrer"
+             onerror="this.style.visibility='hidden'">
+        <div class="au-info">
+          <b>${esc(u.nome || '(sem nome)')}</b>
+          <span>${esc(u.email || '')} · desde ${fmtData((u.criadoEm || '').slice(0, 10))}${u.banido ? ' · <i>BANIDO</i>' : ''}</span>
+        </div>
+        <button class="btn ${u.banido ? '' : 'btn-ban'}" data-uid="${esc(d.id)}"
+                data-ban="${u.banido ? '0' : '1'}">
+          ${u.banido ? 'Desbanir' : 'Banir'}</button>`;
+      out.appendChild(row);
+    });
+  } catch (e) {
+    out.innerHTML = `<p class="admin-hint">Erro ao listar: ${esc(String(e?.message || e)).slice(0, 120)}</p>`;
+  }
+}
+function montarAdmin() {
+  const sec = $('admin-sec');
+  if (!sec) return;
+  sec.classList.remove('hidden');
+  carregarUsuariosAdmin();
+  $('admin-users').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-uid]');
+    if (!b) return;
+    const banir = b.dataset.ban === '1';
+    if (banir && !confirm('Banir este usuário? Ele perderá o acesso ao painel.')) return;
+    b.disabled = true;
+    try {
+      await updateDoc(doc(db, 'users', b.dataset.uid), { banido: banir });
+      toast(banir ? 'Usuário banido.' : 'Usuário reativado.');
+      carregarUsuariosAdmin();
+    } catch (err) {
+      toast('Falhou: ' + String(err?.message || err).slice(0, 100));
+      b.disabled = false;
+    }
+  }, { once: false });
+}
 
 // ── cotações eToro AO VIVO (listener em tempo real) ───────────────────
 // O pipeline grava private/rates; o painel do dono ouve o documento e

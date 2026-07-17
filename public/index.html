@@ -163,6 +163,13 @@
       </ul>
     </details>
 
+    <section id="admin-sec" class="admin-sec hidden">
+      <h2 class="sec-title"><svg class="ic ic-t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9.5 12l2 2 3.5-4"/></svg>
+        Administração
+        <span class="h2-sub">usuários da plataforma — banir remove o acesso ao painel (visível só para o admin)</span></h2>
+      <div id="admin-users" class="admin-users"></div>
+    </section>
+
     <p class="aviso">Estatística derivada de dados públicos (BCB, bolsas).
     <b>Não é recomendação de investimento.</b> Assertividade histórica não
     garante resultado futuro. Alavancagem pode gerar perdas superiores ao
@@ -206,7 +213,11 @@
   </div>
 </main>
 
-<footer>QuantLab · dados: Banco Central do Brasil (SGS) e bolsas via Yahoo Finance · <a href="/relatorio.txt">relatório do dia</a></footer>
+<footer>
+  <div class="foot-brand">Quant<span>Lab</span> <span class="foot-ver">v2.0</span></div>
+  <div class="foot-dev">desenvolvido por <b>Gustavo Tinti</b></div>
+  <div class="foot-links">dados: Banco Central do Brasil (SGS), FRED e bolsas via Yahoo Finance · <a href="/relatorio.txt">relatório do dia</a> · <a href="/QuantLab-v1.zip">app Android</a></div>
+</footer>
 
 <script type="module" src="/app.js"></script>
 </body>
