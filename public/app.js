@@ -31,13 +31,13 @@ const els = {
 };
 
 // ── formatação pt-BR ──────────────────────────────────────────────────
-const nf = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
+const nf = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
 const fmtNum = (v, d = 2) => v == null ? '—'
-  : new Intl.NumberFormat('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+  : new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
 const fmtPct = (v, d = 1, sign = true) => v == null ? '—'
-  : `${sign && v > 0 ? '+' : ''}${new Intl.NumberFormat('pt-BR',
+  : `${sign && v > 0 ? '+' : ''}${new Intl.NumberFormat('en-US',
       { minimumFractionDigits: d, maximumFractionDigits: d }).format(v * 100)}%`;
-const fmtData = (iso) => iso ? iso.split('-').reverse().join('/') : '';
+const fmtData = (iso) => { if (!iso) return ''; const [y,m,d] = iso.split('-'); return `${m}/${d}/${y}`; };
 const esc = (s) => String(s).replace(/[&<>"']/g,
   (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -81,20 +81,20 @@ async function login() {
       try {
         await signInWithRedirect(auth, new GoogleAuthProvider());
       } catch (e2) {
-        toast('Falha no login: ' + (e2.code || e2.message));
+        toast('Sign-in failed: ' + (e2.code || e2.message));
       }
     } else if (e.code === 'auth/operation-not-allowed' || e.code === 'auth/configuration-not-found') {
-      toast('Login Google ainda não está ativado no console do Firebase ' +
+      toast('Google sign-in is not enabled in the Firebase console ' +
             '(Authentication → Sign-in method → Google).', 9000);
     } else if (e.code === 'auth/unauthorized-domain') {
-      toast('Este domínio não está autorizado no Firebase Auth.', 9000);
+      toast('This domain is not authorized in Firebase Auth.', 9000);
     } else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
-      toast('Falha no login: ' + (e.code || e.message));
+      toast('Sign-in failed: ' + (e.code || e.message));
     }
   }
 }
 getRedirectResult(auth).catch((e) => {
-  if (e.code !== 'auth/no-auth-event') toast('Falha no login: ' + (e.code || e.message));
+  if (e.code !== 'auth/no-auth-event') toast('Sign-in failed: ' + (e.code || e.message));
 });
 els.login.onclick = login;
 els.loginHero.onclick = login;
@@ -112,13 +112,13 @@ onAuthStateChanged(auth, (user) => {
   if (logged) {
     els.userPhoto.src = user.photoURL || '';
     els.userName.textContent = (user.displayName || user.email || '').split(' ')[0];
+    if (user.email === ADMIN_EMAIL) montarAdmin();
     registrarUsuario(user).then((banido) => {
       if (banido) return; // registrarUsuario já bloqueou a tela
       loadData();
       carregarPortfolioEtoro();
       escutarRatesEtoro();
       pollCripto();
-      if (user.email === ADMIN_EMAIL) montarAdmin();
     });
   }
 });
@@ -142,7 +142,7 @@ async function registrarUsuario(user) {
       els.dash.classList.add('hidden');
       els.hero.classList.remove('hidden');
       $('fab-oraculo').classList.add('hidden');
-      toast('Esta conta foi suspensa pela moderação do QuantLab.', 12000);
+      toast('This account has been suspended by QuantLab moderation.', 12000);
       setTimeout(() => signOut(auth), 2500);
       return true;
     }
@@ -155,12 +155,12 @@ async function registrarUsuario(user) {
 async function carregarUsuariosAdmin() {
   const out = $('admin-users');
   if (!out) return;
-  out.innerHTML = '<p class="admin-hint">Carregando usuários…</p>';
+  out.innerHTML = '<p class="admin-hint">Loading users…</p>';
   try {
     const qs = await getDocs(query(collection(db, 'users'),
         orderBy('criadoEm', 'desc'), limit(200)));
     if (qs.empty) {
-      out.innerHTML = '<p class="admin-hint">Nenhum usuário registrado ainda.</p>';
+      out.innerHTML = '<p class="admin-hint">No users registered yet.</p>';
       return;
     }
     out.innerHTML = '';
@@ -242,7 +242,7 @@ setInterval(() => {
 // (o chamador cai no fechamento do dia quando null)
 function precoLive(id) {
   if (CG_RATES && CG_RATES[id] != null && Date.now() - CG_AT < 5 * 60000) {
-    return { px: CG_RATES[id], rotulo: 'cripto ao vivo' };
+    return { px: CG_RATES[id], rotulo: 'crypto live' };
   }
   const r = LIVE_RATES && LIVE_RATES[id];
   const px = r ? (r.preco ?? r.ask ?? r.bid ?? null) : null;
@@ -252,7 +252,7 @@ function precoLive(id) {
 function idadeLive() {
   if (!LIVE_RATES_AT) return '';
   const min = Math.round((Date.now() - new Date(LIVE_RATES_AT)) / 60000);
-  return min < 1 ? 'agora' : min < 60 ? `há ${min}min` : `há ${Math.round(min / 60)}h`;
+  return min < 1 ? 'now' : min < 60 ? `${min}m ago` : `${Math.round(min / 60)}h ago`;
 }
 
 // ── portfólio real do eToro (privado, lido do Firestore) ──────────────
@@ -278,7 +278,7 @@ async function loadData() {
     const r = await fetch('/data/dashboard.json', { cache: 'no-cache' });
     DATA = await r.json();
   } catch {
-    toast('Não consegui carregar os dados do painel.');
+    toast('Could not load the dashboard data.');
     return;
   }
   atualizarTopo();
@@ -295,12 +295,12 @@ async function loadData() {
 
 function atualizarTopo() {
   const hora = DATA.geradoEm
-    ? new Date(DATA.geradoEm).toLocaleTimeString('pt-BR',
+    ? new Date(DATA.geradoEm).toLocaleTimeString('en-US',
         { hour: '2-digit', minute: '2-digit' })
     : '';
   els.updated.textContent =
-    `dados até ${fmtData(DATA.ultimaObservacao)} · ` +
-    `gerado ${fmtData(DATA.geradoEm?.slice(0, 10))} ${hora}`;
+    `data through ${fmtData(DATA.ultimaObservacao)} · ` +
+    `generated ${fmtData(DATA.geradoEm?.slice(0, 10))} ${hora}`;
 }
 
 // auto-refresh: o pipeline roda na nuvem a cada 2h — o painel se
@@ -322,28 +322,28 @@ setInterval(async () => {
       renderPosicoes();
       sincronizarOraculo();
       atualizarTopo();
-      toast('Dados atualizados automaticamente.');
+      toast('Data refreshed automatically.');
     }
   } catch { /* offline/transiente: tenta de novo no próximo ciclo */ }
 }, 5 * 60 * 1000);
 
 // ── macro strip ───────────────────────────────────────────────────────
-const dirTxt = { subindo: ['▲ subindo', 'up'], caindo: ['▼ caindo', 'down'], estavel: ['◆ estável', 'flat'] };
+const dirTxt = { subindo: ['▲ rising', 'up'], caindo: ['▼ falling', 'down'], estavel: ['◆ stable', 'flat'] };
 function renderMacro() {
   const m = DATA.macro;
   if (!m) return;
   const items = [
     ['Selic', `${fmtNum(m.selic)}%`, dirTxt[m.selicDirecao]],
-    ['IPCA 12m', fmtPct(m.ipca12m, 1, false), dirTxt[m.inflacaoTendencia]],
-    ['Juro real', `${fmtPct(m.juroReal, 1, false)} a.a.`, null],
-    ['Dólar PTAX', `R$ ${fmtNum(m.dolar)}`, null],
-    ['Treasury 10a', `${fmtNum(m.us10y)}%`, m.us10yDirecao ? dirTxt[m.us10yDirecao] : null],
-    ['Dólar global', m.dxyForte == null ? '—' : (m.dxyForte ? 'forte' : 'fraco'),
+    ['CPI (BR) 12m', fmtPct(m.ipca12m, 1, false), dirTxt[m.inflacaoTendencia]],
+    ['Real rate (BR)', `${fmtPct(m.juroReal, 1, false)}/yr`, null],
+    ['USD/BRL', `${fmtNum(m.dolar)}`, null],
+    ['10y Treasury', `${fmtNum(m.us10y)}%`, m.us10yDirecao ? dirTxt[m.us10yDirecao] : null],
+    ['Global USD', m.dxyForte == null ? '—' : (m.dxyForte ? 'strong' : 'weak'),
       m.dxyForte == null ? null : (m.dxyForte ? ['DXY > SMA-200', 'down'] : ['DXY < SMA-200', 'up'])],
-    ...(m.juroRealEua != null ? [['Juro real EUA', `${fmtPct(m.juroRealEua, 1, false)} a.a.`,
-      m.juroRealEua < 0 ? ['negativo — favorece ouro/cripto', 'up'] : null]] : []),
-    ...(m.curva2s10s != null ? [['Curva 2s10s EUA', `${fmtNum(m.curva2s10s)} pp`,
-      m.curva2s10s < 0 ? ['invertida — fim de ciclo', 'down'] : ['normal', 'up']]] : []),
+    ...(m.juroRealEua != null ? [['US real rate', `${fmtPct(m.juroRealEua, 1, false)}/yr`,
+      m.juroRealEua < 0 ? ['negative — favors gold/crypto', 'up'] : null]] : []),
+    ...(m.curva2s10s != null ? [['US 2s10s curve', `${fmtNum(m.curva2s10s)} pp`,
+      m.curva2s10s < 0 ? ['inverted — late cycle', 'down'] : ['normal', 'up']]] : []),
   ];
   els.macro.innerHTML = items.map(([lbl, val, dir]) => `
     <div class="mstat">
@@ -354,7 +354,7 @@ function renderMacro() {
 }
 
 // ── cards de oportunidade ─────────────────────────────────────────────
-const badgeTxt = { compra: '▲ LONG · COMPRA', venda: '▼ SHORT · VENDA', neutro: '· NEUTRO' };
+const badgeTxt = { compra: '▲ LONG · BUY', venda: '▼ SHORT · SELL', neutro: '· NEUTRAL' };
 const effClass = (v) => v == null ? 'bad' : v >= 0.6 ? 'good' : v >= 0.45 ? 'mid' : 'bad';
 
 function sparkSvg(o) {
@@ -395,7 +395,7 @@ function cardHtml(o, i) {
           <circle class="bar" r="32" cx="37" cy="37" fill="none" stroke-width="7"
             stroke-dasharray="${C}" stroke-dashoffset="${C}" data-off="${C * (1 - score / 100)}"/>
         </svg>
-        <div class="num">${neutro ? '—' : Math.round(score)}<small>convicção</small></div>
+        <div class="num">${neutro ? '—' : Math.round(score)}<small>conviction</small></div>
       </div>
       <div class="card-spark">${sparkSvg(o)}</div>
     </div>
@@ -411,8 +411,8 @@ function renderResumo() {
     <span><b>${DATA.horizontes[horizonte].label}</b>:</span>
     <span class="r-long">▲ ${longs.length} long</span><span class="dot">·</span>
     <span class="r-short">▼ ${shorts.length} short</span>
-    ${topL ? `<span class="dot">·</span><span>destaque long: <b>${esc(topL.nome)}</b> (${Math.round(topL.score)})</span>` : ''}
-    ${topS ? `<span class="dot">·</span><span>destaque short: <b>${esc(topS.nome)}</b> (${Math.round(topS.score)})</span>` : ''}`;
+    ${topL ? `<span class="dot">·</span><span>top long: <b>${esc(topL.nome)}</b> (${Math.round(topL.score)})</span>` : ''}
+    ${topS ? `<span class="dot">·</span><span>top short: <b>${esc(topS.nome)}</b> (${Math.round(topS.score)})</span>` : ''}`;
 }
 
 // ── ranking acionável + dimensionamento de posição ───────────────────
@@ -425,9 +425,9 @@ let riscoSel = 'moderado'; // perfil GLOBAL: sizing, ranking e Oráculo
 
 // ── controles unificados (perfil, filtros, capital) ───────────────────
 $('seg-risco').innerHTML = [
-  ['conservador', 'shield', 'Conservador'],
-  ['moderado', 'scales', 'Moderado'],
-  ['agressivo', 'bolt', 'Agressivo'],
+  ['conservador', 'shield', 'Conservative'],
+  ['moderado', 'scales', 'Moderate'],
+  ['agressivo', 'bolt', 'Aggressive'],
 ].map(([v, ic, l]) =>
   `<button data-v="${v}" class="${v === riscoSel ? 'active' : ''}">${icon(ic)}<span class="seg-lbl">${l}</span></button>`).join('');
 $('seg-risco').addEventListener('click', (e) => {
@@ -440,12 +440,12 @@ $('seg-risco').addEventListener('click', (e) => {
 });
 
 els.filters.innerHTML = `
-  <button class="chip active" data-f="todos">Todos</button>
+  <button class="chip active" data-f="todos">All</button>
   <button class="chip chip-long" data-f="compra">▲ LONG</button>
   <button class="chip chip-short" data-f="venda">▼ SHORT</button>
-  <button class="chip" data-f="neutro">Neutros</button>
+  <button class="chip" data-f="neutro">Neutral</button>
   <button class="chip chip-etoro active" id="chip-etoro"
-    title="Somente ativos com instrumento no eToro">${icon('target')} eToro</button>`;
+    title="Only assets with an eToro instrument">${icon('target')} eToro</button>`;
 $('chip-etoro').addEventListener('click', () => {
   soEtoro = !soEtoro;
   $('chip-etoro').classList.toggle('active', soEtoro);
@@ -508,12 +508,14 @@ function renderRanking() {
     calcularOrdens(horizonte);
   const ordens = linhas.map((l) => l.o);
 
-  let html = `<h2 class="rank-title">O que fazer agora —
-    ${DATA.horizontes[horizonte].label.toLowerCase()} · perfil ${riscoSel}</h2>`;
+  const hLabel = { curto: 'short term', medio: 'medium term', longo: 'long term' }[horizonte] || horizonte;
+  const pLabel = { conservador: 'conservative', moderado: 'moderate', agressivo: 'aggressive' }[riscoSel] || riscoSel;
+  let html = `<h2 class="rank-title">What to do now —
+    ${hLabel} · ${pLabel} profile</h2>`;
   if (!ordens.length) {
-    html += `<div class="rank-empty">Nenhuma ordem passa no corte de
-      assertividade do perfil ${riscoSel} (${cortePct}%)
-      neste horizonte — o laboratório prefere ficar de fora a chutar.</div>`;
+    html += `<div class="rank-empty">No order clears the ${pLabel} profile's
+      accuracy cutoff (${cortePct}%) on this horizon — the lab would
+      rather stay out than guess.</div>`;
   } else {
     html += linhas.map((l, i) => {
       const o = l.o;
@@ -534,63 +536,63 @@ function renderRanking() {
         ? precoRef * (compra ? 1 + r.retornoEsperado : 1 - r.retornoEsperado)
         : l.alvoPreco;
       const sl = stopP != null && alvoP != null
-        ? ` · SL ~<b>${nivel(stopP)}</b> · alvo ~<b>${nivel(alvoP)}</b>`
+        ? ` · SL ~<b>${nivel(stopP)}</b> · target ~<b>${nivel(alvoP)}</b>`
         : '';
       const precoChip = precoRef == null ? '' : (live != null
-        ? `<span class="live-px" title="cotação ao vivo — stop e alvo recalculados neste preço"><i class="live-dot"></i>${nivel(precoRef)} <small>${esc(live.rotulo)}</small></span>`
-        : `<span class="live-px stale" title="fechamento do dia — cotação ao vivo indisponível">${nivel(precoRef)} <small>fechamento</small></span>`);
+        ? `<span class="live-px" title="live quote — stop and target recalculated at this price"><i class="live-dot"></i>${nivel(precoRef)} <small>${esc(live.rotulo)}</small></span>`
+        : `<span class="live-px stale" title="daily close — live quote unavailable">${nivel(precoRef)} <small>daily close</small></span>`);
       const sizing = (valor != null
         ? (l.lev > 1
-            ? `Invista <b>R$ ${fmtNum(l.margem, 0)}</b> com alavancagem
-               <b>X${l.lev}</b> (exposição R$ ${fmtNum(valor, 0)} ·
-               ${fmtPct(peso, 1, false)}) · risco ≈ R$ ${fmtNum(riscoRs, 0)}`
-            : `Posição sugerida: <b>R$ ${fmtNum(valor, 0)}</b>
+            ? `Invest <b>$${fmtNum(l.margem, 0)}</b> with leverage
+               <b>X${l.lev}</b> (exposure $${fmtNum(valor, 0)} ·
+               ${fmtPct(peso, 1, false)}) · risk ≈ $${fmtNum(riscoRs, 0)}`
+            : `Suggested position: <b>$${fmtNum(valor, 0)}</b>
                (${fmtPct(peso, 1, false)}) · X1
-               · risco até o stop ≈ R$ ${fmtNum(riscoRs, 0)}`)
-        : `Peso sugerido: <b>${fmtPct(peso, 1, false)}</b> do capital
-           (informe o capital acima para ver em R$)`) + sl;
+               · risk to the stop ≈ $${fmtNum(riscoRs, 0)}`)
+        : `Suggested weight: <b>${fmtPct(peso, 1, false)}</b> of capital
+           (enter your capital above to see it in $)`) + sl;
       const kv = (k, v) =>
         `<div class="kv"><div class="k">${k}</div><div class="v">${v}</div></div>`;
       return `<details class="rank-row" data-id="${esc(o.id)}">
         <summary>
           <span class="rank-pos">${i + 1}</span>
-          <span class="badge ${o.direcao}">${r.acao === 'comprar' ? '▲ COMPRAR' : '▼ VENDER'}</span>
-          <span class="row-name">${esc(o.nome)}${tk ? `<span class="tick">${esc(tk)}</span>` : ''}${r.origem === 'radar' ? '<span class="tag-radar" title="Ordem emitida pelo Radar de Picos: estado técnico esticado + probabilidade empírica de virada nos episódios históricos idênticos. Janela ~1 mês, sempre X1.">radar</span>' : ''}</span>
-          <span class="row-ass"><b>${fmtPct(r.assertividade, 0, false)}</b><small>assertividade</small></span>
+          <span class="badge ${o.direcao}">${r.acao === 'comprar' ? '▲ BUY' : '▼ SELL'}</span>
+          <span class="row-name">${esc(o.nome)}${tk ? `<span class="tick">${esc(tk)}</span>` : ''}${r.origem === 'radar' ? '<span class="tag-radar" title="Order issued by the Peak Radar: stretched technical state + empirical reversal probability in identical historical episodes. ~1-month window, always X1.">radar</span>' : ''}</span>
+          <span class="row-ass"><b>${fmtPct(r.assertividade, 0, false)}</b><small>accuracy</small></span>
           <span class="chev">${icon('chevron')}</span>
         </summary>
         <div class="row-body">
-          ${precoChip ? `<div class="row-live-line">Preço de referência: ${precoChip}</div>` : ''}
+          ${precoChip ? `<div class="row-live-line">Reference price: ${precoChip}</div>` : ''}
           <div class="kv-grid kv-mini">
-            ${kv('Retorno esp. (' + r.janelaRetorno + ')', fmtPct(r.retornoEsperado))}
-            ${kv('Base histórica', 'n=' + r.base)}
-            ${kv('Stop estimado', r.stopEstimado ? fmtPct(r.stopEstimado, 0, false) : '—')}
-            ${kv('Alavancagem', 'X' + l.lev)}
-            ${kv('Convicção', Math.round(o.score) + '/100')}
+            ${kv('Exp. return (' + r.janelaRetorno + ')', fmtPct(r.retornoEsperado))}
+            ${kv('Historical base', 'n=' + r.base)}
+            ${kv('Estimated stop', r.stopEstimado ? fmtPct(r.stopEstimado, 0, false) : '—')}
+            ${kv('Leverage', 'X' + l.lev)}
+            ${kv('Conviction', Math.round(o.score) + '/100')}
           </div>
           <p class="row-sizing">${sizing}</p>
           <p class="row-gat">${icon('flag')} ${esc(r.gatilho || '')}${o.etoro?.nota ? ` · <i>${esc(o.etoro.nota)}</i>` : ''}</p>
           <div class="row-actions">
-            <button class="btn-exec" data-exec="${esc(o.id)}">Executei no eToro</button>
-            <button class="btn-raiox" data-modal="${esc(o.id)}">${icon('chart')} Raio-X completo</button>
+            <button class="btn-exec" data-exec="${esc(o.id)}">I executed on eToro</button>
+            <button class="btn-raiox" data-modal="${esc(o.id)}">${icon('chart')} Full X-ray</button>
           </div>
         </div>
       </details>`;
     }).join('');
-    html += `<div class="rank-caixa">${icon('bank')} Caixa/renda fixa:
+    html += `<div class="rank-caixa">${icon('bank')} Cash/fixed income:
       <b>${fmtPct(caixaPct, 0, false)}</b>
-      ${capital > 0 ? `(R$ ${fmtNum(capital * caixaPct, 0)})` : ''} —
-      com juro real de ${fmtPct(DATA.macro?.juroReal, 1, false)} a.a., caixa
-      também é posição.</div>`;
+      ${capital > 0 ? `($${fmtNum(capital * caixaPct, 0)})` : ''} —
+      with a ${fmtPct(DATA.macro?.juroReal, 1, false)}/yr real rate, cash
+      is a position too.</div>`;
   }
   if (foraEtoro.length) {
-    html += `<div class="rank-fora">Aprovados mas sem instrumento no eToro
-      (desative o filtro eToro para ver):
+    html += `<div class="rank-fora">Approved but with no eToro instrument
+      (turn off the eToro filter to see):
       ${foraEtoro.map((o) => esc(o.nome)).join(', ')}.</div>`;
   }
   if (segurados.length) {
-    html += `<div class="rank-fora">Sinal presente mas abaixo do corte de
-      ${cortePct}% do perfil: ${segurados.map((o) => esc(o.nome)).join(', ')} — ficar de fora.</div>`;
+    html += `<div class="rank-fora">Signal present but below the profile's
+      ${cortePct}% cutoff: ${segurados.map((o) => esc(o.nome)).join(', ')} — stay out.</div>`;
   }
   els.ranking.innerHTML = html;
 }
@@ -613,7 +615,7 @@ function render() {
     .sort((a, b) => (b.direcao !== 'neutro') - (a.direcao !== 'neutro') || b.score - a.score);
   els.cards.innerHTML = ops.length
     ? ops.map(cardHtml).join('')
-    : '<p style="color:var(--dimmer);padding:30px 6px">Nenhum ativo neste filtro.</p>';
+    : '<p style="color:var(--dimmer);padding:30px 6px">No assets in this filter.</p>';
   requestAnimationFrame(() => requestAnimationFrame(() => {
     els.cards.querySelectorAll('.card').forEach((c) => c.classList.add('vis'));
     els.cards.querySelectorAll('.bar').forEach((b) => { b.style.strokeDashoffset = b.dataset.off; });
@@ -659,10 +661,9 @@ function renderPlacar() {
   if (!el) return;
   const p = DATA.placar;
   if (!p || !p.totalSinais) {
-    el.innerHTML = `<div class="placar-empty">O laboratório começou a
-      registrar as recomendações emitidas ao vivo. A taxa de acerto REAL
-      aparece conforme cada janela se cumpre (curto 3m; médio/longo 12m) —
-      sem antecipar resultado.</div>`;
+    el.innerHTML = `<div class="placar-empty">The lab has started logging
+      live-issued calls. The REAL hit rate appears as each window
+      completes (short 3m; medium/long 12m) — no result is anticipated.</div>`;
     return;
   }
   const H = p.porHorizonte || {};
@@ -675,30 +676,30 @@ function renderPlacar() {
       ? fmtPct(h.assertividadePrevista, 0, false) : '—';
     return `<div class="placar-card">
       <div class="pc-top"><span class="pc-lbl">${esc(h.label)}</span>
-        <span class="pc-n">${h.nFechados} fechado${h.nFechados === 1 ? '' : 's'}</span></div>
-      <div class="pc-hit ${hitCls}">${hit}<small>acerto real</small></div>
+        <span class="pc-n">${h.nFechados} closed</span></div>
+      <div class="pc-hit ${hitCls}">${hit}<small>real hit rate</small></div>
       <div class="pc-spark">${fech ? sparkArr(h.equity) : ''}</div>
       <div class="pc-kvs">
-        <span>retorno médio <b>${fech ? fmtPct(h.retornoMedio) : '—'}</b></span>
-        <span>previsto <b>${prev}</b></span>
+        <span>avg return <b>${fech ? fmtPct(h.retornoMedio) : '—'}</b></span>
+        <span>predicted <b>${prev}</b></span>
       </div>
-      ${h.nAbertos ? `<div class="pc-open">${h.nAbertos} em aberto${
-        h.plAberto != null ? ` · P&L médio ${fmtPct(h.plAberto)}` : ''}</div>` : ''}
+      ${h.nAbertos ? `<div class="pc-open">${h.nAbertos} open${
+        h.plAberto != null ? ` · avg P&L ${fmtPct(h.plAberto)}` : ''}</div>` : ''}
     </div>`;
   }).join('');
 
   let calib = '';
   if (p.calibracao && p.calibracao.length) {
     calib = `<div class="placar-calib">
-      <div class="pcal-h">Previsto × realizado
-        <span class="h2-sub">a assertividade que prometemos bate com o que
-        aconteceu?</span></div>
+      <div class="pcal-h">Predicted × realized
+        <span class="h2-sub">does the accuracy we promised match what
+        actually happened?</span></div>
       <div class="pcal-rows">${p.calibracao.map((f) => {
         const de = Math.round(f.de * 100);
         const ate = Math.min(100, Math.round(f.ate * 100));
         return `<div class="pcal-row">
           <span class="pcal-band">${de}–${ate}%</span>
-          <span class="pcal-bar" title="barra clara = previsto · barra viva = realizado">
+          <span class="pcal-bar" title="light bar = predicted · bright bar = realized">
             <i class="prev" style="width:${Math.round(f.previsto * 100)}%"></i>
             <i class="real" style="width:${Math.round(f.real * 100)}%"></i></span>
           <span class="pcal-val">real <b>${fmtPct(f.real, 0, false)}</b> · n=${f.n}</span>
@@ -706,14 +707,14 @@ function renderPlacar() {
       }).join('')}</div></div>`;
   }
 
-  const desde = p.desde ? ` desde ${fmtData(p.desde)}` : '';
+  const desde = p.desde ? ` since ${fmtData(p.desde)}` : '';
   const foot = p.totalFechados === 0
-    ? `<div class="placar-foot">Ainda medindo: <b>${p.totalSinais}</b> sinais
-       em aberto${desde}. As taxas de acerto reais aparecem quando cada janela
-       se cumpre — o laboratório não antecipa resultado.</div>`
-    : `<div class="placar-foot"><b>${p.totalFechados}</b> de ${p.totalSinais}
-       sinais já fecharam a janela${desde}. Fechados = resultado real (entram
-       no acerto); abertos = marcados a mercado.</div>`;
+    ? `<div class="placar-foot">Still measuring: <b>${p.totalSinais}</b> open
+       signals${desde}. Real hit rates appear as each window completes —
+       the lab does not anticipate results.</div>`
+    : `<div class="placar-foot"><b>${p.totalFechados}</b> of ${p.totalSinais}
+       signals have completed their window${desde}. Closed = real results
+       (count toward the hit rate); open = marked to market.</div>`;
 
   el.innerHTML = `<div class="placar-grid">${cards}</div>${calib}${foot}`;
 }
@@ -724,12 +725,12 @@ function renderHipoteses() {
   els.hipoteses.innerHTML = hs.length ? hs.map((h) => `
     <div class="hip">
       <div class="rel">${esc(h.causa)} <b>→</b> ${esc(h.efeito)}</div>
-      <span class="m">lag ${h.lagMeses}m</span>
+      <span class="m">lag ${h.lagMeses}mo</span>
       <span class="m">ρ treino ${fmtNum(h.rhoTreino)}</span>
       <span class="m">ρ teste ${fmtNum(h.rhoTeste)}</span>
       <span class="st ${h.status}">${h.status}</span>
     </div>`).join('')
-    : '<p style="color:var(--dimmer)">Nenhuma hipótese publicada ainda.</p>';
+    : '<p style="color:var(--dimmer)">No hypotheses published yet.</p>';
 }
 
 // ── modal raio-X do ativo ─────────────────────────────────────────────
@@ -769,7 +770,7 @@ function bigChartSvg(o) {
       <text class="axis" x="${W - R}" y="${H - 8}" text-anchor="end">${fmtData(ds[ds.length - 1])}</text>
       <text class="axis" x="${W - R}" y="${T + 8}" text-anchor="end">${fmtNum(max)}</text>
     </svg>
-    <div class="chart-leg"><span class="l1">preço (~3 anos, semanal)</span><span class="l2">SMA-200</span></div>`;
+    <div class="chart-leg"><span class="l1">price (~3 years, weekly)</span><span class="l2">SMA-200</span></div>`;
 }
 
 function openModal(id) {
@@ -783,19 +784,19 @@ function openModal(id) {
     <div class="m-head"><h3>${esc(o.nome)}</h3>
       <span class="badge ${o.direcao}">${badgeTxt[o.direcao]}</span></div>
     <div class="m-sub">${esc(o.categoria)} · ${esc(o.unidade)} ·
-      ${fmtNum(o.preco)} em ${fmtData(o.dataPreco)} · convicção
+      ${fmtNum(o.preco)} on ${fmtData(o.dataPreco)} · conviction
       ${o.direcao === 'neutro' ? '—' : Math.round(o.score) + '/100'}
       (${DATA.horizontes[horizonte].label.toLowerCase()})</div>
     ${bigChartSvg(o)}
     ${e ? `<div class="m-sec">Backtest — ${esc(e.nome)}</div><div class="kv-grid">
-      ${kv('Eficácia', e.winRate == null ? 'n/d' : fmtPct(e.winRate, 0, false))}
+      ${kv('Win rate', e.winRate == null ? 'n/a' : fmtPct(e.winRate, 0, false))}
       ${kv('Trades', e.trades ?? '—')}
-      ${kv('CAGR estratégia', fmtPct(e.cagr))}
+      ${kv('Strategy CAGR', fmtPct(e.cagr))}
       ${kv('CAGR buy & hold', fmtPct(e.cagrBuyHold))}
       ${kv('Sharpe OOS', fmtNum(e.sharpeOos))}
       ${kv('Walk-forward', e.walkForward || '—')}</div>` : ''}
-    ${o.cenarios ? `<div class="m-sec">Cenários análogos —
-        ${o.cenarios.n} episódios desde ${fmtData(o.cenarios.desde)}</div>
+    ${o.cenarios ? `<div class="m-sec">Analogous scenarios —
+        ${o.cenarios.n} episodes since ${fmtData(o.cenarios.desde)}</div>
       <div class="kv-grid">
       ${c3 ? kv('3m · mediana', fmtPct(c3.mediana)) +
              kv('3m · a favor', fmtPct(c3.pctFavoravel, 0, false)) +
@@ -804,18 +805,18 @@ function openModal(id) {
       ${c12 ? kv('12m · mediana', fmtPct(c12.mediana)) +
               kv('12m · a favor', fmtPct(c12.pctFavoravel, 0, false)) +
               kv('12m · Q1…Q3', `${fmtPct(c12.q1)} … ${fmtPct(c12.q3)}`) +
-              kv('12m · pior/melhor', `${fmtPct(c12.pior)} / ${fmtPct(c12.melhor)}`) : ''}
+              kv('12m · worst/best', `${fmtPct(c12.pior)} / ${fmtPct(c12.melhor)}`) : ''}
       </div>` : ''}
-    ${o.alavancagem ? `<div class="m-sec">Alavancagem máxima sugerida</div><div class="kv-grid">
-      ${kv('Sugerida', '≤ ' + fmtNum(o.alavancagem.sugerida) + 'x')}
-      ${kv('Meio-Kelly', fmtNum(o.alavancagem.kellyMeio) + 'x')}
-      ${kv('Teto por volatilidade', fmtNum(o.alavancagem.tetoVol) + 'x')}</div>` : ''}
-    <div class="m-sec">Sinais</div><div class="kv-grid">
-      ${kv('Retorno 1m', fmtPct(s.ret1m))}${kv('Retorno 3m', fmtPct(s.ret3m))}
-      ${kv('Retorno 12m', fmtPct(s.ret12m))}${kv('Momentum 12-1', fmtPct(s.mom12x1))}
+    ${o.alavancagem ? `<div class="m-sec">Max suggested leverage</div><div class="kv-grid">
+      ${kv('Suggested', '≤ ' + fmtNum(o.alavancagem.sugerida) + 'x')}
+      ${kv('Half-Kelly', fmtNum(o.alavancagem.kellyMeio) + 'x')}
+      ${kv('Volatility cap', fmtNum(o.alavancagem.tetoVol) + 'x')}</div>` : ''}
+    <div class="m-sec">Signals</div><div class="kv-grid">
+      ${kv('1m return', fmtPct(s.ret1m))}${kv('3m return', fmtPct(s.ret3m))}
+      ${kv('12m return', fmtPct(s.ret12m))}${kv('Momentum 12-1', fmtPct(s.mom12x1))}
       ${kv('vs SMA-200', fmtPct(s.distSma200))}${kv('Z-score 60d', fmtNum(s.z60))}
-      ${kv('Vol 1a', fmtPct(s.vol1y, 0, false))}${kv('Do topo', fmtPct(s.ddTopo))}</div>
-    ${o.evidencias?.length ? `<div class="m-sec">Evidências</div>
+      ${kv('1y vol', fmtPct(s.vol1y, 0, false))}${kv('From peak', fmtPct(s.ddTopo))}</div>
+    ${o.evidencias?.length ? `<div class="m-sec">Evidence</div>
       <ul class="m-evid">${o.evidencias.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
     <div class="row-actions" style="margin-top:18px">
       <button class="btn-raiox" data-mentor data-nome="${esc(o.nome)}">
@@ -839,47 +840,46 @@ const GEMINI_KEY = 'AIzaSyAjI74u44OYqLOYfaVDs4bmtuWy-P-TIB0';
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/'
   + 'models/gemini-2.5-flash:generateContent?key=' + GEMINI_KEY;
 const AI_SYSTEM =
-  'Você é o ORÁCULO, o operador-chefe do QuantLab dando instruções de ' +
-  'EXECUÇÃO no eToro. Responda em português do Brasil, markdown enxuto, ' +
-  'tom IMPERATIVO e específico, nestas seções: ' +
-  '## Plano de execução — hoje: passo a passo numerado, UMA ordem por ' +
-  'passo: "Abra o eToro e busque {TICKER} → toque em COMPRAR (ou ' +
-  'VENDER) → valor R$ {valorRs} → alavancagem {alavancagem} → ' +
-  'Stop Loss em {stopLossPreco} → Take Profit em {takeProfitPreco} → ' +
-  'confirme." Use exatamente os valores fornecidos (valorRs já é a ' +
-  'MARGEM a digitar; se a alavancagem for X2+, mencione a exposição ' +
-  'exposicaoRs). Cruze com o radarDePico quando existir: se a ordem ' +
-  'concordar com o radar, reforce; se o radar apontar contra a ordem, ' +
-  'diga para reduzir o tamanho ou aguardar. ' +
-  '## Depois de executar: rotina de acompanhamento (1x por dia, após a ' +
-  'atualização do painel) e o gatilho de saída de cada posição. ' +
-  '## Plano B — se o mercado virar: o que fazer se um stop for atingido ' +
-  '(aceitar a perda planejada, NUNCA dobrar a aposta) e o que faria o ' +
-  'plano mudar. ' +
-  'REGRAS INEGOCIÁVEIS: use SOMENTE os números fornecidos (nunca invente ' +
-  'preços, horários ou notícias). Se takeProfitPreco vier null, escreva ' +
-  '"sem Take Profit — saia pelo gatilho" naquele passo (jamais escreva ' +
-  '"null"). TIMING honesto: os sinais são de ' +
-  'fechamento DIÁRIO — instrua a executar hoje, dentro do horário do ' +
-  'mercado de cada ativo (cripto: 24h/7d; índices e ações: pregão da ' +
-  'bolsa local; FX e futuros: ~24h em dias úteis), sem prometer timing ' +
-  'intradiário. Se o usuário sugerir day trade ou "lucro diário", ' +
-  'explique em 1 frase que os sinais do laboratório são de ciclo diário ' +
-  '(fechamento) e não sustentam promessas intradiárias — a rotina ' +
-  'rentável honesta é a revisão diária. Reserve o percentual de caixa ' +
-  'informado e cite o juro real. Percentuais arredondados (77%, nunca ' +
-  '0.7657) e R$ no padrão brasileiro. Termine com UMA linha de aviso de ' +
-  'risco. ~350 palavras.';
+  'You are the ORACLE, the QuantLab head trader giving EXECUTION ' +
+  'instructions for eToro. Answer in English, lean markdown, IMPERATIVE ' +
+  'and specific tone, in these sections: ' +
+  '## Execution plan — today: numbered steps, ONE order per step: ' +
+  '"Open eToro and search {TICKER} → tap BUY (or SELL) → amount ' +
+  '${amount} → leverage {leverage} → Stop Loss at {stopLossPrice} → ' +
+  'Take Profit at {takeProfitPrice} → confirm." Use exactly the values ' +
+  'provided (valorRs is already the MARGIN to type; if leverage is X2+, ' +
+  'mention the exposure exposicaoRs). Cross-check the radarDePico when ' +
+  'present: if the order agrees with the radar, reinforce it; if the ' +
+  'radar points against it, say to reduce size or wait. ' +
+  '## After executing: follow-up routine (once a day, after the ' +
+  'dashboard refresh) and the exit trigger of each position. ' +
+  '## Plan B — if the market turns: what to do if a stop is hit ' +
+  '(accept the planned loss, NEVER double down) and what would change ' +
+  'the plan. ' +
+  'NON-NEGOTIABLE RULES: use ONLY the numbers provided (never invent ' +
+  'prices, times or news). If takeProfitPrice is null, write "no Take ' +
+  'Profit — exit on the trigger" for that step (never write "null"). ' +
+  'Honest TIMING: signals are from DAILY closes — instruct to execute ' +
+  'today within the market hours of each asset (crypto: 24/7; indices and ' +
+  'stocks: local exchange session; FX and futures: ~24h on weekdays), ' +
+  'without promising intraday timing. If the user suggests day trading ' +
+  'or "daily profit", explain in 1 sentence that lab signals are ' +
+  'daily-cycle (close-based) and do not support intraday promises — the ' +
+  'honest profitable routine is the daily review. Reserve the cash ' +
+  'percentage provided and cite the real rate. Rounded percentages ' +
+  '(77%, never 0.7657). Also mention the REAL system scoreboard when ' +
+  'relevant and never promise above it. End with ONE risk warning ' +
+  'line. ~350 words.';
 
 const ORACULO_POS_SYSTEM =
-  'Você é o ORÁCULO do QuantLab acompanhando posições ABERTAS do usuário ' +
-  'no eToro. Para CADA posição, dê o veredito em negrito — MANTER, ' +
-  'FECHAR AGORA ou AJUSTAR STOP (com o novo preço) — seguido de UMA linha ' +
-  'de motivo baseada apenas nos dados fornecidos (status do painel, ' +
-  'sinal atual, P&L, stop/alvo). Depois, uma linha de resumo do risco ' +
-  'total. Não invente números nem notícias; as cotações são do ' +
-  'fechamento diário informado. Português do Brasil, markdown com lista, ' +
-  '~200 palavras, termine com uma linha de aviso de risco.';
+  'You are the QuantLab ORACLE monitoring the OPEN eToro ' +
+  'positions. For EACH position, give the verdict in bold — HOLD, ' +
+  'CLOSE NOW or ADJUST STOP (with the new price) — followed by ONE line ' +
+  'of reasoning based only on the data provided (dashboard status, ' +
+  'current signal, P&L, stop/target). Then one line summarizing total ' +
+  'risk. Do not invent numbers or news; quotes are from the daily close ' +
+  'provided. English, markdown list, ~200 words, end with one risk ' +
+  'warning line.';
 
 // riscoSel é global (controles unificados); o Oráculo segue o horizonte
 // ativo das abas — uma única fonte de verdade para toda a plataforma.
@@ -902,25 +902,24 @@ async function chamarGemini(prompt, sys = AI_SYSTEM) {
   if (!r.ok) throw new Error(j.error?.message || ('HTTP ' + r.status));
   const t = (j.candidates?.[0]?.content?.parts || [])
     .map((p) => p.text || '').join('');
-  if (!t) throw new Error('resposta vazia do modelo');
+  if (!t) throw new Error('empty model response');
   return t;
 }
 
 const regrasPerfil = {
   conservador:
-    'PERFIL CONSERVADOR: recomende apenas ordens do ranking com ' +
-    'assertividade ≥ 0,65; zero alavancagem; máximo 15% por ativo; todo ' +
-    'o resto em caixa/renda fixa (o juro real está nos dados).',
+    'CONSERVATIVE PROFILE: recommend only ranking orders with ' +
+    'accuracy >= 0.65; zero leverage; max 15% per asset; everything ' +
+    'else in cash/fixed income (the real rate is in the data).',
   moderado:
-    'PERFIL MODERADO: siga o ranking (assertividade ≥ 0,55); alavancagem ' +
-    'exatamente a fornecida em cada ordem (no máximo X2, e só quando o ' +
-    'laboratório recomendou); máximo 25% por ativo; mantenha reserva em ' +
-    'caixa.',
+    'MODERATE PROFILE: follow the ranking (accuracy >= 0.55); leverage ' +
+    'exactly as provided in each order (X2 max, and only when the lab ' +
+    'recommended it); max 25% per asset; keep a cash reserve.',
   agressivo:
-    'PERFIL AGRESSIVO: além do ranking, pode citar sinais segurados pelo ' +
-    'corte de 55% como posições especulativas de no máximo 5% cada, ' +
-    'deixando claro o risco; alavancagem exatamente a fornecida em cada ' +
-    'ordem; máximo 35% por ativo.',
+    'AGGRESSIVE PROFILE: beyond the ranking, you may mention signals ' +
+    'held back by the 55% cutoff as speculative positions of at most ' +
+    '5% each, making the risk clear; leverage exactly as provided in ' +
+    'each order; max 35% per asset.',
 };
 
 function aiPrompt() {
@@ -956,41 +955,41 @@ function aiPrompt() {
   const alertasRadar = (DATA.radarPicos || []).slice(0, 3).map((r) =>
     `${r.nome}: ${r.tipo.toUpperCase()} ${Math.round(r.prob * 100)}% (n=${r.n})`);
   return `${regrasPerfil[riscoSel]}
-HORIZONTE PEDIDO: ${h.label} (${h.janela}).
-CAPITAL DO USUÁRIO: ${capital > 0 ? 'R$ ' + capital : 'não informado (use % do capital)'}.
-CAIXA/RENDA FIXA SUGERIDO: ${Math.round(plano.caixaPct * 100)}% do capital.
-MACRO (dados oficiais): ${JSON.stringify(DATA.macro)}
-ORDENS APROVADAS PELO LABORATÓRIO (já dimensionadas — monte o passo a
-passo EXATAMENTE com estes valores): ${JSON.stringify(ordens)}
-NÃO OPERAR (sinal fraco ou segurado): ${plano.segurados.map((o) => o.nome).join(', ') || 'nenhum'}.
-ALERTAS DO RADAR DE PICOS (leitura técnica; probabilidade empírica de
-virada em ~21 pregões): ${alertasRadar.join(' | ') || 'nenhum'}.
-PLACAR REAL DO SISTEMA (desempenho medido das ordens já emitidas ao
-vivo — cite quando for relevante para calibrar expectativa e NUNCA
-prometa mais do que ele mostra): ${placarResumo()}
-Monte o plano de execução agora.`;
+REQUESTED HORIZON: ${h.label} (${h.janela}).
+USER CAPITAL: ${capital > 0 ? '$' + capital : 'not provided (use % of capital)'}.
+SUGGESTED CASH/FIXED INCOME: ${Math.round(plano.caixaPct * 100)}% of capital.
+MACRO (official data): ${JSON.stringify(DATA.macro)}
+ORDERS APPROVED BY THE LAB (already sized — build the step-by-step
+EXACTLY with these values): ${JSON.stringify(ordens)}
+DO NOT TRADE (weak or held-back signal): ${plano.segurados.map((o) => o.nome).join(', ') || 'none'}.
+PEAK RADAR ALERTS (technical reading; empirical probability of a
+reversal in ~21 sessions): ${alertasRadar.join(' | ') || 'none'}.
+REAL SYSTEM SCOREBOARD (measured performance of live-issued orders —
+cite when relevant to calibrate expectations and NEVER promise more
+than it shows): ${placarResumo()}
+Build the execution plan now.`;
 }
 
 /// Resumo do Placar do sistema (track record REAL) para os contextos da IA:
 /// o Oráculo aconselha sabendo a taxa de acerto MEDIDA, não só a prevista.
 function placarResumo() {
   const p = DATA?.placar;
-  if (!p || !p.totalSinais) return 'ainda sem sinais registrados';
+  if (!p || !p.totalSinais) return 'no signals logged yet';
   if (!p.totalFechados) {
-    return `tracking iniciado em ${fmtData(p.desde)}: ${p.totalSinais} ` +
-      'sinais registrados, nenhum fechou a janela ainda (sem taxa real ' +
-      'por enquanto — não prometa acerto além da assertividade prevista)';
+    return `tracking started ${fmtData(p.desde)}: ${p.totalSinais} ` +
+      'signals logged, none has completed its window yet (no real rate ' +
+      'for now — do not promise accuracy beyond the predicted one)';
   }
   const partes = [];
   for (const [k, h] of Object.entries(p.porHorizonte || {})) {
     if (!h.nFechados) continue;
-    partes.push(`${k}: acerto real ${Math.round((h.hitRate || 0) * 100)}% ` +
-      `em ${h.nFechados} fechados (previsto era ` +
-      `${Math.round((h.assertividadePrevista || 0) * 100)}%), retorno médio ` +
+    partes.push(`${k}: real hit rate ${Math.round((h.hitRate || 0) * 100)}% ` +
+      `across ${h.nFechados} closed (predicted was ` +
+      `${Math.round((h.assertividadePrevista || 0) * 100)}%), avg return ` +
       `${((h.retornoMedio || 0) * 100).toFixed(1)}%`);
   }
-  return `desde ${fmtData(p.desde)}, ${p.totalFechados} de ${p.totalSinais} ` +
-    `sinais fechados. ${partes.join(' · ')}`;
+  return `since ${fmtData(p.desde)}, ${p.totalFechados} of ${p.totalSinais} ` +
+    `signals closed. ${partes.join(' · ')}`;
 }
 
 function mdParaHtml(md) {
@@ -1019,8 +1018,8 @@ async function gerarIA() {
   const out = $('ai-out');
   const btn = $('btn-ai');
   out.classList.remove('hidden');
-  out.innerHTML = '<div class="ai-loading">O Oráculo está analisando '
-    + 'os números do laboratório…</div>';
+  out.innerHTML = '<div class="ai-loading">The Oracle is analyzing '
+    + 'the lab numbers…</div>';
   btn.disabled = true;
   try {
     const texto = await chamarGemini(aiPrompt());
@@ -1056,7 +1055,7 @@ function sincronizarOraculo(marcarDesatualizado = true) {
     if (out && !out.classList.contains('hidden') &&
         !out.querySelector('.ai-stale')) {
       out.insertAdjacentHTML('afterbegin',
-        '<div class="ai-stale">A seleção mudou — gere novamente para sincronizar.</div>');
+        '<div class="ai-stale">The selection changed — generate again to sync.</div>');
     }
   }
 }
@@ -1067,9 +1066,9 @@ function renderRadar() {
   const list = $('radar-list');
   const radar = DATA.radarPicos || [];
   if (!radar.length) {
-    list.innerHTML = `<div class="radar-vazio">Nenhum ativo em estado
-      esticado hoje — sem candidato a pico. O radar só fala quando o
-      gráfico está em extremo E existem análogos históricos suficientes.</div>`;
+    list.innerHTML = `<div class="radar-vazio">No asset in a stretched
+      state today — no peak candidate. The radar only speaks when the
+      chart is at an extreme AND there are enough historical analogs.</div>`;
     return;
   }
   list.innerHTML = radar.map((r) => {
@@ -1077,28 +1076,28 @@ function renderRadar() {
     return `<details class="radar-row" data-id="${esc(r.id)}">
       <summary>
         <span class="badge ${topo ? 'venda' : 'compra'}">
-          ${icon(topo ? 'down' : 'up')} ${topo ? 'TOPO' : 'FUNDO'}</span>
+          ${icon(topo ? 'down' : 'up')} ${topo ? 'TOP' : 'BOTTOM'}</span>
         <span class="row-name">${esc(r.nome)}${r.ticker ? `<span class="tick">${esc(r.ticker)}</span>` : ''}</span>
         <span class="rr-meter"><span class="rr-fill ${r.tipo}" data-w="${(r.prob * 100).toFixed(0)}"></span>
           <span class="rr-pct">${fmtPct(r.prob, 0, false)}</span></span>
         <span class="chev">${icon('chevron')}</span>
       </summary>
       <div class="row-body">
-        <p class="rr-sub">${topo ? 'Esticado para cima — probabilidade de virada para baixo'
-          : 'Esticado para baixo — probabilidade de virada para cima'}
-          em ~21 pregões: <b>${fmtPct(r.prob, 0, false)}</b>
-          (n=${r.n} · mediana dos 21d seguintes: ${fmtPct(r.medianaFwd21)}).</p>
+        <p class="rr-sub">${topo ? 'Stretched up — probability of a downward reversal'
+          : 'Stretched down — probability of an upward reversal'}
+          within ~21 sessions: <b>${fmtPct(r.prob, 0, false)}</b>
+          (n=${r.n} · median of the following 21d: ${fmtPct(r.medianaFwd21)}).</p>
         <p class="rr-leituras">${r.leituras.map(esc).join(' · ')}</p>
         <div class="row-actions">
-          <button class="btn-raiox" data-modal="${esc(r.id)}">${icon('chart')} Raio-X completo</button>
+          <button class="btn-raiox" data-modal="${esc(r.id)}">${icon('chart')} Full X-ray</button>
         </div>
       </div>
     </details>`;
   }).join('') +
-  `<div class="radar-nota">Probabilidade empírica: em n episódios em que o
-   gráfico esteve neste estado, a % indica quantas vezes veio a virada em
-   ~21 pregões. 99% não existe em mercado — acima de 70% já é raro; trate
-   como alerta forte, não como certeza.</div>`;
+  `<div class="radar-nota">Empirical probability: across n episodes when the
+   chart was in this state, the % shows how often the reversal came within
+   ~21 sessions. 99% does not exist in markets — above 70% is already rare;
+   treat it as a strong alert, not certainty.</div>`;
   requestAnimationFrame(() => requestAnimationFrame(() => {
     list.querySelectorAll('.rr-fill').forEach((f) => {
       f.style.width = f.dataset.w + '%';
@@ -1128,27 +1127,27 @@ function opAtual(ativoId) {
 
 function statusPos(p, op) {
   const atual = op?.preco;
-  if (atual == null) return { txt: 'sem cotação', cls: 'flat', varr: null };
+  if (atual == null) return { txt: 'no quote', cls: 'flat', varr: null };
   const dir = p.dir === 'compra' ? 1 : -1;
   const varr = dir * (atual / p.entrada - 1);
   if (p.sl != null && (dir > 0 ? atual <= p.sl : atual >= p.sl)) {
-    return { txt: 'STOP ROMPIDO — FECHE', cls: 'down', ic: 'stop', varr };
+    return { txt: 'STOP BREACHED — CLOSE', cls: 'down', ic: 'stop', varr };
   }
   if (p.tp != null && (dir > 0 ? atual >= p.tp : atual <= p.tp)) {
-    return { txt: 'ALVO ATINGIDO — realize', cls: 'up', ic: 'flag', varr };
+    return { txt: 'TARGET HIT — take profit', cls: 'up', ic: 'flag', varr };
   }
   if (op && ((p.dir === 'compra' && op.direcao === 'venda') ||
              (p.dir === 'venda' && op.direcao === 'compra'))) {
-    return { txt: 'Sinal virou contra — feche', cls: 'down', ic: 'alert', varr };
+    return { txt: 'Signal turned against — close', cls: 'down', ic: 'alert', varr };
   }
   if (p.sl != null && p.entrada !== p.sl) {
     const dist = dir > 0 ? (atual - p.sl) / (p.entrada - p.sl)
                          : (p.sl - atual) / (p.sl - p.entrada);
     if (dist < 0.35) {
-      return { txt: 'Perto do stop', cls: 'flat', ic: 'alert', varr };
+      return { txt: 'Near the stop', cls: 'flat', ic: 'alert', varr };
     }
   }
-  return { txt: 'MANTER', cls: 'up', ic: 'check', varr };
+  return { txt: 'HOLD', cls: 'up', ic: 'check', varr };
 }
 
 const nivelFmt = (x) => x == null ? '—' : fmtNum(x, x >= 100 ? 0 : 4);
@@ -1157,24 +1156,24 @@ const nivelFmt = (x) => x == null ? '—' : fmtNum(x, x >= 100 ? 0 : 4);
 function etoroStatus(p) {
   const cur = p.currentRate;
   if (cur == null || !p.openRate) {
-    return { plPct: null, txt: 'sem cotação', cls: 'flat', ic: 'alert' };
+    return { plPct: null, txt: 'no quote', cls: 'flat', ic: 'alert' };
   }
   const move = cur / p.openRate - 1;
   const plPct = (p.isBuy ? move : -move) * (p.leverage || 1);
   const dir = p.isBuy ? 1 : -1;
   if (p.stopLoss && (dir > 0 ? cur <= p.stopLoss : cur >= p.stopLoss)) {
-    return { plPct, txt: 'STOP ROMPIDO — FECHE', cls: 'down', ic: 'stop' };
+    return { plPct, txt: 'STOP BREACHED — CLOSE', cls: 'down', ic: 'stop' };
   }
   if (p.takeProfit && (dir > 0 ? cur >= p.takeProfit : cur <= p.takeProfit)) {
-    return { plPct, txt: 'ALVO ATINGIDO — realize', cls: 'up', ic: 'flag' };
+    return { plPct, txt: 'TARGET HIT — take profit', cls: 'up', ic: 'flag' };
   }
   // perto do stop (dentro de 20% do caminho entrada→stop)
   if (p.stopLoss && p.openRate !== p.stopLoss) {
     const prog = dir > 0 ? (cur - p.stopLoss) / (p.openRate - p.stopLoss)
                          : (p.stopLoss - cur) / (p.stopLoss - p.openRate);
-    if (prog < 0.2) return { plPct, txt: 'Perto do stop', cls: 'flat', ic: 'alert' };
+    if (prog < 0.2) return { plPct, txt: 'Near the stop', cls: 'flat', ic: 'alert' };
   }
-  return { plPct, txt: 'MANTER', cls: 'up', ic: 'check' };
+  return { plPct, txt: 'HOLD', cls: 'up', ic: 'check' };
 }
 
 function renderEtoroPortfolio() {
@@ -1184,7 +1183,7 @@ function renderEtoroPortfolio() {
   if (!pf || !(pf.posicoes || []).length) { box.innerHTML = ''; return; }
   const nivel = (x) => x == null ? '—' : fmtNum(x, x >= 100 ? 0 : 4);
   const quando = pf.atualizadoEm
-    ? new Date(pf.atualizadoEm).toLocaleString('pt-BR',
+    ? new Date(pf.atualizadoEm).toLocaleString('en-US',
         { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
     : '';
   const totalPl = pf.posicoes.reduce((a, p) => {
@@ -1193,10 +1192,10 @@ function renderEtoroPortfolio() {
   }, 0);
   box.innerHTML = `
     <div class="etoro-head">
-      <span class="etoro-tag">${icon('shield')} eToro · conta real</span>
-      <span class="etoro-when">${pf.posicoes.length} posições · P&L aberto
+      <span class="etoro-tag">${icon('shield')} eToro · live account</span>
+      <span class="etoro-when">${pf.posicoes.length} positions · open P&L
         <b class="${totalPl >= 0 ? 'pl-pos' : 'pl-neg'}">US$ ${fmtNum(totalPl, 0)}</b>
-        · sincronizado ${quando}</span>
+        · synced ${quando}</span>
     </div>` +
     pf.posicoes.map((p) => {
       const s = etoroStatus(p);
@@ -1210,12 +1209,12 @@ function renderEtoroPortfolio() {
         <span class="chev">${icon('chevron')}</span>
       </summary>
       <div class="row-body">
-        <p class="det">entrada ${nivel(p.openRate)} → atual ${nivel(p.currentRate)}
-          ${p.amount ? ` · ${fmtNum(p.amount, 0)} investido` : ''} · alavancagem X${p.leverage || 1}
-          ${p.stopLoss ? ` · SL ${nivel(p.stopLoss)}` : ' · sem SL'}${p.takeProfit ? ` · TP ${nivel(p.takeProfit)}` : ' · sem TP'}
-          ${p.openDate ? ` · aberta em ${fmtData(String(p.openDate).slice(0, 10))}` : ''}</p>
+        <p class="det">entry ${nivel(p.openRate)} → now ${nivel(p.currentRate)}
+          ${p.amount ? ` · ${fmtNum(p.amount, 0)} invested` : ''} · leverage X${p.leverage || 1}
+          ${p.stopLoss ? ` · SL ${nivel(p.stopLoss)}` : ' · no SL'}${p.takeProfit ? ` · TP ${nivel(p.takeProfit)}` : ' · no TP'}
+          ${p.openDate ? ` · opened ${fmtData(String(p.openDate).slice(0, 10))}` : ''}</p>
         <div class="row-actions">
-          <button class="btn-raiox" data-mentor data-nome="${esc(p.nome || '')}">Orientação do Oráculo</button>
+          <button class="btn-raiox" data-mentor data-nome="${esc(p.nome || '')}">Oracle guidance</button>
         </div>
       </div>
     </details>`;
@@ -1227,9 +1226,9 @@ function renderPosicoes() {
   renderEtoroPortfolio();
   const list = $('pos-list');
   if (!posicoes.length) {
-    list.innerHTML = `<div class="pos-vazio">Nenhuma posição registrada.
-      Use "Executei no eToro" numa ordem do ranking, ou adicione abaixo o
-      que já está aberto na sua conta — o Copiloto avisa quando fechar.</div>`;
+    list.innerHTML = `<div class="pos-vazio">No positions logged.
+      Use "I executed on eToro" on a ranking order, or add below what is
+      already open in your account — the Copilot tells you when to close.</div>`;
   } else {
     list.innerHTML = posicoes.map((p) => {
       const op = opAtual(p.ativoId);
@@ -1247,15 +1246,15 @@ function renderPosicoes() {
           <span class="chev">${icon('chevron')}</span>
         </summary>
         <div class="row-body">
-          <p class="det">entrada ${nivelFmt(p.entrada)} → atual ${nivelFmt(op?.preco)}
-            ${p.valor ? ` · R$ ${fmtNum(p.valor, 0)} investido` : ''}
-            ${plRs != null ? ` · resultado <b class="${cls}">R$ ${fmtNum(plRs, 0)}</b>` : ''}
+          <p class="det">entry ${nivelFmt(p.entrada)} → now ${nivelFmt(op?.preco)}
+            ${p.valor ? ` · $${fmtNum(p.valor, 0)} invested` : ''}
+            ${plRs != null ? ` · result <b class="${cls}">$${fmtNum(plRs, 0)}</b>` : ''}
             ${p.sl != null ? ` · SL ${nivelFmt(p.sl)}` : ''}${p.tp != null ? ` · TP ${nivelFmt(p.tp)}` : ''}
-            · aberta em ${fmtData(p.abertaEm)}</p>
+            · opened ${fmtData(p.abertaEm)}</p>
           <div class="row-actions">
-            <button class="btn-close-pos" data-fechar="${p.id}">Fechar posição (registrar)</button>
-            <button class="btn-raiox" data-mentor-pos="${p.id}">Orientação do Oráculo</button>
-            <button class="btn-raiox" data-modal="${esc(p.ativoId)}">${icon('chart')} Raio-X do ativo</button>
+            <button class="btn-close-pos" data-fechar="${p.id}">Close position (log it)</button>
+            <button class="btn-raiox" data-mentor-pos="${p.id}">Oracle guidance</button>
+            <button class="btn-raiox" data-modal="${esc(p.ativoId)}">${icon('chart')} Asset X-ray</button>
           </div>
         </div>
       </details>`;
@@ -1265,13 +1264,13 @@ function renderPosicoes() {
   if (!historico.length) { hist.innerHTML = ''; return; }
   const total = historico.reduce((a, h) => a + (h.resultadoRs || 0), 0);
   const acertos = historico.filter((h) => (h.resultadoPct || 0) > 0).length;
-  hist.innerHTML = `<div class="placar">${icon('book')} Histórico: ${historico.length}
-    fechadas · acerto ${Math.round(acertos / historico.length * 100)}% ·
-    resultado acumulado R$ ${fmtNum(total, 0)}</div>` +
+  hist.innerHTML = `<div class="placar">${icon('book')} History: ${historico.length}
+    closed · ${Math.round(acertos / historico.length * 100)}% wins ·
+    cumulative result $${fmtNum(total, 0)}</div>` +
     historico.slice(-8).reverse().map((h) => `<div class="h-row">
       ${esc(h.nome)} (${h.dir === 'compra' ? 'long' : 'short'}) ·
-      ${fmtPct(h.resultadoPct)}${h.resultadoRs != null ? ` · R$ ${fmtNum(h.resultadoRs, 0)}` : ''}
-      · fechada em ${fmtData(h.fechadaEm)}</div>`).join('');
+      ${fmtPct(h.resultadoPct)}${h.resultadoRs != null ? ` · $${fmtNum(h.resultadoRs, 0)}` : ''}
+      · closed ${fmtData(h.fechadaEm)}</div>`).join('');
 }
 
 function registrarExecucao(id) {
@@ -1286,7 +1285,7 @@ function registrarExecucao(id) {
   });
   salvarCopiloto();
   renderPosicoes();
-  toast('Posição registrada no Copiloto — o painel avisa quando fechar.');
+  toast('Position logged in the Copilot — the dashboard tells you when to close.');
 }
 
 $('pos-list').addEventListener('click', (e) => {
@@ -1296,9 +1295,9 @@ $('pos-list').addEventListener('click', (e) => {
   if (mp) {
     const p = posicoes.find((x) => x.id === +mp.dataset.mentorPos);
     if (p) {
-      abrirMentor(`Tenho uma posição de ${p.dir === 'compra' ? 'COMPRA' : 'VENDA'} ` +
-        `em ${p.nome} (entrada ${p.entrada}). Devo fechar, manter ou ` +
-        'ajustar o stop agora? Explique como mentor.');
+      abrirMentor(`I have a ${p.dir === 'compra' ? 'BUY' : 'SELL'} position ` +
+        `in ${p.nome} (entry ${p.entrada}). Should I close, hold or ` +
+        'adjust the stop now? Explain as a mentor.');
     }
     return;
   }
@@ -1336,7 +1335,7 @@ $('pf-add').onclick = () => {
   const id = $('pf-ativo').value;
   const op = opAtual(id);
   const entrada = +$('pf-entrada').value;
-  if (!op || !(entrada > 0)) { toast('Preencha o preço de entrada.'); return; }
+  if (!op || !(entrada > 0)) { toast('Enter the entry price.'); return; }
   posicoes.push({
     id: Date.now(), ativoId: id, nome: op.nome,
     ticker: op.etoro?.ticker || null, dir: $('pf-dir').value,
@@ -1345,20 +1344,20 @@ $('pf-add').onclick = () => {
   });
   salvarCopiloto();
   renderPosicoes();
-  toast('Posição adicionada ao Copiloto.');
+  toast('Position added to the Copilot.');
 };
 
 async function oraculoPosicoes() {
   if (!DATA) return;
   if (!posicoes.length) {
-    toast('Nenhuma posição registrada ainda — use "Executei no eToro" no ranking.');
+    toast('No positions logged yet — use "I executed on eToro" in the ranking.');
     return;
   }
   const out = $('oraculo-pos-out');
   const btn = $('btn-oraculo-pos');
   out.classList.remove('hidden');
   out.innerHTML =
-    '<div class="ai-loading">O Oráculo está avaliando suas posições…</div>';
+    '<div class="ai-loading">The Oracle is reviewing your positions…</div>';
   btn.disabled = true;
   try {
     const ctx = posicoes.map((p) => {
@@ -1386,11 +1385,11 @@ async function oraculoPosicoes() {
     const texto = await chamarGemini(
       `POSIÇÕES ABERTAS (cotações do fechamento de ${DATA.ultimaObservacao}): ${JSON.stringify(ctx)}
 MACRO: ${JSON.stringify(DATA.macro)}
-Dê o veredito de cada posição agora.`, ORACULO_POS_SYSTEM);
+Give the verdict for each position now.`, ORACULO_POS_SYSTEM);
     out.innerHTML = mdParaHtml(texto) +
-      '<div class="ai-meta">Oráculo (Gemini) · cotações do fechamento diário · não é recomendação de investimento</div>';
+      '<div class="ai-meta">Oracle (Gemini) · daily-close quotes · not investment advice</div>';
   } catch (e) {
-    out.innerHTML = `<p><b>Não consegui falar com o Oráculo.</b></p>
+    out.innerHTML = `<p><b>Could not reach the Oracle.</b></p>
       <p>${esc(String(e?.message || e)).slice(0, 300)}</p>`;
   } finally {
     btn.disabled = false;
@@ -1400,22 +1399,20 @@ $('btn-oraculo-pos').onclick = oraculoPosicoes;
 
 // ── mentor: chat do Oráculo (ao vivo, sincronizado com o painel) ──────
 const ORACULO_MENTOR_SYSTEM =
-  'Você é o ORÁCULO, mentor de investimentos do QuantLab, conversando ' +
-  'com o dono da conta no eToro. Papel duplo: EXPLICAR como professor ' +
-  '(por que os números dizem o que dizem) e ORIENTAR com ação concreta ' +
-  '(comprar/vender/manter/fechar/aguardar, com valores, stop e gatilho ' +
-  'quando existirem no contexto). REGRAS: use SOMENTE os dados do bloco ' +
-  'CONTEXTO (nunca invente preços, notícias ou eventos); as cotações são ' +
-  'do fechamento diário indicado — quando a decisão depender do preço de ' +
-  'agora, mande conferir o preço atual no eToro antes de executar; se ' +
-  'perguntarem sobre ativo fora do contexto, diga que o laboratório ' +
-  'ainda não cobre esse ativo; sinais são de ciclo diário (nada de day ' +
-  'trade); português do Brasil, tom direto e didático, no MÁXIMO ~180 ' +
-  'palavras, markdown leve (negrito e listas curtas). Números SEMPRE no ' +
-  'padrão brasileiro (162.885, nunca 162884.55; R$ 1.803). Feche sempre ' +
-  'com uma linha começando com "Ação:" e, ao falar de posição aberta, dê ' +
-  'o veredito MANTER / FECHAR / AJUSTAR STOP em negrito. Nunca prometa ' +
-  'retorno.';
+  'You are the ORACLE, the QuantLab investing mentor, talking to an ' +
+  'eToro account holder. Dual role: EXPLAIN like a teacher (why the ' +
+  'numbers say what they say) and GUIDE with concrete action ' +
+  '(buy/sell/hold/close/wait, with amounts, stop and trigger when they ' +
+  'exist in the context). RULES: use ONLY the data in the CONTEXT block ' +
+  '(never invent prices, news or events); quotes are from the daily ' +
+  'close indicated — when the decision depends on the current price, ' +
+  'tell them to check the live price on eToro before executing; if ' +
+  'asked about an asset outside the context, say the lab does not cover ' +
+  'it yet; signals are daily-cycle (no day trading); English, direct ' +
+  'and didactic tone, at MOST ~180 words, light markdown (bold and ' +
+  'short lists). Always close with a line starting with "Action:" and, ' +
+  'when discussing an open position, give the verdict HOLD / CLOSE / ' +
+  'ADJUST STOP in bold. Never promise returns.';
 
 function contextoMentor() {
   const plano = calcularOrdens(horizonte);
@@ -1455,7 +1452,7 @@ function contextoMentor() {
       statusPainel: s.txt,
     };
   });
-  return `CONTEXTO ATUAL (cotações do fechamento de ${DATA.ultimaObservacao}):
+  return `CURRENT CONTEXT (daily-close quotes from ${DATA.ultimaObservacao}):
 ${JSON.stringify({
     selecao: {
       perfil: riscoSel,
@@ -1480,7 +1477,7 @@ function atualizarChatCtx() {
   if (!el || !DATA) return;
   el.textContent = `${riscoSel} · ${DATA.horizontes[horizonte].label.toLowerCase()}` +
     (capital > 0 ? ` · R$ ${fmtNum(capital, 0)}` : '') +
-    ` · dados de ${fmtData(DATA.ultimaObservacao)}`;
+    ` · data from ${fmtData(DATA.ultimaObservacao)}`;
 }
 
 function chatMsg(role, html) {
@@ -1525,7 +1522,7 @@ async function mentorPerguntar(texto) {
     if (!r.ok) throw new Error(j.error?.message || ('HTTP ' + r.status));
     const t = (j.candidates?.[0]?.content?.parts || [])
       .map((p) => p.text || '').join('');
-    if (!t) throw new Error('resposta vazia do modelo');
+    if (!t) throw new Error('empty model response');
     load.classList.remove('loading');
     load.innerHTML = mdParaHtml(t);
     chatHist.push({ role: 'user', text: texto }, { role: 'model', text: t });
@@ -1573,8 +1570,8 @@ function ligarBotaoMentor(container) {
   container.addEventListener('click', (e) => {
     const m = e.target.closest('[data-mentor]');
     if (m) {
-      abrirMentor(`O que devo fazer com ${m.dataset.nome} agora? ` +
-        'Explique como mentor e diga a ação concreta.');
+      abrirMentor(`What should I do with ${m.dataset.nome} now? ` +
+        'Explain as a mentor and give the concrete action.');
     }
   });
 }

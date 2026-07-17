@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#070b12">
-<meta name="description" content="Laboratório de Descoberta Econômica: ordens LONG e SHORT com assertividade histórica, derivadas só de dados oficiais.">
-<meta property="og:title" content="QuantLab — Laboratório de Descoberta Econômica">
-<meta property="og:description" content="O mercado, medido. Nunca adivinhado.">
+<meta name="description" content="Economic Discovery Lab: LONG and SHORT orders with historical accuracy, derived from official data only.">
+<meta property="og:title" content="QuantLab — Economic Discovery Lab">
+<meta property="og:description" content="The market, measured. Never guessed.">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <link rel="manifest" href="/manifest.json">
-<title>QuantLab — Laboratório de Descoberta Econômica</title>
+<title>QuantLab — Economic Discovery Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -28,51 +28,51 @@
     <span id="updated-at" class="updated"></span>
     <button id="btn-login" class="btn btn-google">
       <svg width="15" height="15" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 40.4 44 35 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-      Entrar com Google
+      Sign in with Google
     </button>
     <div id="user-chip" class="user-chip hidden">
       <img id="user-photo" alt="" referrerpolicy="no-referrer">
       <span id="user-name"></span>
-      <button id="btn-logout" class="btn-ghost" title="Sair">sair</button>
+      <button id="btn-logout" class="btn-ghost" title="Sign out">sign out</button>
     </div>
   </div>
 </header>
 
 <main>
-  <!-- HERO (visível para todos) -->
+  <!-- HERO (visible to everyone) -->
   <section id="hero" class="hero">
     <div class="hero-glow"></div>
     <canvas id="particles" class="particles" aria-hidden="true"></canvas>
-    <h1>O mercado, medido.<br><em>Nunca adivinhado.</em></h1>
-    <p class="hero-sub">Ordens <b class="long">LONG</b> e
-      <b class="short">SHORT</b> em 3 horizontes, com <b>assertividade
-      histórica</b>, alavancagem calculada e evidências numéricas — tudo
-      derivado só de dados oficiais.</p>
+    <h1>The market, measured.<br><em>Never guessed.</em></h1>
+    <p class="hero-sub"><b class="long">LONG</b> and
+      <b class="short">SHORT</b> orders across 3 horizons, with <b>historical
+      accuracy</b>, calculated leverage and numerical evidence — all
+      derived from official data only.</p>
     <div class="hero-stats">
-      <div class="hstat"><b data-count="55">0</b><span>indicadores oficiais</span></div>
-      <div class="hstat"><b data-count="3">0</b><span>estratégias medidas</span></div>
-      <div class="hstat"><b>70/30</b><span>treino / teste</span></div>
-      <div class="hstat"><b>OOS</b><span>validação fora da amostra</span></div>
+      <div class="hstat"><b data-count="55">0</b><span>official indicators</span></div>
+      <div class="hstat"><b data-count="3">0</b><span>measured strategies</span></div>
+      <div class="hstat"><b>70/30</b><span>train / test</span></div>
+      <div class="hstat"><b>OOS</b><span>out-of-sample validation</span></div>
     </div>
-    <button id="btn-login-hero" class="btn btn-cta">Entrar com Google para ver o painel</button>
-    <p id="hero-hint" class="hero-hint">Login gratuito — só para saber quem está usando o laboratório.</p>
+    <button id="btn-login-hero" class="btn btn-cta">Sign in with Google to open the dashboard</button>
+    <p id="hero-hint" class="hero-hint">Free sign-in — just so we know who is using the lab.</p>
   </section>
 
-  <!-- DASHBOARD (após login) -->
+  <!-- DASHBOARD (after sign-in) -->
   <section id="dash" class="hidden">
     <div id="macro-strip" class="macro-strip"></div>
     <div id="resumo" class="resumo"></div>
 
-    <!-- controles unificados: horizonte · perfil · capital · filtros -->
+    <!-- unified controls: horizon · profile · capital · filters -->
     <div class="controls">
       <nav id="tabs" class="tabs">
-        <button class="tab active" data-h="curto">Curto <span>≤ 3m</span></button>
-        <button class="tab" data-h="medio">Médio <span>3–18m</span></button>
-        <button class="tab" data-h="longo">Longo <span>18m+</span></button>
+        <button class="tab active" data-h="curto">Short <span>≤ 3m</span></button>
+        <button class="tab" data-h="medio">Medium <span>3–18m</span></button>
+        <button class="tab" data-h="longo">Long <span>18m+</span></button>
       </nav>
-      <div class="seg" id="seg-risco" aria-label="Perfil de risco"></div>
+      <div class="seg" id="seg-risco" aria-label="Risk profile"></div>
       <div class="capital-mini">
-        <label for="inp-capital">Capital R$</label>
+        <label for="inp-capital">Capital $</label>
         <input id="inp-capital" type="number" min="0" step="100" placeholder="10000">
       </div>
       <div id="filters" class="filters"></div>
@@ -82,24 +82,24 @@
 
     <section class="placar-sec">
       <h2 class="sec-title"><svg class="ic ic-t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h12M6 4h12v3a6 6 0 0 1-12 0z"/><path d="M9 15h6M8 20h8M10 15v5M14 15v5"/><path d="M18 5h2a2 2 0 0 1 0 4h-2M6 5H4a2 2 0 0 0 0 4h2"/></svg>
-        Placar do sistema
-        <span class="h2-sub">o desempenho REAL das recomendações emitidas ao vivo — registradas no dia, sem hindsight, e medidas quando a janela se cumpre</span></h2>
+        System scoreboard
+        <span class="h2-sub">the REAL performance of live-issued calls — logged on the day, no hindsight, measured when each window completes</span></h2>
       <div id="placar"></div>
     </section>
 
     <section class="radar-sec">
       <h2 class="sec-title"><svg class="ic ic-t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6a6 6 0 1 0 6 6"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><path d="M12 12l7-7"/></svg>
-        Radar de Picos
-        <span class="h2-sub">probabilidade de virada em ~1 mês, calibrada nos episódios históricos idênticos</span></h2>
+        Peak Radar
+        <span class="h2-sub">probability of a reversal in ~1 month, calibrated on identical historical episodes</span></h2>
       <div id="radar-list"></div>
     </section>
 
     <section class="ai-sec">
       <h2 class="sec-title"><svg class="ic ic-t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.1 4.9L19 10l-4.9 2.1L12 17l-2.1-4.9L5 10l4.9-2.1z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/></svg>
-        Oráculo
-        <span class="h2-sub">plano de execução com os números do painel — segue o horizonte, o perfil e o capital selecionados acima</span></h2>
+        Oracle
+        <span class="h2-sub">execution plan with the dashboard numbers — follows the horizon, profile and capital selected above</span></h2>
       <div class="ai-controls">
-        <button id="btn-ai" class="btn btn-ai">Gerar plano de execução</button>
+        <button id="btn-ai" class="btn btn-ai">Generate execution plan</button>
         <span id="ai-contexto" class="ai-contexto"></span>
       </div>
       <div id="ai-out" class="ai-out hidden"></div>
@@ -107,97 +107,97 @@
 
     <section class="cop-sec">
       <h2 class="sec-title"><svg class="ic ic-t" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 5-4 1 2-5z"/></svg>
-        Copiloto — minhas posições
-        <span class="h2-sub">registre o que executou; o painel avisa quando fechar (cotações do fechamento diário)</span></h2>
+        Copilot — my positions
+        <span class="h2-sub">log what you executed; the dashboard tells you when to close (daily-close quotes)</span></h2>
       <div id="etoro-portfolio"></div>
       <div id="pos-list" class="pos-list"></div>
       <details class="pos-add">
-        <summary>adicionar posição que já existe na sua conta</summary>
+        <summary>add a position that already exists in your account</summary>
         <div class="pos-form">
           <select id="pf-ativo"></select>
           <select id="pf-dir">
-            <option value="compra">COMPRA (long)</option>
-            <option value="venda">VENDA (short)</option>
+            <option value="compra">BUY (long)</option>
+            <option value="venda">SELL (short)</option>
           </select>
-          <input id="pf-entrada" type="number" step="any" min="0" placeholder="preço de entrada">
-          <input id="pf-valor" type="number" step="any" min="0" placeholder="valor investido R$">
+          <input id="pf-entrada" type="number" step="any" min="0" placeholder="entry price">
+          <input id="pf-valor" type="number" step="any" min="0" placeholder="amount invested $">
           <select id="pf-lev">
             <option value="1">X1</option><option value="2">X2</option>
             <option value="5">X5</option><option value="10">X10</option>
           </select>
-          <button id="pf-add" class="btn">Adicionar</button>
+          <button id="pf-add" class="btn">Add</button>
         </div>
       </details>
       <div class="cop-actions">
-        <button id="btn-oraculo-pos" class="btn btn-ai btn-sec">Analisar minhas posições com o Oráculo</button>
+        <button id="btn-oraculo-pos" class="btn btn-ai btn-sec">Analyze my positions with the Oracle</button>
       </div>
       <div id="oraculo-pos-out" class="ai-out hidden"></div>
       <div id="pos-hist" class="pos-hist"></div>
     </section>
 
     <details class="sec-fold">
-      <summary>Todos os ativos <span class="fold-sub">raio-X completo de cada um</span></summary>
+      <summary>All assets <span class="fold-sub">full X-ray of each one</span></summary>
       <div id="cards" class="cards"></div>
     </details>
 
     <details class="sec-fold">
-      <summary>Hipóteses vivas <span class="fold-sub">relações defasadas que sobreviveram ao treino/teste</span></summary>
+      <summary>Live hypotheses <span class="fold-sub">lagged relationships that survived train/test</span></summary>
       <div id="hipoteses" class="hip-list"></div>
     </details>
 
     <details class="como-ler">
-      <summary>Como ler este painel</summary>
+      <summary>How to read this dashboard</summary>
       <ul>
-        <li><b>Assertividade</b>: % dos casos históricos (trades da
-          estratégia + cenários análogos) em que a direção deu certo, com o
-          n ao lado. Só vira ordem acima do corte do perfil.</li>
-        <li><b>Radar de Picos</b>: quando o gráfico está esticado, a % diz
-          quantas vezes veio virada em ~21 pregões nos episódios idênticos.</li>
-        <li><b>Ordens com a tag "radar"</b>: nascem do Radar de Picos quando
-          as estratégias clássicas não têm sinal mas a probabilidade
-          empírica de virada passa no corte (com suavização — amostra
-          pequena nunca vira certeza). Janela ~1 mês e sempre X1.</li>
-        <li><b>Placar do sistema</b>: taxa de acerto REAL das ordens já
-          emitidas ao vivo, medida quando cada janela se cumpre — e a
-          comparação entre o previsto e o realizado.</li>
-        <li><b>Posição e alavancagem</b>: risco fixo por trade; a margem já
-          vem dividida pela alavancagem recomendada (X2 só com evidência).</li>
-        <li><b>Toque numa linha</b> para os detalhes; "Raio-X" abre o
-          dossiê completo do ativo.</li>
+        <li><b>Accuracy</b>: % of historical cases (strategy trades +
+          analogous scenarios) where the direction worked out, with the
+          sample size n. It only becomes an order above the profile's cutoff.</li>
+        <li><b>Peak Radar</b>: when the chart is stretched, the % tells how
+          often a reversal came within ~21 sessions in identical episodes.</li>
+        <li><b>Orders tagged "radar"</b>: born from the Peak Radar when the
+          classic strategies have no signal but the empirical reversal
+          probability clears the cutoff (with smoothing — a small sample
+          never becomes certainty). ~1-month window, always X1.</li>
+        <li><b>System scoreboard</b>: the REAL hit rate of live-issued
+          orders, measured when each window completes — plus the
+          predicted-vs-realized comparison.</li>
+        <li><b>Position & leverage</b>: fixed risk per trade; the margin
+          already comes divided by the recommended leverage (X2 only with
+          evidence).</li>
+        <li><b>Tap a row</b> for details; "X-ray" opens the asset's full
+          dossier.</li>
       </ul>
     </details>
 
-    <p class="aviso">Estatística derivada de dados públicos (BCB, bolsas).
-    <b>Não é recomendação de investimento.</b> Assertividade histórica não
-    garante resultado futuro. Alavancagem pode gerar perdas superiores ao
-    capital.</p>
+    <p class="aviso">Statistics derived from public data (central banks,
+    exchanges). <b>Not investment advice.</b> Historical accuracy does not
+    guarantee future results. Leverage can generate losses greater than
+    your capital.</p>
   </section>
 
   <div id="toast" class="toast hidden"></div>
 
-  <!-- mentor: chat do Oráculo (flutuante, sincronizado com o painel) -->
-  <button id="fab-oraculo" class="fab hidden" title="Falar com o Oráculo" aria-label="Falar com o Oráculo">
+  <!-- mentor: Oracle chat (floating, synced with the dashboard) -->
+  <button id="fab-oraculo" class="fab hidden" title="Talk to the Oracle" aria-label="Talk to the Oracle">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.1 4.9L19 10l-4.9 2.1L12 17l-2.1-4.9L5 10l4.9-2.1z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/></svg>
   </button>
-  <div id="chat-panel" class="chat-panel hidden" role="dialog" aria-label="Mentor Oráculo">
+  <div id="chat-panel" class="chat-panel hidden" role="dialog" aria-label="Oracle Mentor">
     <div class="chat-head">
       <div>
-        <b>Oráculo — mentor</b>
+        <b>Oracle — mentor</b>
         <span id="chat-ctx" class="chat-ctx"></span>
       </div>
-      <button id="chat-close" class="modal-x" aria-label="Fechar">✕</button>
+      <button id="chat-close" class="modal-x" aria-label="Close">✕</button>
     </div>
     <div id="chat-msgs" class="chat-msgs">
-      <div class="msg model">Sou o mentor do QuantLab. Pergunte sobre
-        qualquer ativo, peça orientação nas suas posições ("fecho o ouro?")
-        ou um plano — respondo com os números do painel e explico o
-        porquê. Cotações são do fechamento diário: confira o preço no
-        eToro antes de executar.</div>
+      <div class="msg model">I am the QuantLab mentor. Ask about any
+        asset, request guidance on your positions ("should I close gold?")
+        or a plan — I answer with the dashboard numbers and explain why.
+        Quotes are daily closes: check the price on eToro before executing.</div>
     </div>
     <div class="chat-inputbar">
       <input id="chat-inp" type="text" maxlength="500"
-        placeholder="Pergunte ao mentor…" autocomplete="off">
-      <button id="chat-send" class="btn btn-ai">Enviar</button>
+        placeholder="Ask the mentor…" autocomplete="off">
+      <button id="chat-send" class="btn btn-ai">Send</button>
     </div>
   </div>
 
@@ -212,8 +212,8 @@
 
 <footer>
   <div class="foot-brand">Quant<span>Lab</span> <span class="foot-ver">v2.0</span></div>
-  <div class="foot-dev">desenvolvido por <b>Gustavo Tinti</b></div>
-  <div class="foot-links">dados: Banco Central do Brasil (SGS), FRED e bolsas via Yahoo Finance · <a href="/relatorio.txt">relatório do dia</a> · <a href="/QuantLab-v1.zip">app Android</a></div>
+  <div class="foot-dev">developed by <b>Gustavo Tinti</b></div>
+  <div class="foot-links">data: Central Bank of Brazil (SGS), FRED and exchanges via Yahoo Finance · <a href="/relatorio.txt">daily report</a> · <a href="/QuantLab-v1.zip">Android app</a></div>
 </footer>
 
 <script>
