@@ -54,6 +54,7 @@
       <div class="hstat"><b>70/30</b><span>train / test</span></div>
       <div class="hstat"><b>OOS</b><span>out-of-sample validation</span></div>
     </div>
+    <div id="hero-live" class="hero-live" aria-live="polite"></div>
     <button id="btn-login-hero" class="btn btn-cta">Sign in with Google to open the dashboard</button>
     <p id="hero-hint" class="hero-hint">Free sign-in — just so we know who is using the lab.</p>
   </section>
@@ -267,6 +268,39 @@
     if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); }
   }), { rootMargin: '0px 0px -8% 0px' });
   els.forEach((el) => io.observe(el));
+})();
+</script>
+<script>
+// live teaser on the landing: today's top signals from the PUBLIC data
+(async () => {
+  const box = document.getElementById('hero-live');
+  if (!box) return;
+  try {
+    const d = await fetch('/data/dashboard.json', { cache: 'no-cache' }).then((r) => r.json());
+    const ords = [];
+    for (const h of Object.values(d.horizontes || {})) {
+      for (const o of h.oportunidades || []) {
+        const r = o.recomendacao || {};
+        if (r.acao === 'comprar' || r.acao === 'vender') {
+          ords.push({ nome: o.nome, tk: o.etoro?.ticker, buy: r.acao === 'comprar', acc: r.assertividade || 0 });
+        }
+      }
+    }
+    ords.sort((a, b) => b.acc - a.acc);
+    const top = ords.slice(0, 3);
+    if (!top.length) return;
+    const esc = (x) => String(x).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const p = d.placar || {};
+    box.innerHTML = `
+      <div class="hl-title">Live right now — today's strongest signals</div>
+      <div class="hl-cards">${top.map((o) => `
+        <div class="hl-card">
+          <span class="hl-badge ${o.buy ? 'buy' : 'sell'}">${o.buy ? '▲ BUY' : '▼ SELL'}</span>
+          <b>${esc(o.nome)}</b>${o.tk ? `<span class="hl-tk">${esc(o.tk)}</span>` : ''}
+          <span class="hl-acc">${Math.round(o.acc * 100)}%<small>accuracy</small></span>
+        </div>`).join('')}</div>
+      <div class="hl-foot">${ords.length} live signals · ${p.totalSinais || 0} calls tracked on the public scoreboard · refreshed every 2h from official data</div>`;
+  } catch (_) { /* teaser is optional */ }
 })();
 </script>
 <script type="module" src="/app.js"></script>
