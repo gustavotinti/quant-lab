@@ -64,6 +64,7 @@ const ICONS = {
   chart: '<path d="M4 20V4M4 20h16"/><path d="M8.5 16v-5M12.5 16V8M16.5 16v-3"/>',
   chevron: '<path d="M9 6.5l5.5 5.5L9 17.5"/>',
   book: '<path d="M5 5a2 2 0 0 1 2-2h12v16H7a2 2 0 0 0-2 2z"/><path d="M5 19a2 2 0 0 1 2-2h12"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>',
 };
 const icon = (n, cls = '') =>
   `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -510,8 +511,9 @@ function renderRanking() {
 
   const hLabel = { curto: 'short term', medio: 'medium term', longo: 'long term' }[horizonte] || horizonte;
   const pLabel = { conservador: 'conservative', moderado: 'moderate', agressivo: 'aggressive' }[riscoSel] || riscoSel;
-  let html = `<h2 class="rank-title">What to do now —
-    ${hLabel} · ${pLabel} profile</h2>`;
+  let html = `<div class="rank-head"><h2 class="rank-title">What to do now —
+    ${hLabel} · ${pLabel} profile</h2>
+    <span class="rank-timer" id="rank-timer" title="All recommendations refresh together when the data pipeline runs (every 2 hours)"></span></div>`;
   if (!ordens.length) {
     html += `<div class="rank-empty">No order clears the ${pLabel} profile's
       accuracy cutoff (${cortePct}%) on this horizon — the lab would
@@ -638,6 +640,39 @@ els.filters.addEventListener('click', (e) => {
     .forEach((x) => x.classList.toggle('active', x === c));
   render();
 });
+
+// ── temporizador: quando as recomendações atualizam (pipeline 2h) ─────
+// O cron roda no minuto :17 das horas PARES (UTC). Contagem regressiva até
+// o próximo horário agendado; ao passar, o polling de 5 min traz os dados.
+function _proxSlotMs() {
+  const now = Date.now();
+  const d = new Date(now);
+  d.setUTCMinutes(17, 0, 0);
+  while (d.getTime() <= now || d.getUTCHours() % 2 !== 0) {
+    d.setTime(d.getTime() + 3600000);
+    d.setUTCMinutes(17, 0, 0);
+  }
+  return d.getTime();
+}
+function _fmtDur(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  const p2 = (n) => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${p2(m)}:${p2(ss)}` : `${m}:${p2(ss)}`;
+}
+function atualizarTimer() {
+  const el = document.getElementById('rank-timer');
+  if (!el || !DATA) return;
+  const rem = _proxSlotMs() - Date.now();
+  if (rem > 4000) {
+    el.classList.remove('soon');
+    el.innerHTML = `${icon('clock')}<span>next update in <b>${_fmtDur(rem)}</b></span>`;
+  } else {
+    el.classList.add('soon');
+    el.innerHTML = `${icon('clock')}<span>refreshing…</span>`;
+  }
+}
+setInterval(atualizarTimer, 1000);
 
 // ── placar do sistema (Motor de Track Record) ─────────────────────────
 // Só EXIBE o que o domínio mediu: desempenho real das ordens emitidas ao

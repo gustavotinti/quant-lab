@@ -911,3 +911,18 @@ footer { display: flex; flex-direction: column; align-items: center;
   to { filter: hue-rotate(360deg) saturate(1.5) brightness(1.12); }
 }
 .cristal-ball { transition: transform .35s ease; }
+
+/* temporizador de atualização das recomendações */
+.rank-head { display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px 14px; }
+.rank-timer { display: inline-flex; align-items: center; gap: 6px;
+  font: 600 .78rem var(--mono); color: var(--dim);
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 999px; padding: 5px 12px 5px 10px; white-space: nowrap; }
+.rank-timer .ic { width: 15px; height: 15px; color: var(--accent-2); }
+.rank-timer b { color: var(--text); font-variant-numeric: tabular-nums;
+  letter-spacing: .3px; }
+.rank-timer.soon { color: var(--accent); border-color: rgba(56,224,162,.5);
+  animation: timerPulse 1.1s ease-in-out infinite; }
+.rank-timer.soon .ic { color: var(--accent); }
+@keyframes timerPulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
