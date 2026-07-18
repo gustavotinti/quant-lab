@@ -926,3 +926,16 @@ footer { display: flex; flex-direction: column; align-items: center;
   animation: timerPulse 1.1s ease-in-out infinite; }
 .rank-timer.soon .ic { color: var(--accent); }
 @keyframes timerPulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+
+/* vida nos campos: micro-reacoes + brilho contido */
+.mstat { transition: transform .22s ease, border-color .22s ease; }
+.mstat:hover { transform: translateY(-2px); border-color: rgba(120,160,210,.3); }
+.pc-hit b { font: inherit; }
+.row-ass b, .rr-pct { transition: text-shadow .3s ease; }
+.rank-row[open] .row-ass b { text-shadow: 0 0 12px rgba(56,224,162,.45); }
+/* respiro sutil das cotacoes ao vivo (reforca o pulso ja existente) */
+.live-px small { animation: liveBreath 2.4s ease-in-out infinite; }
+@keyframes liveBreath { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
+@media (prefers-reduced-motion: reduce) {
+  .sec-title::after, .live-px small { animation: none; }
+}

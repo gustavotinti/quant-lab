@@ -560,7 +560,7 @@ function renderRanking() {
           <span class="rank-pos">${i + 1}</span>
           <span class="badge ${o.direcao}">${r.acao === 'comprar' ? '▲ BUY' : '▼ SELL'}</span>
           <span class="row-name">${esc(o.nome)}${tk ? `<span class="tick">${esc(tk)}</span>` : ''}${r.origem === 'radar' ? '<span class="tag-radar" title="Order issued by the Peak Radar: stretched technical state + empirical reversal probability in identical historical episodes. ~1-month window, always X1.">radar</span>' : ''}</span>
-          <span class="row-ass"><b>${fmtPct(r.assertividade, 0, false)}</b><small>accuracy</small></span>
+          <span class="row-ass"><b data-cu="${Math.round((r.assertividade||0)*100)}" data-cu-suf="%">${fmtPct(r.assertividade, 0, false)}</b><small>accuracy</small></span>
           <span class="chev">${icon('chevron')}</span>
         </summary>
         <div class="row-body">
@@ -597,6 +597,7 @@ function renderRanking() {
       ${cortePct}% cutoff: ${segurados.map((o) => esc(o.nome)).join(', ')} — stay out.</div>`;
   }
   els.ranking.innerHTML = html;
+  animateCounts(els.ranking);
 }
 
 els.ranking?.addEventListener('click', (e) => {
@@ -640,6 +641,26 @@ els.filters.addEventListener('click', (e) => {
     .forEach((x) => x.classList.toggle('active', x === c));
   render();
 });
+
+// ── vida nos números: count-up ao aparecer/atualizar ─────────────────
+const _reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function countUp(el) {
+  const to = parseFloat(el.dataset.cu);
+  if (!isFinite(to) || _reduz) return;
+  const dec = +(el.dataset.cuDec || 0), suf = el.dataset.cuSuf || '';
+  const t0 = performance.now(), dur = 620;
+  const fmt = (v) => new Intl.NumberFormat('en-US',
+    { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(v) + suf;
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / dur);
+    el.textContent = fmt(to * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) requestAnimationFrame(step); else el.textContent = fmt(to);
+  };
+  requestAnimationFrame(step);
+}
+function animateCounts(root) {
+  (root || document).querySelectorAll('[data-cu]').forEach(countUp);
+}
 
 // ── temporizador: quando as recomendações atualizam (pipeline 2h) ─────
 // O cron roda no minuto :17 das horas PARES (UTC). Contagem regressiva até
@@ -712,7 +733,7 @@ function renderPlacar() {
     return `<div class="placar-card">
       <div class="pc-top"><span class="pc-lbl">${esc(h.label)}</span>
         <span class="pc-n">${h.nFechados} closed</span></div>
-      <div class="pc-hit ${hitCls}">${hit}<small>real hit rate</small></div>
+      <div class="pc-hit ${hitCls}"><b${fech ? ` data-cu="${Math.round((h.hitRate||0)*100)}" data-cu-suf="%"` : ''}>${hit}</b><small>real hit rate</small></div>
       <div class="pc-spark">${fech ? sparkArr(h.equity) : ''}</div>
       <div class="pc-kvs">
         <span>avg return <b>${fech ? fmtPct(h.retornoMedio) : '—'}</b></span>
@@ -752,6 +773,7 @@ function renderPlacar() {
        (count toward the hit rate); open = marked to market.</div>`;
 
   el.innerHTML = `<div class="placar-grid">${cards}</div>${calib}${foot}`;
+  animateCounts(el);
 }
 
 // ── hipóteses ─────────────────────────────────────────────────────────
@@ -1175,11 +1197,37 @@ function cristalRevelar() {
     ox: 0, oy: 0, ovx: 0, ovy: 0,
   }));
   _cristalPointer();
+  // FLUXO: partículas emergem da boca da bola e sobem até a frase, como se
+  // ela a conjurasse. (spread horizontal ~ largura do texto)
+  const spread = Math.min(W * 0.34, txt.length * fs * 0.30);
+  const novoFluxo = () => ({
+    x0: W / 2 + (Math.random() - .5) * 34,
+    y0: H - 54 + Math.random() * 16,
+    x1: W / 2 + (Math.random() - .5) * spread * 2,
+    y1: H * 0.30 + Math.random() * H * 0.22,
+    life: -Math.random() * 70, dur: 48 + Math.random() * 44,
+    sz: Math.random() * 1.3 + .5, w: Math.random() * 6.28,
+  });
+  const fluxo = Array.from({ length: 22 }, novoFluxo);
   let t = 0;
   const tick = () => {
     t++;
     ctx.clearRect(0, 0, W, H);
     _ptr.vx *= 0.8; _ptr.vy *= 0.8; // a velocidade do ponteiro esvai entre frames
+    // desenha o fluxo ANTES do texto (fica por baixo, mais sutil)
+    for (const s of fluxo) {
+      s.life++;
+      if (s.life < 0) continue;
+      if (s.life > s.dur) { Object.assign(s, novoFluxo()); continue; }
+      const k = s.life / s.dur;
+      const e = k * k * (3 - 2 * k); // smoothstep
+      const x = s.x0 + (s.x1 - s.x0) * e + Math.sin(k * 7 + s.w) * 4;
+      const y = s.y0 + (s.y1 - s.y0) * e;
+      ctx.globalAlpha = Math.sin(k * Math.PI) * 0.5;
+      ctx.fillStyle = '#787cff';
+      ctx.fillRect(x, y, s.sz, s.sz);
+    }
+    ctx.globalAlpha = 1;
     for (const p of ps) {
       const k = Math.max(0, Math.min(1, (t - p.d) / 52));
       const e = 1 - Math.pow(1 - k, 3); // easeOutCubic
@@ -1237,7 +1285,7 @@ function renderRadar() {
           ${icon(topo ? 'down' : 'up')} ${topo ? 'TOP' : 'BOTTOM'}</span>
         <span class="row-name">${esc(r.nome)}${r.ticker ? `<span class="tick">${esc(r.ticker)}</span>` : ''}</span>
         <span class="rr-meter"><span class="rr-fill ${r.tipo}" data-w="${(r.prob * 100).toFixed(0)}"></span>
-          <span class="rr-pct">${fmtPct(r.prob, 0, false)}</span></span>
+          <span class="rr-pct" data-cu="${Math.round((r.prob||0)*100)}" data-cu-suf="%">${fmtPct(r.prob, 0, false)}</span></span>
         <span class="chev">${icon('chevron')}</span>
       </summary>
       <div class="row-body">
@@ -1256,6 +1304,7 @@ function renderRadar() {
    chart was in this state, the % shows how often the reversal came within
    ~21 sessions. 99% does not exist in markets — above 70% is already rare;
    treat it as a strong alert, not certainty.</div>`;
+  animateCounts(list);
   requestAnimationFrame(() => requestAnimationFrame(() => {
     list.querySelectorAll('.rr-fill').forEach((f) => {
       f.style.width = f.dataset.w + '%';
