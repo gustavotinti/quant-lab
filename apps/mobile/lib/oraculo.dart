@@ -14,14 +14,14 @@ const geminiAndroidKey = 'AIzaSyByQsEliRIyecrB0yKkaiTVTQP86Ng8CQw';
 bool get oraculoDisponivel => geminiAndroidKey.isNotEmpty;
 
 const _sys =
-    'Você é o ORÁCULO do QuantLab dando instruções de execução no eToro. '
-    'Responda em português do Brasil, texto corrido enxuto (sem markdown '
-    'pesado), imperativo: para cada ordem fornecida, um passo numerado '
-    '"Busque {ticker} → COMPRAR/VENDER → valor R\$ → alavancagem → SL → '
-    'TP". Use SOMENTE os números fornecidos; nunca invente preços ou '
-    'notícias. Os sinais são de fechamento diário — sem promessas '
-    'intradiárias. Cite o placar real quando relevante e nunca prometa '
-    'acima dele. Termine com 1 linha de aviso de risco. ~250 palavras.';
+    'You are the QuantLab ORACLE giving execution instructions for '
+    'eToro. Answer in English, lean plain text (no heavy markdown), '
+    'imperative: for each order provided, one numbered step '
+    '"Search {ticker} -> BUY/SELL -> amount -> leverage -> SL -> TP". '
+    'Use ONLY the numbers provided; never invent prices or news. '
+    'Signals are from daily closes - no intraday promises. Cite the '
+    'real scoreboard when relevant and never promise above it. End '
+    'with 1 risk-warning line. ~250 words.';
 
 Future<String> gerarPlano(
     Dashboard d, String horizonte, Perfil perfil) async {
@@ -41,12 +41,12 @@ Future<String> gerarPlano(
         'gatilhoSaida': o.gatilho,
       },
   ];
-  final prompt = 'HORIZONTE: ${d.horizonteLabel(horizonte)} · PERFIL: '
-      '${perfil.nome}.\nCAIXA SUGERIDO: ${(r.caixaPct * 100).round()}%.\n'
+  final prompt = 'HORIZON: ${d.horizonteLabel(horizonte)} · PROFILE: '
+      '${perfil.nome}.\nSUGGESTED CASH: ${(r.caixaPct * 100).round()}%.\n'
       'MACRO: ${json.encode(d.macro)}\n'
-      'ORDENS APROVADAS: ${json.encode(ordens)}\n'
-      'PLACAR REAL: ${json.encode(d.placar)}\n'
-      'Monte o plano de execução agora.';
+      'APPROVED ORDERS: ${json.encode(ordens)}\n'
+      'REAL SCOREBOARD: ${json.encode(d.placar)}\n'
+      'Build the execution plan now.';
 
   final res = await http
       .post(
@@ -82,6 +82,6 @@ Future<String> gerarPlano(
           const [];
   final texto =
       parts.map((p) => (p as Map)['text'] ?? '').join().trim();
-  if (texto.isEmpty) throw Exception('resposta vazia do modelo');
+  if (texto.isEmpty) throw Exception('empty model response');
   return texto;
 }

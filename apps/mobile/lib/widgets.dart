@@ -41,21 +41,21 @@ class MacroStrip extends StatelessWidget {
     final m = macro;
     if (m == null) return const SizedBox.shrink();
     String dir(String? k) => switch (k) {
-          'subindo' => '▲ subindo',
-          'caindo' => '▼ caindo',
-          'estavel' => '◆ estável',
+          'subindo' => '▲ rising',
+          'caindo' => '▼ falling',
+          'estavel' => '◆ stable',
           _ => '',
         };
     final itens = <(String, String, String)>[
       ('Selic', '${fmtNum(m['selic'])}%', dir(m['selicDirecao'] as String?)),
-      ('IPCA 12m', fmtPct(m['ipca12m'] as num?, sign: false),
+      ('CPI (BR) 12m', fmtPct(m['ipca12m'] as num?, sign: false),
           dir(m['inflacaoTendencia'] as String?)),
-      ('Juro real', '${fmtPct(m['juroReal'] as num?, sign: false)} a.a.', ''),
-      ('Dólar', 'R\$ ${fmtNum(m['dolar'])}', ''),
-      ('Treasury 10a', '${fmtNum(m['us10y'])}%', dir(m['us10yDirecao'] as String?)),
-      ('Dólar global', (m['dxyForte'] as bool?) == null
+      ('Real rate', '${fmtPct(m['juroReal'] as num?, sign: false)}/yr', ''),
+      ('USD/BRL', fmtNum(m['dolar']), ''),
+      ('10y Treasury', '${fmtNum(m['us10y'])}%', dir(m['us10yDirecao'] as String?)),
+      ('Global USD', (m['dxyForte'] as bool?) == null
           ? '—'
-          : ((m['dxyForte'] as bool) ? 'forte' : 'fraco'), ''),
+          : ((m['dxyForte'] as bool) ? 'strong' : 'weak'), ''),
     ];
     return Wrap(
       spacing: 10,
@@ -155,10 +155,10 @@ class OrdemCard extends StatelessWidget {
               spacing: 10,
               runSpacing: 8,
               children: [
-                _kv('Retorno esp. (${o.janela})', fmtPct(o.retornoEsperado)),
+                _kv('Exp. return (${o.janela})', fmtPct(o.retornoEsperado)),
                 _kv('Base', 'n=${o.base}'),
-                _kv('Convicção', '${o.score}/100'),
-                _kv('Alavancagem', 'X${o.lev}'),
+                _kv('Conviction', '${o.score}/100'),
+                _kv('Leverage', 'X${o.lev}'),
               ],
             ),
             const SizedBox(height: 10),
@@ -213,7 +213,7 @@ class Badge extends StatelessWidget {
                   : const [Ql.red, Color(0xFFE0385D)]),
           borderRadius: BorderRadius.circular(7),
         ),
-        child: Text(compra ? '▲ COMPRAR' : '▼ VENDER',
+        child: Text(compra ? '▲ BUY' : '▼ SELL',
             style: TextStyle(
                 color: compra ? const Color(0xFF05261A) : const Color(0xFF2B060D),
                 fontWeight: FontWeight.w800,
@@ -243,7 +243,7 @@ class RadarRow extends StatelessWidget {
                   color: topo ? const Color(0x66FF5D73) : const Color(0x6638E0A2)),
               borderRadius: BorderRadius.circular(7),
             ),
-            child: Text(topo ? '▼ TOPO' : '▲ FUNDO',
+            child: Text(topo ? '▼ TOP' : '▲ BOTTOM',
                 style: TextStyle(
                     color: topo ? Ql.red : Ql.accent,
                     fontWeight: FontWeight.w700,
@@ -262,7 +262,7 @@ class RadarRow extends StatelessWidget {
             width: 96,
             child: Stack(alignment: Alignment.centerLeft, children: [
               Container(
-                height: 18,
+                height: 12,
                 decoration: BoxDecoration(
                   color: const Color(0x1F789AD2),
                   borderRadius: BorderRadius.circular(999),
@@ -271,7 +271,7 @@ class RadarRow extends StatelessWidget {
               FractionallySizedBox(
                 widthFactor: prob.clamp(0, 1),
                 child: Container(
-                  height: 18,
+                  height: 12,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                         colors: topo
@@ -387,8 +387,8 @@ class CaixaBox extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: _cardDeco(),
       child: Text(
-        'Caixa/renda fixa: ${fmtPct(caixaPct, dec: 0, sign: false)} — '
-        'com juro real de ${fmtPct(jr, sign: false)} a.a., caixa também é posição.',
+        'Cash/fixed income: ${fmtPct(caixaPct, dec: 0, sign: false)} — '
+        'with a ${fmtPct(jr, sign: false)}/yr real rate, cash is a position too.',
         style: const TextStyle(color: Ql.dim, fontSize: 13),
       ),
     );
@@ -416,8 +416,8 @@ class Disclaimer extends StatelessWidget {
           border: Border(left: BorderSide(color: Ql.amber, width: 3)),
         ),
         child: const Text(
-          'Estatística derivada de dados públicos (BCB, bolsas). '
-          'Não é recomendação de investimento. Assertividade histórica não '
+          'Statistics derived from public data (central banks, exchanges). '
+          'Not investment advice. Historical accuracy does not '
           'garante resultado futuro. Alavancagem pode gerar perdas superiores '
           'ao capital.',
           style: TextStyle(color: Ql.dim, fontSize: 12),
@@ -438,8 +438,8 @@ class PlacarBox extends StatelessWidget {
     final porH =
         (placar['porHorizonte'] as Map?)?.cast<String, dynamic>() ?? {};
     if (total == 0) {
-      return const VazioBox('O tracking das recomendações começou — a taxa '
-          'de acerto real aparece quando cada janela se cumprir.');
+      return const VazioBox('Recommendation tracking has started — the real '
+          'hit rate appears as each window completes.');
     }
     String pct(num? v) => v == null ? '—' : '${(v * 100).round()}%';
     final linhas = <Widget>[];
@@ -470,8 +470,8 @@ class PlacarBox extends StatelessWidget {
           Expanded(
               child: Text(
                   nF > 0
-                      ? 'acerto real em $nF fechados · $nA em aberto'
-                      : '$nA em aberto — medindo',
+                      ? 'real hit rate in $nF closed · $nA open'
+                      : '$nA open — measuring',
                   style: const TextStyle(
                       fontSize: 11.5, color: Color(0xFF5C7189)))),
         ]),
@@ -490,8 +490,8 @@ class PlacarBox extends StatelessWidget {
           ...linhas,
           const SizedBox(height: 4),
           Text(
-              '$fechados de $total sinais já fecharam a janela. Fechados = '
-              'resultado real; abertos = marcados a mercado.',
+              '$fechados of $total signals have completed their window. Closed = '
+              'real results; open = marked to market.',
               style:
                   const TextStyle(fontSize: 11, color: Color(0xFF5C7189))),
         ],
@@ -560,7 +560,7 @@ class PortfolioBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (rows.isEmpty)
-            const Text('Nenhuma posição aberta no eToro.',
+            const Text('No open positions on eToro.',
                 style: TextStyle(fontSize: 12.5, color: Color(0xFF8AA0B8)))
           else
             ...rows,
@@ -568,10 +568,10 @@ class PortfolioBox extends StatelessWidget {
           Row(children: [
             Expanded(
                 child: Text(
-                    'P&L com alavancagem · cotações do pipeline (~2h)',
+                    'P&L with leverage · pipeline quotes (~2h)',
                     style: const TextStyle(
                         fontSize: 10.5, color: Color(0xFF5C7189)))),
-            TextButton(onPressed: onSair, child: const Text('sair')),
+            TextButton(onPressed: onSair, child: const Text('sign out')),
           ]),
         ],
       ),

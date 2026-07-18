@@ -257,6 +257,18 @@
   init(); addEventListener('resize', init); tick();
 })();
 </script>
+<script>
+// scroll-reveal sutil das seções (respeita reduced-motion)
+(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const els = document.querySelectorAll('.placar-sec,.radar-sec,.ai-sec,.cop-sec,.sec-fold,.como-ler');
+  els.forEach((el) => el.classList.add('reveal'));
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); }
+  }), { rootMargin: '0px 0px -8% 0px' });
+  els.forEach((el) => io.observe(el));
+})();
+</script>
 <script type="module" src="/app.js"></script>
 </body>
 </html>

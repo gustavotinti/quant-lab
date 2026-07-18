@@ -839,3 +839,8 @@ footer { display: flex; flex-direction: column; align-items: center;
 /* harmonia: espaçamento vertical consistente entre seções */
 .placar-sec, .radar-sec, .ai-sec, .cop-sec, .admin-sec { margin: 38px 0; }
 .sec-title { margin-bottom: 14px; }
+
+/* scroll-reveal das seções */
+.reveal { opacity: 0; transform: translateY(16px);
+  transition: opacity .65s ease, transform .65s cubic-bezier(.22,1,.36,1); }
+.reveal.on { opacity: 1; transform: none; }

@@ -46,9 +46,9 @@ class Perfil {
   final String nome;
   final String chave;
 
-  static const conservador = Perfil('Conservador', 'conservador');
-  static const moderado = Perfil('Moderado', 'moderado');
-  static const agressivo = Perfil('Agressivo', 'agressivo');
+  static const conservador = Perfil('Conservative', 'conservador');
+  static const moderado = Perfil('Moderate', 'moderado');
+  static const agressivo = Perfil('Aggressive', 'agressivo');
   static const todos = [conservador, moderado, agressivo];
 }
 

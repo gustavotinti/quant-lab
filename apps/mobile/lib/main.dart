@@ -40,9 +40,9 @@ class _HomePageState extends State<HomePage> {
   Perfil _perfil = Perfil.moderado;
 
   static const _horizontes = [
-    ('curto', 'Curto'),
-    ('medio', 'Médio'),
-    ('longo', 'Longo'),
+    ('curto', 'Short'),
+    ('medio', 'Medium'),
+    ('longo', 'Long'),
   ];
 
   @override
@@ -101,7 +101,7 @@ class _HomePageState extends State<HomePage> {
                 Icon(Icons.cloud_off, color: Ql.dimmer, size: 42),
                 SizedBox(height: 12),
                 Text(
-                    'Não consegui carregar o painel.\nPuxe para baixo para tentar de novo.',
+                    'Could not load the dashboard.\nPull down to try again.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Ql.dim)),
               ]),
@@ -122,13 +122,13 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 20),
         MacroStrip(macro: d.macro),
         const SizedBox(height: 24),
-        SecTitle('O que fazer agora',
+        SecTitle('What to do now',
             sub:
                 '${d.horizonteLabel(_horizonte).toLowerCase()} · ${_perfil.nome.toLowerCase()}'),
         const SizedBox(height: 8),
         if (r.ordens.isEmpty)
           const VazioBox(
-              'Nenhuma ordem passa no corte de assertividade deste perfil neste horizonte — o laboratório prefere ficar de fora a chutar.')
+              'No order clears this profile accuracy cutoff on this horizon — the lab would rather stay out than guess.')
         else
           ...r.ordens.asMap().entries.map(
               (e) => OrdemCard(pos: e.key + 1, ordem: e.value)),
@@ -139,16 +139,16 @@ class _HomePageState extends State<HomePage> {
           OutlinedButton.icon(
             onPressed: () => _abrirOraculo(d),
             icon: const Icon(Icons.auto_awesome, size: 17),
-            label: const Text('Oráculo — plano de execução'),
+            label: const Text('Oracle — execution plan'),
           ),
         ],
         const SizedBox(height: 24),
-        const SecTitle('Radar de Picos',
+        const SecTitle('Peak Radar',
             sub:
-                'probabilidade de virada em ~1 mês, calibrada em episódios idênticos'),
+                'probability of a reversal in ~1 month, calibrated on identical episodes'),
         const SizedBox(height: 8),
         if (d.radarPicos.isEmpty)
-          const VazioBox('Nenhum ativo em estado esticado hoje.')
+          const VazioBox('No asset in a stretched state today.')
         else
           ...d.radarPicos
               .take(12)
@@ -156,30 +156,30 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 24),
         SecTitle(
             usuario == null
-                ? 'Copiloto — sua conta eToro'
-                : 'Copiloto — eToro · conta real',
+                ? 'Copilot — your eToro account'
+                : 'Copilot — eToro · live account',
             sub: usuario == null
-                ? 'entre com o Google para ver suas posições reais'
+                ? 'sign in with Google to see your real positions'
                 : (usuario!.email ?? '')),
         const SizedBox(height: 8),
         if (usuario == null)
           FilledButton.icon(
             onPressed: _logando ? null : _entrar,
             icon: const Icon(Icons.login, size: 18),
-            label: Text(_logando ? 'Entrando…' : 'Entrar com Google'),
+            label: Text(_logando ? 'Signing in…' : 'Sign in with Google'),
           )
         else if (_portfolio == null)
           const VazioBox(
-              'Sem acesso ao portfólio nesta conta (o Copiloto é privado '
-              'do dono do laboratório).')
+              'No portfolio access on this account (the Copilot is private '
+              'to the lab owner).')
         else
           PortfolioBox(portfolio: _portfolio!, onSair: () async {
             await sair();
             if (mounted) setState(() => _portfolio = null);
           }),
         const SizedBox(height: 24),
-        const SecTitle('Placar do sistema',
-            sub: 'acerto REAL das ordens emitidas ao vivo — sem hindsight'),
+        const SecTitle('System scoreboard',
+            sub: 'REAL hit rate of live-issued orders — no hindsight'),
         const SizedBox(height: 8),
         if (d.placar != null) PlacarBox(placar: d.placar!),
         const SizedBox(height: 20),
@@ -204,7 +204,7 @@ class _HomePageState extends State<HomePage> {
               : SingleChildScrollView(
                   child: SelectableText(
                       snap.hasError
-                          ? 'Não consegui falar com o Oráculo: '
+                          ? 'Could not reach the Oracle: '
                               '${snap.error}'
                           : (snap.data ?? ''),
                       style: const TextStyle(fontSize: 13.5, height: 1.5)),
@@ -223,7 +223,7 @@ class _HomePageState extends State<HomePage> {
           const TextSpan(text: 'Quant', style: TextStyle(color: Ql.text)),
           const TextSpan(text: 'Lab', style: TextStyle(color: Ql.accent)),
           TextSpan(
-              text: '   dados até ${fmtData(d.ultimaObservacao)}',
+              text: '   data through ${fmtData(d.ultimaObservacao)}',
               style: const TextStyle(
                   color: Ql.dimmer,
                   fontSize: 12,
