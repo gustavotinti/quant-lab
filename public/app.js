@@ -2,8 +2,8 @@
 // (Gemini Developer API direto, free tier, chave restrita por domínio).
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js';
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
-  getRedirectResult, onAuthStateChanged, signOut,
+  getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup,
+  signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut,
 } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js';
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot,
@@ -98,12 +98,42 @@ getRedirectResult(auth).catch((e) => {
 });
 els.login.onclick = login;
 els.loginHero.onclick = login;
+
+// ── Sign in with Apple (provedor habilitado no console do Firebase) ───
+async function loginApple() {
+  const prov = new OAuthProvider('apple.com');
+  prov.addScope('email');
+  prov.addScope('name');
+  try {
+    await signInWithPopup(auth, prov);
+  } catch (e) {
+    if (e.code === 'auth/popup-blocked') {
+      try { await signInWithRedirect(auth, prov); }
+      catch (e2) { toast('Sign-in failed: ' + (e2.code || e2.message)); }
+    } else if (e.code === 'auth/operation-not-allowed' ||
+        e.code === 'auth/configuration-not-found') {
+      toast('Apple sign-in is not fully configured in Firebase ' +
+            '(Authentication → Sign-in method → Apple needs the Apple ' +
+            'Services ID + key).', 10000);
+    } else if (e.code === 'auth/account-exists-with-different-credential') {
+      toast('This email is already registered with Google — use ' +
+            '"Sign in with Google".', 9000);
+    } else if (e.code !== 'auth/popup-closed-by-user' &&
+        e.code !== 'auth/cancelled-popup-request') {
+      toast('Sign-in failed: ' + (e.code || e.message));
+    }
+  }
+}
+$('btn-login-apple')?.addEventListener('click', loginApple);
+$('btn-login-hero-apple')?.addEventListener('click', loginApple);
 els.logout.onclick = () => signOut(auth);
 
 onAuthStateChanged(auth, (user) => {
   const logged = !!user;
   els.login.classList.toggle('hidden', logged);
   els.loginHero.classList.toggle('hidden', logged);
+  $('btn-login-apple')?.classList.toggle('hidden', logged);
+  $('btn-login-hero-apple')?.classList.toggle('hidden', logged);
   els.heroHint.classList.toggle('hidden', logged);
   els.userChip.classList.toggle('hidden', !logged);
   els.dash.classList.toggle('hidden', !logged);
