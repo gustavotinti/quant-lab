@@ -892,7 +892,8 @@ footer { display: flex; flex-direction: column; align-items: center;
 }
 .cristal-cap { position: absolute; left: 0; right: 0; bottom: 6px;
   text-align: center; font: 700 .66rem var(--mono); letter-spacing: .14em;
-  text-transform: uppercase; color: var(--dimmer); pointer-events: none; }
+  text-transform: uppercase; color: #fff; pointer-events: none;
+  text-shadow: 0 0 10px rgba(120,124,255,.55); }
 
 .chat-ava { display: inline-flex; width: 20px; height: 20px;
   vertical-align: -4px; margin-right: 7px; color: var(--accent); }

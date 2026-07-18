@@ -1065,7 +1065,7 @@ $('btn-ai').onclick = gerarIA;
 // ── bola de cristal: partículas escrevem a previsão mais forte ────────
 let _cristalRaf = 0, _cristalTxt = '';
 // ponteiro (mouse/dedo) para as partículas reagirem — coord. do canvas
-const _ptr = { x: -9999, y: -9999 };
+const _ptr = { x: -9999, y: -9999, vx: 0, vy: 0 };
 let _ptrOn = false;
 function _cristalPointer() {
   if (_ptrOn) return;
@@ -1074,11 +1074,15 @@ function _cristalPointer() {
   _ptrOn = true;
   const mv = (e) => {
     const r = wrap.getBoundingClientRect();
-    _ptr.x = e.clientX - r.left;
-    _ptr.y = e.clientY - r.top;
+    const nx = e.clientX - r.left, ny = e.clientY - r.top;
+    if (_ptr.x > -9000) { _ptr.vx = nx - _ptr.x; _ptr.vy = ny - _ptr.y; }
+    _ptr.x = nx; _ptr.y = ny;
     wrap.classList.add('ativa'); // bola muda de cor também no toque
   };
-  const off = () => { _ptr.x = _ptr.y = -9999; wrap.classList.remove('ativa'); };
+  const off = () => {
+    _ptr.x = _ptr.y = -9999; _ptr.vx = _ptr.vy = 0;
+    wrap.classList.remove('ativa');
+  };
   wrap.addEventListener('pointermove', mv);
   wrap.addEventListener('pointerdown', mv);
   wrap.addEventListener('pointerleave', off);
@@ -1095,7 +1099,7 @@ function cristalRevelar() {
     if (top) { // versão estática acessível
       const ctx = cv.getContext('2d');
       const W = cv.width = wrap.offsetWidth, H = cv.height = wrap.offsetHeight;
-      ctx.fillStyle = '#38e0a2';
+      ctx.fillStyle = '#787cff';
       ctx.font = '700 34px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
       ctx.fillText(cristalTexto(top), W / 2, H / 2);
@@ -1132,34 +1136,40 @@ function cristalRevelar() {
     tx, ty,
     x: oX + (Math.random() - .5) * 30, y: oY + Math.random() * 20,
     d: (Math.hypot(tx - oX, ty - oY) / H) * 26 + Math.random() * 34,
-    g: Math.random() > .45, f: Math.random() * 6.28, ox: 0, oy: 0,
+    g: Math.random() > .45, f: Math.random() * 6.28,
+    ox: 0, oy: 0, ovx: 0, ovy: 0,
   }));
   _cristalPointer();
   let t = 0;
   const tick = () => {
     t++;
     ctx.clearRect(0, 0, W, H);
+    _ptr.vx *= 0.8; _ptr.vy *= 0.8; // a velocidade do ponteiro esvai entre frames
     for (const p of ps) {
       const k = Math.max(0, Math.min(1, (t - p.d) / 52));
       const e = 1 - Math.pow(1 - k, 3); // easeOutCubic
       let x = p.x + (p.tx - p.x) * e + (k >= 1 ? Math.sin(t / 22 + p.f) * .7 : 0);
       let y = p.y + (p.ty - p.y) * e + (k >= 1 ? Math.cos(t / 26 + p.f) * .7 : 0);
-      // repulsão do mouse/dedo com retorno por mola
+      // COLISÃO: o ponteiro BATE nas partículas — impulso proporcional à
+      // velocidade do movimento (parado quase não mexe); voltam por mola
+      // amortecida, com intensidade decrescente (não é um campo empurrando).
       const dx = x + p.ox - _ptr.x, dy = y + p.oy - _ptr.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist < 70 && dist > 0.01) {
-        const f = (70 - dist) / 70 * 9;
-        p.ox += (dx / dist) * f;
-        p.oy += (dy / dist) * f;
+      const dist = Math.hypot(dx, dy) || 1;
+      if (dist < 66) {
+        const n = 1 - dist / 66;
+        const spd = Math.hypot(_ptr.vx, _ptr.vy);
+        const imp = n * (spd * 0.55 + 0.35);
+        p.ovx += (dx / dist) * imp + _ptr.vx * n * 0.4; // arrasta no sentido do golpe
+        p.ovy += (dy / dist) * imp + _ptr.vy * n * 0.4;
       }
-      p.ox *= 0.88; p.oy *= 0.88; // mola: volta sozinha
+      p.ovx -= p.ox * 0.055; p.ovy -= p.oy * 0.055; // mola de volta à origem
+      p.ovx *= 0.9; p.ovy *= 0.9;                   // atrito
+      p.ox += p.ovx; p.oy += p.ovy;
       x += p.ox; y += p.oy;
-      ctx.globalAlpha = .25 + .75 * e;
-      // onda de cor contínua transitando pelo texto (verde→ciano→azul→violeta)
-      const hue = 150 + 80 * Math.sin(t / 34 + p.tx / 26 + (p.g ? .6 : 0));
-      const lum = 58 + 10 * Math.sin(t / 21 + p.tx / 18);
-      ctx.fillStyle = `hsl(${hue}, 92%, ${lum}%)`;
-      ctx.fillRect(x, y, 1.7, 1.7);
+      const shimmer = .8 + .2 * Math.sin(t / 16 + p.tx / 20);
+      ctx.globalAlpha = (.3 + .7 * e) * shimmer;
+      ctx.fillStyle = '#787cff'; // azul-roxo do Oráculo (cor única)
+      ctx.fillRect(x, y, 1.9, 1.9);
     }
     ctx.globalAlpha = 1;
     _cristalRaf = requestAnimationFrame(tick);
