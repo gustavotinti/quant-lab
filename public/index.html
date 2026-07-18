@@ -8,6 +8,11 @@
 <meta name="description" content="Economic Discovery Lab: LONG and SHORT orders with historical accuracy, derived from official data only.">
 <meta property="og:title" content="QuantLab — Economic Discovery Lab">
 <meta property="og:description" content="The market, measured. Never guessed.">
+<meta property="og:image" content="https://quantlab-lde.web.app/og.png">
+<meta property="og:url" content="https://quantlab-lde.web.app/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://quantlab-lde.web.app/og.png">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <link rel="manifest" href="/manifest.json">
@@ -15,6 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="preload" href="/data/dashboard.json" as="fetch" crossorigin>
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -49,7 +55,7 @@
       accuracy</b>, calculated leverage and numerical evidence — all
       derived from official data only.</p>
     <div class="hero-stats">
-      <div class="hstat"><b data-count="55">0</b><span>official indicators</span></div>
+      <div class="hstat"><b data-count="59">0</b><span>official indicators</span></div>
       <div class="hstat"><b data-count="3">0</b><span>measured strategies</span></div>
       <div class="hstat"><b>70/30</b><span>train / test</span></div>
       <div class="hstat"><b>OOS</b><span>out-of-sample validation</span></div>
