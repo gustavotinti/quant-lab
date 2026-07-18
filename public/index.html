@@ -244,9 +244,19 @@
       x: Math.random()*W, y: Math.random()*H,
       vx: (Math.random()-.5)*.25, vy: (Math.random()-.5)*.25,
       r: Math.random()*1.6+.4, a: Math.random()*.5+.15,
-      g: Math.random() > .5,
+      g: Math.random() > .5, ox: 0, oy: 0,
     }));
   }
+  // mouse/dedo espalha as partículas; a mola traz de volta
+  const ptr = { x: -9999, y: -9999 };
+  const hero = document.getElementById('hero');
+  const mv = (e) => {
+    const r = c.getBoundingClientRect();
+    ptr.x = e.clientX - r.left; ptr.y = e.clientY - r.top;
+  };
+  hero.addEventListener('pointermove', mv);
+  hero.addEventListener('pointerdown', mv);
+  hero.addEventListener('pointerleave', () => { ptr.x = ptr.y = -9999; });
   function tick() {
     if (document.hidden) { requestAnimationFrame(tick); return; }
     ctx.clearRect(0,0,W,H);
@@ -254,16 +264,25 @@
       p.x += p.vx; p.y += p.vy;
       if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
       if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7);
+      const dx = p.x + p.ox - ptr.x, dy = p.y + p.oy - ptr.y;
+      const d = Math.hypot(dx, dy);
+      if (d < 90 && d > .01) {
+        const f = (90 - d) / 90 * 7;
+        p.ox += (dx / d) * f; p.oy += (dy / d) * f;
+      }
+      p.ox *= .9; p.oy *= .9;
+      ctx.beginPath(); ctx.arc(p.x + p.ox, p.y + p.oy, p.r, 0, 7);
       ctx.fillStyle = p.g ? `rgba(56,224,162,${p.a})` : `rgba(79,156,255,${p.a})`;
       ctx.fill();
     }
     for (let i = 0; i < N; i++) for (let j = i+1; j < N; j++) {
-      const a = ps[i], b = ps[j], dx = a.x-b.x, dy = a.y-b.y, d = dx*dx+dy*dy;
+      const a = ps[i], b = ps[j],
+        ax = a.x + a.ox, ay = a.y + a.oy, bx = b.x + b.ox, by = b.y + b.oy,
+        dx = ax-bx, dy = ay-by, d = dx*dx+dy*dy;
       if (d < 8100) {
         ctx.strokeStyle = `rgba(120,180,220,${.10*(1-d/8100)})`;
         ctx.lineWidth = .6;
-        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
       }
     }
     requestAnimationFrame(tick);

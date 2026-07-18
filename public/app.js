@@ -1064,6 +1064,27 @@ $('btn-ai').onclick = gerarIA;
 // ── radar de picos ────────────────────────────────────────────────────
 // ── bola de cristal: partículas escrevem a previsão mais forte ────────
 let _cristalRaf = 0, _cristalTxt = '';
+// ponteiro (mouse/dedo) para as partículas reagirem — coord. do canvas
+const _ptr = { x: -9999, y: -9999 };
+let _ptrOn = false;
+function _cristalPointer() {
+  if (_ptrOn) return;
+  const wrap = $('cristal');
+  if (!wrap) return;
+  _ptrOn = true;
+  const mv = (e) => {
+    const r = wrap.getBoundingClientRect();
+    _ptr.x = e.clientX - r.left;
+    _ptr.y = e.clientY - r.top;
+    wrap.classList.add('ativa'); // bola muda de cor também no toque
+  };
+  const off = () => { _ptr.x = _ptr.y = -9999; wrap.classList.remove('ativa'); };
+  wrap.addEventListener('pointermove', mv);
+  wrap.addEventListener('pointerdown', mv);
+  wrap.addEventListener('pointerleave', off);
+  wrap.addEventListener('pointerup', off);
+  wrap.addEventListener('pointercancel', off);
+}
 function cristalRevelar() {
   const wrap = $('cristal');
   const cv = $('cristal-canvas');
@@ -1111,8 +1132,9 @@ function cristalRevelar() {
     tx, ty,
     x: oX + (Math.random() - .5) * 30, y: oY + Math.random() * 20,
     d: (Math.hypot(tx - oX, ty - oY) / H) * 26 + Math.random() * 34,
-    g: Math.random() > .45, f: Math.random() * 6.28,
+    g: Math.random() > .45, f: Math.random() * 6.28, ox: 0, oy: 0,
   }));
+  _cristalPointer();
   let t = 0;
   const tick = () => {
     t++;
@@ -1120,10 +1142,23 @@ function cristalRevelar() {
     for (const p of ps) {
       const k = Math.max(0, Math.min(1, (t - p.d) / 52));
       const e = 1 - Math.pow(1 - k, 3); // easeOutCubic
-      const x = p.x + (p.tx - p.x) * e + (k >= 1 ? Math.sin(t / 22 + p.f) * .7 : 0);
-      const y = p.y + (p.ty - p.y) * e + (k >= 1 ? Math.cos(t / 26 + p.f) * .7 : 0);
+      let x = p.x + (p.tx - p.x) * e + (k >= 1 ? Math.sin(t / 22 + p.f) * .7 : 0);
+      let y = p.y + (p.ty - p.y) * e + (k >= 1 ? Math.cos(t / 26 + p.f) * .7 : 0);
+      // repulsão do mouse/dedo com retorno por mola
+      const dx = x + p.ox - _ptr.x, dy = y + p.oy - _ptr.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 70 && dist > 0.01) {
+        const f = (70 - dist) / 70 * 9;
+        p.ox += (dx / dist) * f;
+        p.oy += (dy / dist) * f;
+      }
+      p.ox *= 0.88; p.oy *= 0.88; // mola: volta sozinha
+      x += p.ox; y += p.oy;
       ctx.globalAlpha = .25 + .75 * e;
-      ctx.fillStyle = p.g ? '#38e0a2' : '#4f9cff';
+      // onda de cor contínua transitando pelo texto (verde→ciano→azul→violeta)
+      const hue = 150 + 80 * Math.sin(t / 34 + p.tx / 26 + (p.g ? .6 : 0));
+      const lum = 58 + 10 * Math.sin(t / 21 + p.tx / 18);
+      ctx.fillStyle = `hsl(${hue}, 92%, ${lum}%)`;
       ctx.fillRect(x, y, 1.7, 1.7);
     }
     ctx.globalAlpha = 1;

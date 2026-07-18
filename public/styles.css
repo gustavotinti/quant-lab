@@ -867,7 +867,7 @@ footer { display: flex; flex-direction: column; align-items: center;
 
 /* ── bola de cristal do Oráculo (Peak Radar) ────────────────────────── */
 .cristal-wrap { position: relative; height: 240px; margin: 4px 0 18px;
-  overflow: hidden; }
+  overflow: hidden; touch-action: pan-y; }
 .cristal-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .cristal-ball { position: absolute; left: 50%; bottom: -34px;
   transform: translateX(-50%); width: 110px; height: 110px;
@@ -898,3 +898,15 @@ footer { display: flex; flex-direction: column; align-items: center;
   vertical-align: -4px; margin-right: 7px; color: var(--accent); }
 .chat-ava svg { width: 100%; height: 100%; }
 .fab svg { filter: drop-shadow(0 0 6px rgba(56,224,162,.55)); }
+
+/* bola reage ao mouse/dedo: cores girando + brilho extra */
+.cristal-wrap:hover .cristal-ball, .cristal-wrap.ativa .cristal-ball {
+  animation: cristalGlow 3.6s ease-in-out infinite,
+             cristalHue 2.6s linear infinite;
+  transform: translateX(-50%) scale(1.06);
+  transition: transform .35s ease; }
+@keyframes cristalHue {
+  from { filter: hue-rotate(0deg) saturate(1.5) brightness(1.12); }
+  to { filter: hue-rotate(360deg) saturate(1.5) brightness(1.12); }
+}
+.cristal-ball { transition: transform .35s ease; }
