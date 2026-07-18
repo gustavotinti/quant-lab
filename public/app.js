@@ -1092,7 +1092,85 @@ function sincronizarOraculo(marcarDesatualizado = true) {
 $('btn-ai').onclick = gerarIA;
 
 // ── radar de picos ────────────────────────────────────────────────────
+// ── bola de cristal: partículas escrevem a previsão mais forte ────────
+let _cristalRaf = 0, _cristalTxt = '';
+function cristalRevelar() {
+  const wrap = $('cristal');
+  const cv = $('cristal-canvas');
+  if (!wrap || !cv) return;
+  const top = (DATA.radarPicos || [])[0];
+  if (!top || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    wrap.classList.toggle('hidden', !top);
+    if (top) { // versão estática acessível
+      const ctx = cv.getContext('2d');
+      const W = cv.width = wrap.offsetWidth, H = cv.height = wrap.offsetHeight;
+      ctx.fillStyle = '#38e0a2';
+      ctx.font = '700 34px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(cristalTexto(top), W / 2, H / 2);
+    }
+    return;
+  }
+  wrap.classList.remove('hidden');
+  const txt = cristalTexto(top);
+  if (txt === _cristalTxt && _cristalRaf) return; // já animando este texto
+  _cristalTxt = txt;
+  cancelAnimationFrame(_cristalRaf);
+
+  const ctx = cv.getContext('2d');
+  const W = cv.width = wrap.offsetWidth, H = cv.height = wrap.offsetHeight;
+  // amostra o texto num canvas offscreen → pontos-alvo das partículas
+  const off = document.createElement('canvas');
+  off.width = W; off.height = H;
+  const octx = off.getContext('2d');
+  const fs = Math.min(46, Math.max(24, W / (txt.length * 0.72)));
+  octx.font = `700 ${fs}px "JetBrains Mono", monospace`;
+  octx.textAlign = 'center';
+  octx.fillStyle = '#fff';
+  octx.fillText(txt, W / 2, H * 0.42);
+  const img = octx.getImageData(0, 0, W, H).data;
+  const step = W > 700 ? 3 : 4;
+  const alvo = [];
+  for (let y = 0; y < H; y += step) {
+    for (let x = 0; x < W; x += step) {
+      if (img[(y * W + x) * 4 + 3] > 128) alvo.push([x, y]);
+    }
+  }
+  const oX = W / 2, oY = H + 10; // boca da bola de cristal
+  const ps = alvo.map(([tx, ty], i) => ({
+    tx, ty,
+    x: oX + (Math.random() - .5) * 30, y: oY + Math.random() * 20,
+    d: (Math.hypot(tx - oX, ty - oY) / H) * 26 + Math.random() * 34,
+    g: Math.random() > .45, f: Math.random() * 6.28,
+  }));
+  let t = 0;
+  const tick = () => {
+    t++;
+    ctx.clearRect(0, 0, W, H);
+    for (const p of ps) {
+      const k = Math.max(0, Math.min(1, (t - p.d) / 52));
+      const e = 1 - Math.pow(1 - k, 3); // easeOutCubic
+      const x = p.x + (p.tx - p.x) * e + (k >= 1 ? Math.sin(t / 22 + p.f) * .7 : 0);
+      const y = p.y + (p.ty - p.y) * e + (k >= 1 ? Math.cos(t / 26 + p.f) * .7 : 0);
+      ctx.globalAlpha = .25 + .75 * e;
+      ctx.fillStyle = p.g ? '#38e0a2' : '#4f9cff';
+      ctx.fillRect(x, y, 1.7, 1.7);
+    }
+    ctx.globalAlpha = 1;
+    _cristalRaf = requestAnimationFrame(tick);
+  };
+  tick();
+}
+function cristalTexto(r) {
+  const nome = r.ticker || r.nome;
+  return `${r.tipo === 'topo' ? '▼' : '▲'} ${nome} · ${r.tipo === 'topo' ? 'TOP' : 'BOTTOM'} ${Math.round(r.prob * 100)}%`;
+}
+addEventListener('resize', () => {
+  if (DATA) { _cristalTxt = ''; cristalRevelar(); }
+});
+
 function renderRadar() {
+  cristalRevelar();
   const list = $('radar-list');
   const radar = DATA.radarPicos || [];
   if (!radar.length) {
