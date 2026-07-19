@@ -269,14 +269,16 @@
       if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
       const dx = p.x + p.ox - ptr.x, dy = p.y + p.oy - ptr.y;
       const d = Math.hypot(dx, dy) || 1;
-      if (d < 95) {
-        const n = 1 - d / 95;
-        const spd = Math.hypot(ptr.vx, ptr.vy);
-        const imp = n * (spd * 0.5 + 0.3);
-        p.ovx += (dx / d) * imp + ptr.vx * n * 0.35;
-        p.ovy += (dy / d) * imp + ptr.vy * n * 0.35;
+      if (d < 160) {
+        // ATRACAO: as particulas sao PUXADAS para o cursor (sinal negativo);
+        // um nucleo (~32px) empurra de leve p/ orbitarem sem colapsar num ponto.
+        const n = 1 - d / 160;
+        let pull = n * 1.2;
+        if (d < 32) pull -= (32 - d) / 32 * 1.1;
+        p.ovx -= (dx / d) * pull;
+        p.ovy -= (dy / d) * pull;
       }
-      p.ovx -= p.ox * 0.05; p.ovy -= p.oy * 0.05;
+      p.ovx -= p.ox * 0.018; p.ovy -= p.oy * 0.018; // mola: volta a origem
       p.ovx *= .9; p.ovy *= .9;
       p.ox += p.ovx; p.oy += p.ovy;
       ctx.beginPath(); ctx.arc(p.x + p.ox, p.y + p.oy, p.r, 0, 7);

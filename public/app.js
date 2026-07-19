@@ -333,25 +333,59 @@ const dirTxt = { subindo: ['▲ rising', 'up'], caindo: ['▼ falling', 'down'],
 function renderMacro() {
   const m = DATA.macro;
   if (!m) return;
+  // [chave, rótulo, valorNumérico|null, casas, sufixo, subtítulo-tendência]
   const items = [
-    ['Selic', `${fmtNum(m.selic)}%`, dirTxt[m.selicDirecao]],
-    ['CPI (BR) 12m', fmtPct(m.ipca12m, 1, false), dirTxt[m.inflacaoTendencia]],
-    ['Real rate (BR)', `${fmtPct(m.juroReal, 1, false)}/yr`, null],
-    ['USD/BRL', `${fmtNum(m.dolar)}`, null],
-    ['10y Treasury', `${fmtNum(m.us10y)}%`, m.us10yDirecao ? dirTxt[m.us10yDirecao] : null],
-    ['Global USD', m.dxyForte == null ? '—' : (m.dxyForte ? 'strong' : 'weak'),
+    ['selic', 'Selic', m.selic, 2, '%', dirTxt[m.selicDirecao]],
+    ['ipca12m', 'CPI (BR) 12m', m.ipca12m == null ? null : m.ipca12m * 100, 1, '%', dirTxt[m.inflacaoTendencia]],
+    ['juroReal', 'Real rate (BR)', m.juroReal == null ? null : m.juroReal * 100, 1, '%/yr', null],
+    ['dolar', 'USD/BRL', m.dolar, 2, '', null],
+    ['us10y', '10y Treasury', m.us10y, 2, '%', m.us10yDirecao ? dirTxt[m.us10yDirecao] : null],
+    ['dxy', 'Global USD', null, 0, '',
       m.dxyForte == null ? null : (m.dxyForte ? ['DXY > SMA-200', 'down'] : ['DXY < SMA-200', 'up'])],
-    ...(m.juroRealEua != null ? [['US real rate', `${fmtPct(m.juroRealEua, 1, false)}/yr`,
-      m.juroRealEua < 0 ? ['negative — favors gold/crypto', 'up'] : null]] : []),
-    ...(m.curva2s10s != null ? [['US 2s10s curve', `${fmtNum(m.curva2s10s)} pp`,
-      m.curva2s10s < 0 ? ['inverted — late cycle', 'down'] : ['normal', 'up']]] : []),
   ];
-  els.macro.innerHTML = items.map(([lbl, val, dir]) => `
-    <div class="mstat">
+  if (m.juroRealEua != null) items.push(['juroRealEua', 'US real rate', m.juroRealEua * 100, 1, '%/yr',
+    m.juroRealEua < 0 ? ['negative — favors gold/crypto', 'up'] : null]);
+  if (m.curva2s10s != null) items.push(['curva2s10s', 'US 2s10s curve', m.curva2s10s, 2, ' pp',
+    m.curva2s10s < 0 ? ['inverted — late cycle', 'down'] : ['normal', 'up']]);
+
+  // variação desde a ÚLTIMA atualização (persistida por geradoEm no localStorage)
+  const cur = {};
+  for (const it of items) if (it[2] != null) cur[it[0]] = it[2];
+  let deltas = {};
+  try {
+    const store = JSON.parse(localStorage.getItem('ql_macro_prev') || 'null');
+    if (store && store.geradoEm === DATA.geradoEm) {
+      deltas = store.deltas || {};
+    } else {
+      if (store && store.vals) for (const k in cur)
+        if (store.vals[k] != null) deltas[k] = +(cur[k] - store.vals[k]).toFixed(4);
+      localStorage.setItem('ql_macro_prev',
+        JSON.stringify({ geradoEm: DATA.geradoEm, vals: cur, deltas }));
+    }
+  } catch (_) { /* localStorage indisponível */ }
+
+  const nf2 = (v, dec) => new Intl.NumberFormat('en-US',
+    { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(v);
+
+  els.macro.innerHTML = items.map(([k, lbl, cu, dec, suf, dir]) => {
+    let val;
+    if (cu != null) {
+      const d = deltas[k];
+      const mostra = d != null && Math.abs(d) >= 0.5 * Math.pow(10, -dec);
+      const delta = mostra
+        ? `<span class="delta ${d > 0 ? 'up' : 'down'}" title="since last update">${d > 0 ? '▲' : '▼'} ${nf2(Math.abs(d), dec)}</span>`
+        : '';
+      val = `<span data-cu="${cu}" data-cu-dec="${dec}" data-cu-suf="${suf}">${nf2(cu, dec)}${suf}</span>${delta}`;
+    } else {
+      val = m.dxyForte == null ? '—' : (m.dxyForte ? 'strong' : 'weak');
+    }
+    return `<div class="mstat">
       <div class="lbl">${lbl}</div>
       <div class="val">${val}</div>
       ${dir ? `<div class="sub ${dir[1]}">${dir[0]}</div>` : '<div class="sub">&nbsp;</div>'}
-    </div>`).join('');
+    </div>`;
+  }).join('');
+  animateCounts(els.macro);
 }
 
 // ── cards de oportunidade ─────────────────────────────────────────────
@@ -648,7 +682,7 @@ function countUp(el) {
   const to = parseFloat(el.dataset.cu);
   if (!isFinite(to) || _reduz) return;
   const dec = +(el.dataset.cuDec || 0), suf = el.dataset.cuSuf || '';
-  const t0 = performance.now(), dur = 620;
+  const t0 = performance.now(), dur = 800;
   const fmt = (v) => new Intl.NumberFormat('en-US',
     { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(v) + suf;
   const step = (now) => {
@@ -1208,7 +1242,7 @@ function cristalRevelar() {
     life: -Math.random() * 70, dur: 48 + Math.random() * 44,
     sz: Math.random() * 1.3 + .5, w: Math.random() * 6.28,
   });
-  const fluxo = Array.from({ length: 22 }, novoFluxo);
+  const fluxo = Array.from({ length: 66 }, novoFluxo);
   let t = 0;
   const tick = () => {
     t++;
@@ -1223,7 +1257,7 @@ function cristalRevelar() {
       const e = k * k * (3 - 2 * k); // smoothstep
       const x = s.x0 + (s.x1 - s.x0) * e + Math.sin(k * 7 + s.w) * 4;
       const y = s.y0 + (s.y1 - s.y0) * e;
-      ctx.globalAlpha = Math.sin(k * Math.PI) * 0.5;
+      ctx.globalAlpha = Math.sin(k * Math.PI) * 0.42;
       ctx.fillStyle = '#787cff';
       ctx.fillRect(x, y, s.sz, s.sz);
     }

@@ -939,3 +939,11 @@ footer { display: flex; flex-direction: column; align-items: center;
 @media (prefers-reduced-motion: reduce) {
   .sec-title::after, .live-px small { animation: none; }
 }
+
+/* variacao desde a ultima atualizacao nos campos macro */
+.mstat .val { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+.delta { font: 700 .64rem var(--mono); letter-spacing: .2px;
+  animation: deltaIn .5s ease; }
+.delta.up { color: var(--accent); }
+.delta.down { color: var(--red); }
+@keyframes deltaIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; } }
