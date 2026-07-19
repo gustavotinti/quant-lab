@@ -947,3 +947,39 @@ footer { display: flex; flex-direction: column; align-items: center;
 .delta.up { color: var(--accent); }
 .delta.down { color: var(--red); }
 @keyframes deltaIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; } }
+
+/* ── vida ambiente: aurora que deriva devagar atrás de tudo ─────────── */
+body::before {
+  content: ""; position: fixed; inset: -25%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(620px 420px at 20% 30%, rgba(56,224,162,.07), transparent 60%),
+    radial-gradient(720px 520px at 80% 68%, rgba(79,156,255,.08), transparent 60%),
+    radial-gradient(520px 520px at 60% 18%, rgba(124,92,255,.05), transparent 62%);
+  animation: aurora 36s ease-in-out infinite alternate;
+}
+@keyframes aurora {
+  0% { transform: translate3d(-3%, -2%, 0) scale(1.05); }
+  50% { transform: translate3d(2%, 3%, 0) scale(1.13); }
+  100% { transform: translate3d(3%, -3%, 0) scale(1.07); }
+}
+/* selo LIVE pulsante no topo */
+.live-badge { display: inline-flex; align-items: center; gap: 6px;
+  font: 700 .62rem var(--mono); letter-spacing: .14em; color: var(--accent);
+  text-transform: uppercase; margin-right: 6px; }
+.live-badge i { width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 0 rgba(56,224,162,.6);
+  animation: liveDot 1.7s ease-out infinite; }
+@keyframes liveDot { 0% { box-shadow: 0 0 0 0 rgba(56,224,162,.6); }
+  70% { box-shadow: 0 0 0 7px rgba(56,224,162,0); }
+  100% { box-shadow: 0 0 0 0 rgba(56,224,162,0); } }
+/* entrada em cascata das ordens do ranking */
+.rank-row { animation: rowIn .5s ease backwards; }
+@keyframes rowIn { from { opacity: 0; transform: translateY(11px); } to { opacity: 1; } }
+/* sparkline desenhando o traço ao aparecer */
+.spark .line { stroke-dasharray: 1; stroke-dashoffset: 1;
+  animation: sparkDraw 1.15s cubic-bezier(.4,0,.2,1) forwards; }
+@keyframes sparkDraw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  body::before, .live-badge i, .rank-row { animation: none; }
+  .spark .line { stroke-dasharray: none; stroke-dashoffset: 0; animation: none; }
+}

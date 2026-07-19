@@ -299,7 +299,8 @@ function atualizarTopo() {
     ? new Date(DATA.geradoEm).toLocaleTimeString('en-US',
         { hour: '2-digit', minute: '2-digit' })
     : '';
-  els.updated.textContent =
+  els.updated.innerHTML =
+    `<span class="live-badge"><i></i>LIVE</span> ` +
     `data through ${fmtData(DATA.ultimaObservacao)} · ` +
     `generated ${fmtData(DATA.geradoEm?.slice(0, 10))} ${hora}`;
 }
@@ -404,7 +405,7 @@ function sparkSvg(o) {
   const up = v[v.length - 1] >= v[0];
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
     <path class="area ${up ? 'aup' : 'adn'}" d="${line}L${W - P},${H}L${P},${H}Z"/>
-    <path class="line ${up ? 'up' : 'dn'}" d="${line}"/></svg>`;
+    <path class="line ${up ? 'up' : 'dn'}" pathLength="1" d="${line}"/></svg>`;
 }
 
 function cardHtml(o, i) {
@@ -589,7 +590,7 @@ function renderRanking() {
            (enter your capital above to see it in $)`) + sl;
       const kv = (k, v) =>
         `<div class="kv"><div class="k">${k}</div><div class="v">${v}</div></div>`;
-      return `<details class="rank-row" data-id="${esc(o.id)}">
+      return `<details class="rank-row" data-id="${esc(o.id)}" style="animation-delay:${Math.min(i * 45, 400)}ms">
         <summary>
           <span class="rank-pos">${i + 1}</span>
           <span class="badge ${o.direcao}">${r.acao === 'comprar' ? '▲ BUY' : '▼ SELL'}</span>
@@ -743,7 +744,7 @@ function sparkArr(v0) {
   const up = v[v.length - 1] >= v[0];
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
     <path class="area ${up ? 'aup' : 'adn'}" d="${line}L${W - P},${H}L${P},${H}Z"/>
-    <path class="line ${up ? 'up' : 'dn'}" d="${line}"/></svg>`;
+    <path class="line ${up ? 'up' : 'dn'}" pathLength="1" d="${line}"/></svg>`;
 }
 
 function renderPlacar() {
