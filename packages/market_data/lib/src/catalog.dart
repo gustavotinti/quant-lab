@@ -14,7 +14,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   // ── Política monetária e inflação (nível A) ────────────────────────────
   const Indicator(
     id: 'selic_meta',
-    nome: 'Selic (meta)',
+    nome: 'Selic policy rate (BR)',
     unidade: '% a.a.',
     frequency: Frequency.daily,
     category: Category.politicaMonetaria,
@@ -22,7 +22,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'cdi_anualizado',
-    nome: 'CDI anualizado',
+    nome: 'CDI overnight rate (BR)',
     unidade: '% a.a.',
     frequency: Frequency.daily,
     category: Category.politicaMonetaria,
@@ -30,7 +30,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'ipca_mensal',
-    nome: 'IPCA (variação mensal)',
+    nome: 'CPI Brazil (monthly)',
     unidade: '% a.m.',
     frequency: Frequency.monthly,
     category: Category.inflacao,
@@ -38,7 +38,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'igpm_mensal',
-    nome: 'IGP-M (variação mensal)',
+    nome: 'IGP-M inflation (monthly)',
     unidade: '% a.m.',
     frequency: Frequency.monthly,
     category: Category.inflacao,
@@ -46,7 +46,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'inpc_mensal',
-    nome: 'INPC (variação mensal)',
+    nome: 'INPC inflation (monthly)',
     unidade: '% a.m.',
     frequency: Frequency.monthly,
     category: Category.inflacao,
@@ -54,7 +54,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'base_monetaria',
-    nome: 'Base monetária (média nos dias úteis)',
+    nome: 'Monetary base (BR)',
     unidade: 'R\$ mil',
     frequency: Frequency.monthly,
     category: Category.politicaMonetaria,
@@ -62,7 +62,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'm2',
-    nome: 'M2 (saldo em final de período)',
+    nome: 'M2 money supply (BR)',
     unidade: 'R\$ mil',
     frequency: Frequency.monthly,
     category: Category.politicaMonetaria,
@@ -70,7 +70,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'icbr',
-    nome: 'IC-Br (commodities em reais)',
+    nome: 'IC-Br commodity index (BRL)',
     unidade: 'índice',
     frequency: Frequency.monthly,
     category: Category.commodities,
@@ -80,7 +80,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   // ── Atividade e setor externo (nível A) ────────────────────────────────
   const Indicator(
     id: 'desemprego_pnadc',
-    nome: 'Taxa de desocupação (PNAD Contínua)',
+    nome: 'Unemployment rate (BR)',
     unidade: '%',
     frequency: Frequency.monthly,
     category: Category.atividade,
@@ -88,7 +88,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'ibc_br',
-    nome: 'IBC-Br (proxy mensal do PIB)',
+    nome: 'IBC-Br monthly GDP proxy (BR)',
     unidade: 'índice',
     frequency: Frequency.monthly,
     category: Category.atividade,
@@ -96,7 +96,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'reservas_internacionais',
-    nome: 'Reservas internacionais',
+    nome: 'International reserves (BR)',
     unidade: 'US\$ milhões',
     frequency: Frequency.monthly,
     category: Category.atividade,
@@ -106,7 +106,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   // ── Câmbio ─────────────────────────────────────────────────────────────
   const Indicator(
     id: 'dolar_ptax',
-    nome: 'Dólar PTAX (venda)',
+    nome: 'USD/BRL (PTAX)',
     unidade: 'BRL',
     frequency: Frequency.daily,
     category: Category.cambio,
@@ -115,7 +115,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'dxy',
-    nome: 'Índice do dólar (DXY)',
+    nome: 'US Dollar Index (DXY)',
     unidade: 'índice',
     frequency: Frequency.daily,
     category: Category.cambio,
@@ -127,7 +127,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   // ── Juros de mercado ───────────────────────────────────────────────────
   const Indicator(
     id: 'us10y',
-    nome: 'Treasury 10 anos (yield)',
+    nome: '10-year Treasury yield',
     unidade: '% a.a.',
     frequency: Frequency.daily,
     category: Category.juros,
@@ -139,7 +139,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   // erro nestes 4 e o resto do laboratório segue normal.
   const Indicator(
     id: 'fed_funds',
-    nome: 'Fed Funds (taxa básica EUA)',
+    nome: 'Fed Funds rate (US)',
     unidade: '% a.a.',
     frequency: Frequency.monthly,
     category: Category.politicaMonetaria,
@@ -147,7 +147,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'us_cpi',
-    nome: 'CPI EUA (índice de preços)',
+    nome: 'CPI United States',
     unidade: 'índice',
     frequency: Frequency.monthly,
     category: Category.inflacao,
@@ -155,7 +155,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'us2y',
-    nome: 'Treasury 2 anos (yield)',
+    nome: '2-year Treasury yield',
     unidade: '% a.a.',
     frequency: Frequency.daily,
     category: Category.juros,
@@ -163,7 +163,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'ecb_deposito',
-    nome: 'BCE — taxa de depósito (zona do euro)',
+    nome: 'ECB deposit rate (euro area)',
     unidade: '% a.a.',
     frequency: Frequency.daily,
     category: Category.politicaMonetaria,
@@ -201,7 +201,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
 
   const Indicator(
     id: 'dax',
-    nome: 'DAX (Alemanha)',
+    nome: 'DAX (Germany)',
     unidade: 'pontos',
     frequency: Frequency.daily,
     category: Category.acoes,
@@ -210,7 +210,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'nikkei',
-    nome: 'Nikkei 225 (Japão)',
+    nome: 'Nikkei 225 (Japan)',
     unidade: 'pontos',
     frequency: Frequency.daily,
     category: Category.acoes,
@@ -228,7 +228,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'ftse100',
-    nome: 'FTSE 100 (Reino Unido)',
+    nome: 'FTSE 100 (UK)',
     unidade: 'pontos',
     frequency: Frequency.daily,
     category: Category.acoes,
@@ -237,7 +237,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'cac40',
-    nome: 'CAC 40 (França)',
+    nome: 'CAC 40 (France)',
     unidade: 'pontos',
     frequency: Frequency.daily,
     category: Category.acoes,
@@ -256,7 +256,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'ibex35',
-    nome: 'IBEX 35 (Espanha)',
+    nome: 'IBEX 35 (Spain)',
     unidade: 'pontos',
     frequency: Frequency.daily,
     category: Category.acoes,
@@ -265,7 +265,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'ftsemib',
-    nome: 'FTSE MIB (Itália)',
+    nome: 'FTSE MIB (Italy)',
     unidade: 'pontos',
     frequency: Frequency.daily,
     category: Category.acoes,
@@ -275,7 +275,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'smi',
-    nome: 'SMI (Suíça)',
+    nome: 'SMI (Switzerland)',
     unidade: 'pontos',
     frequency: Frequency.daily,
     category: Category.acoes,
@@ -284,7 +284,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'asx200',
-    nome: 'ASX 200 (Austrália)',
+    nome: 'ASX 200 (Australia)',
     unidade: 'pontos',
     frequency: Frequency.daily,
     category: Category.acoes,
@@ -304,7 +304,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   // ── Commodities ────────────────────────────────────────────────────────
   const Indicator(
     id: 'ouro',
-    nome: 'Ouro (futuro COMEX)',
+    nome: 'Gold (COMEX futures)',
     unidade: 'US\$/oz',
     frequency: Frequency.daily,
     category: Category.commodities,
@@ -313,7 +313,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'prata',
-    nome: 'Prata (futuro COMEX)',
+    nome: 'Silver (COMEX futures)',
     unidade: 'US\$/oz',
     frequency: Frequency.daily,
     category: Category.commodities,
@@ -322,7 +322,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'platina',
-    nome: 'Platina (futuro NYMEX)',
+    nome: 'Platinum (NYMEX futures)',
     unidade: 'US\$/oz',
     frequency: Frequency.daily,
     category: Category.commodities,
@@ -331,7 +331,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'paladio',
-    nome: 'Paládio (futuro NYMEX)',
+    nome: 'Palladium (NYMEX futures)',
     unidade: 'US\$/oz',
     frequency: Frequency.daily,
     category: Category.commodities,
@@ -340,7 +340,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'petroleo_wti',
-    nome: 'Petróleo WTI (futuro NYMEX)',
+    nome: 'WTI crude oil (NYMEX futures)',
     unidade: 'US\$/barril',
     frequency: Frequency.daily,
     category: Category.commodities,
@@ -349,7 +349,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'gas_natural',
-    nome: 'Gás natural (futuro NYMEX)',
+    nome: 'Natural gas (NYMEX futures)',
     unidade: 'US\$/MMBtu',
     frequency: Frequency.daily,
     category: Category.commodities,
@@ -358,7 +358,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'milho',
-    nome: 'Milho (futuro CBOT)',
+    nome: 'Corn (CBOT futures)',
     unidade: 'cents/bushel',
     frequency: Frequency.daily,
     category: Category.commodities,
@@ -367,7 +367,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'soja',
-    nome: 'Soja (futuro CBOT)',
+    nome: 'Soybeans (CBOT futures)',
     unidade: 'cents/bushel',
     frequency: Frequency.daily,
     category: Category.commodities,
@@ -376,7 +376,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'cobre',
-    nome: 'Cobre (futuro COMEX)',
+    nome: 'Copper (COMEX futures)',
     unidade: 'US\$/lb',
     frequency: Frequency.daily,
     category: Category.commodities,
@@ -439,7 +439,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   // ── FX majors (negociáveis no eToro) ───────────────────────────────────
   const Indicator(
     id: 'eurusd',
-    nome: 'Euro/Dólar (EUR/USD)',
+    nome: 'Euro / US Dollar (EUR/USD)',
     unidade: 'US\$',
     frequency: Frequency.daily,
     category: Category.cambio,
@@ -449,7 +449,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'gbpusd',
-    nome: 'Libra/Dólar (GBP/USD)',
+    nome: 'Pound / US Dollar (GBP/USD)',
     unidade: 'US\$',
     frequency: Frequency.daily,
     category: Category.cambio,
@@ -459,7 +459,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'usdjpy',
-    nome: 'Dólar/Iene (USD/JPY)',
+    nome: 'US Dollar / Yen (USD/JPY)',
     unidade: 'JPY',
     frequency: Frequency.daily,
     category: Category.cambio,
@@ -468,7 +468,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'usdcad',
-    nome: 'Dólar/Dólar Canadense (USD/CAD)',
+    nome: 'US Dollar / Canadian Dollar (USD/CAD)',
     unidade: 'CAD',
     frequency: Frequency.daily,
     category: Category.cambio,
@@ -477,7 +477,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'audusd',
-    nome: 'Dólar Australiano (AUD/USD)',
+    nome: 'Australian Dollar (AUD/USD)',
     unidade: 'US\$',
     frequency: Frequency.daily,
     category: Category.cambio,
@@ -487,7 +487,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'usdchf',
-    nome: 'Dólar/Franco Suíço (USD/CHF)',
+    nome: 'US Dollar / Swiss Franc (USD/CHF)',
     unidade: 'CHF',
     frequency: Frequency.daily,
     category: Category.cambio,
@@ -496,7 +496,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'nzdusd',
-    nome: 'Dólar Neozelandês (NZD/USD)',
+    nome: 'New Zealand Dollar (NZD/USD)',
     unidade: 'US\$',
     frequency: Frequency.daily,
     category: Category.cambio,
@@ -506,7 +506,7 @@ final List<Indicator> catalogoInicial = List.unmodifiable(<Indicator>[
   ),
   const Indicator(
     id: 'eurgbp',
-    nome: 'Euro/Libra (EUR/GBP)',
+    nome: 'Euro / Pound (EUR/GBP)',
     unidade: 'GBP',
     frequency: Frequency.daily,
     category: Category.cambio,

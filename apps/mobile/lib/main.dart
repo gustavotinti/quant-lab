@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'auth.dart';
@@ -8,9 +10,12 @@ import 'widgets.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await initFirebase();
-  } catch (_) {/* sem Google Services: app segue só-leitura */}
+  // O Firebase sobe em SEGUNDO PLANO: na web o SDK pode demorar (ou nunca
+  // resolver sem config) e o painel público não depende dele — assim o
+  // primeiro frame e o carregamento dos dados acontecem de imediato.
+  unawaited(initFirebase()
+      .timeout(const Duration(seconds: 6))
+      .catchError((Object _) {}));
   runApp(const QuantLabApp());
 }
 

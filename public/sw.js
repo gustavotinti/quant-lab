@@ -1,5 +1,5 @@
 // QuantLab service worker — network-first com fallback ao cache (offline).
-const CACHE = 'quantlab-v29';
+const CACHE = 'quantlab-v30';
 const SHELL = ['/', '/styles.css', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {

@@ -29,7 +29,13 @@ Future<void> sair() async {
   await FirebaseAuth.instance.signOut();
 }
 
-User? get usuario => FirebaseAuth.instance.currentUser;
+User? get usuario {
+  try {
+    return FirebaseAuth.instance.currentUser;
+  } catch (_) {
+    return null; // Firebase ainda subindo (ou indisponível na web)
+  }
+}
 
 /// Portfólio real (null = deslogado, sem permissão ou vazio).
 Future<Map<String, dynamic>?> lerPortfolioEtoro() async {

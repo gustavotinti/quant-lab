@@ -1,8 +1,8 @@
 /// Horizontes de análise das oportunidades.
 enum Horizon {
-  curto('Curto prazo', 'até ~3 meses'),
-  medio('Médio prazo', '3 a 18 meses'),
-  longo('Longo prazo', 'acima de 18 meses');
+  curto('Short term', 'up to ~3 months'),
+  medio('Medium term', '3 to 18 months'),
+  longo('Long term', 'over 18 months');
 
   const Horizon(this.label, this.janela);
   final String label;

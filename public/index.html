@@ -25,6 +25,8 @@
 </head>
 <body>
 
+<div class="scroll-progress" aria-hidden="true"></div>
+
 <header class="topbar">
   <div class="brand">Quant<span>Lab</span></div>
   <div class="topbar-right">
@@ -65,6 +67,35 @@
       <button id="btn-login-hero" class="btn btn-cta"><svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 40.4 44 35 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg> Sign in with Google</button>
     </div>
     <p id="hero-hint" class="hero-hint">Free sign-in — just so we know who is using the lab.</p>
+
+    <section class="flutter-demo">
+      <div class="fd-head">
+        <span class="fd-tag">Live Flutter build</span>
+        <h2>The app, running right here.</h2>
+        <p>The same Dart domain layer that powers the Android build — compiled to
+          Flutter Web and streaming the very same live data. No install, no mockup.</p>
+      </div>
+      <div class="fd-grid">
+        <div class="phone">
+          <span class="phone-notch"></span>
+          <iframe id="flutter-frame" data-src="/app/" title="QuantLab Flutter app running live"
+            loading="lazy" referrerpolicy="no-referrer"></iframe>
+          <div id="fd-load" class="fd-load">tap to load the Flutter app</div>
+        </div>
+        <ul class="fd-points">
+          <li><b>One domain, three surfaces</b> — the signal engine is pure Dart
+            (DDD, 60+ unit tests) shared by Android, Flutter Web and the pipeline.</li>
+          <li><b>Real data, not screenshots</b> — the same feed that refreshes
+            every 2 hours from official sources.</li>
+          <li><b>Firebase native</b> — Auth, Firestore and Hosting wired in the
+            same codebase.</li>
+          <li class="fd-cta">
+            <a class="btn" href="/app/" target="_blank" rel="noopener">Open full screen ↗</a>
+            <a class="btn" href="/QuantLab-v1.zip">Android APK</a>
+          </li>
+        </ul>
+      </div>
+    </section>
   </section>
 
   <!-- DASHBOARD (after sign-in) -->
@@ -343,6 +374,28 @@
         </div>`).join('')}</div>
       <div class="hl-foot">${ords.length} live signals · ${p.totalSinais || 0} calls tracked on the public scoreboard · refreshed every 2h from official data</div>`;
   } catch (_) { /* teaser is optional */ }
+})();
+</script>
+<script>
+// carrega o app Flutter sob demanda (mantem o primeiro paint leve)
+(() => {
+  const fr = document.getElementById('flutter-frame');
+  const lbl = document.getElementById('fd-load');
+  if (!fr) return;
+  let carregou = false;
+  const carregar = () => {
+    if (carregou) return;
+    carregou = true;
+    fr.src = fr.dataset.src;
+    if (lbl) { lbl.textContent = 'starting the Flutter engine…'; fr.addEventListener('load', () => lbl.remove()); }
+  };
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((es) => {
+      if (es.some((e) => e.isIntersecting)) { carregar(); io.disconnect(); }
+    }, { rootMargin: '200px' });
+    io.observe(fr);
+  } else { carregar(); }
+  lbl?.addEventListener('click', carregar);
 })();
 </script>
 <script type="module" src="/app.js"></script>

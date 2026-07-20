@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base href="/app/">
+
+  <meta charset="UTF-8">
+  <!-- SEM esta meta o Flutter Web nao acompanha a largura real da tela
+       (a view fica presa num tamanho fixo e o layout corta). -->
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description"
+    content="QuantLab — quantitative investment research: LONG/SHORT signals with historical accuracy, built in Flutter.">
+  <meta name="theme-color" content="#070b12">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="QuantLab">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <title>QuantLab</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; padding: 0;
+      overflow: hidden; background: #070b12; }
+    #boot { position: fixed; inset: 0; z-index: 5; display: grid;
+      place-items: center; background: #070b12; text-align: center;
+      font: 600 12.5px/1.5 "Segoe UI", system-ui, sans-serif; color: #8aa0b8;
+      transition: opacity .45s ease; }
+    #boot .brand { font-size: 19px; font-weight: 800; color: #e6edf6;
+      letter-spacing: -.4px; margin-bottom: 16px; }
+    #boot .brand span { color: #38e0a2; }
+    #boot .ring { width: 32px; height: 32px; border-radius: 50%;
+      border: 3px solid rgba(120,160,210,.18); border-top-color: #38e0a2;
+      animation: spin .9s linear infinite; margin: 0 auto 14px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="boot">
+    <div>
+      <div class="brand">Quant<span>Lab</span></div>
+      <div class="ring"></div>
+      starting the Flutter engine…
+    </div>
+  </div>
+
+  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // some com o splash assim que o Flutter pinta o primeiro frame
+    window.addEventListener('flutter-first-frame', function () {
+      var b = document.getElementById('boot');
+      if (!b) return;
+      b.style.opacity = '0';
+      setTimeout(function () { b.remove(); }, 500);
+    });
+  </script>
+</body>
+</html>

@@ -2,14 +2,14 @@ import 'frequency.dart';
 
 /// Categorias da "tabela periódica da economia".
 enum Category {
-  politicaMonetaria('Política monetária'),
-  inflacao('Inflação'),
-  atividade('Atividade econômica'),
-  cambio('Câmbio'),
-  juros('Juros de mercado'),
+  politicaMonetaria('Monetary policy'),
+  inflacao('Inflation'),
+  atividade('Economic activity'),
+  cambio('FX'),
+  juros('Market rates'),
   commodities('Commodities'),
-  acoes('Índices de ações'),
-  cripto('Cripto');
+  acoes('Equity indices'),
+  cripto('Crypto');
 
   const Category(this.label);
   final String label;
